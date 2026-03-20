@@ -44,7 +44,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [1.0.1] - 2025-03-20
+### Added
+- CHANGELOG.md with version history
+- MIT LICENSE file
 
+
+## [1.0.2] - 2025-03-20
 ### Fixed
 - Added autoprefixer, postcss, tailwindcss to framework ignore list (fixes false positives)
 - Added prettier, eslint, and related configs to ignore list
@@ -52,8 +57,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Better detection of config-based dependencies
 
 ### Added
-- CHANGELOG.md with version history
-- MIT LICENSE file
 - Warning message when DevCompass is installed locally instead of globally
 - Improved ignore patterns for CSS/PostCSS tooling
 - Better ESLint plugin detection
