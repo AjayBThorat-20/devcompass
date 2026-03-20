@@ -13,12 +13,13 @@ const {
   logDivider,
   getScoreColor 
 } = require('../utils/logger');
+const packageJson = require('../../package.json');
 
 async function analyze(options) {
   const projectPath = options.path || process.cwd();
   
   console.log('\n');
-  log(chalk.cyan.bold('🔍 DevCompass v1.0.0') + ' - Analyzing your project...\n');
+  log(chalk.cyan.bold(`🔍 DevCompass v${packageJson.version}`) + ' - Analyzing your project...\n');
   
   const spinner = ora({
     text: 'Loading project...',
@@ -34,10 +35,10 @@ async function analyze(options) {
       process.exit(1);
     }
     
-    let packageJson;
+    let projectPackageJson;
     try {
       const fileContent = fs.readFileSync(packageJsonPath, 'utf8');
-      packageJson = JSON.parse(fileContent);
+      projectPackageJson = JSON.parse(fileContent);
     } catch (error) {
       spinner.fail(chalk.red('Invalid package.json format'));
       console.log(chalk.yellow(`\n💡 Error: ${error.message}\n`));
@@ -45,8 +46,8 @@ async function analyze(options) {
     }
     
     const dependencies = {
-      ...(packageJson.dependencies || {}),
-      ...(packageJson.devDependencies || {})
+      ...(projectPackageJson.dependencies || {}),
+      ...(projectPackageJson.devDependencies || {})
     };
     
     const totalDeps = Object.keys(dependencies).length;
@@ -103,13 +104,13 @@ function displayResults(unusedDeps, outdatedDeps, score, totalDeps) {
   if (unusedDeps.length > 0) {
     logSection('🔴 UNUSED DEPENDENCIES', unusedDeps.length);
     
-    const displayCount = Math.min(5, unusedDeps.length);
+    const displayCount = Math.min(10, unusedDeps.length);
     unusedDeps.slice(0, displayCount).forEach(dep => {
       log(`  ${chalk.red('●')} ${dep.name}`);
     });
     
-    if (unusedDeps.length > 5) {
-      log(chalk.gray(`\n  ... and ${unusedDeps.length - 5} more\n`));
+    if (unusedDeps.length > 10) {
+      log(chalk.gray(`\n  ... and ${unusedDeps.length - 10} more\n`));
     }
     
     log(chalk.gray('\n  Why marked unused:'));
@@ -126,7 +127,7 @@ function displayResults(unusedDeps, outdatedDeps, score, totalDeps) {
   if (outdatedDeps.length > 0) {
     logSection('🟡 OUTDATED PACKAGES', outdatedDeps.length);
     
-    const displayCount = Math.min(5, outdatedDeps.length);
+    const displayCount = Math.min(10, outdatedDeps.length);
     outdatedDeps.slice(0, displayCount).forEach(dep => {
       const nameCol = dep.name.padEnd(20);
       const currentVer = chalk.yellow(dep.current);
@@ -137,8 +138,10 @@ function displayResults(unusedDeps, outdatedDeps, score, totalDeps) {
       log(`  ${nameCol} ${currentVer} ${arrow} ${latestVer}  ${updateType}`);
     });
     
-    if (outdatedDeps.length > 5) {
-      log(chalk.gray(`\n  ... and ${outdatedDeps.length - 5} more\n`));
+    if (outdatedDeps.length > 10) {
+      log(chalk.gray(`\n  ... and ${outdatedDeps.length - 10} more\n`));
+    } else {
+      log('');
     }
   } else {
     logSection('✅ OUTDATED PACKAGES');
@@ -162,7 +165,7 @@ function displayResults(unusedDeps, outdatedDeps, score, totalDeps) {
     log('  Clean up unused dependencies:\n');
     
     const packagesToRemove = unusedDeps
-      .slice(0, 5)
+      .slice(0, 10)
       .map(d => d.name)
       .join(' ');
     
