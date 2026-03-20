@@ -1,0 +1,50 @@
+{
+  "name": "devcompass",
+  "version": "1.0.0",
+  "description": "Analyze your JavaScript projects for unused dependencies and outdated packages",
+  "main": "src/index.js",
+  "bin": {
+    "devcompass": "./bin/devcompass.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "dependencies",
+    "npm",
+    "outdated",
+    "unused",
+    "analyzer",
+    "health",
+    "cli",
+    "devtools",
+    "package-manager",
+    "dependency-analysis"
+  ],
+  "author": "Ajay Thorat <ajaythorat988@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "depcheck": "^1.4.7",
+    "npm-check-updates": "^16.14.12",
+    "ora": "^5.4.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AjayBThorat-20/devcompass.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AjayBThorat-20/devcompass/issues"
+  },
+  "homepage": "https://github.com/AjayBThorat-20/devcompass#readme"
+}
