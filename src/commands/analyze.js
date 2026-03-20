@@ -104,14 +104,10 @@ function displayResults(unusedDeps, outdatedDeps, score, totalDeps) {
   if (unusedDeps.length > 0) {
     logSection('🔴 UNUSED DEPENDENCIES', unusedDeps.length);
     
-    const displayCount = Math.min(10, unusedDeps.length);
-    unusedDeps.slice(0, displayCount).forEach(dep => {
+    // Show ALL unused deps
+    unusedDeps.forEach(dep => {
       log(`  ${chalk.red('●')} ${dep.name}`);
     });
-    
-    if (unusedDeps.length > 10) {
-      log(chalk.gray(`\n  ... and ${unusedDeps.length - 10} more\n`));
-    }
     
     log(chalk.gray('\n  Why marked unused:'));
     log(chalk.gray('  • No import/require found in source files'));
@@ -127,8 +123,8 @@ function displayResults(unusedDeps, outdatedDeps, score, totalDeps) {
   if (outdatedDeps.length > 0) {
     logSection('🟡 OUTDATED PACKAGES', outdatedDeps.length);
     
-    const displayCount = Math.min(10, outdatedDeps.length);
-    outdatedDeps.slice(0, displayCount).forEach(dep => {
+    // Show ALL outdated packages
+    outdatedDeps.forEach(dep => {
       const nameCol = dep.name.padEnd(20);
       const currentVer = chalk.yellow(dep.current);
       const arrow = chalk.gray('→');
@@ -138,11 +134,7 @@ function displayResults(unusedDeps, outdatedDeps, score, totalDeps) {
       log(`  ${nameCol} ${currentVer} ${arrow} ${latestVer}  ${updateType}`);
     });
     
-    if (outdatedDeps.length > 10) {
-      log(chalk.gray(`\n  ... and ${outdatedDeps.length - 10} more\n`));
-    } else {
-      log('');
-    }
+    log('');
   } else {
     logSection('✅ OUTDATED PACKAGES');
     log(chalk.green('  All packages are up to date!\n'));
@@ -165,7 +157,6 @@ function displayResults(unusedDeps, outdatedDeps, score, totalDeps) {
     log('  Clean up unused dependencies:\n');
     
     const packagesToRemove = unusedDeps
-      .slice(0, 10)
       .map(d => d.name)
       .join(' ');
     
