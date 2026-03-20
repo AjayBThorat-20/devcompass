@@ -1,6 +1,6 @@
 {
   "name": "devcompass",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Analyze your JavaScript projects for unused dependencies and outdated packages",
   "main": "src/index.js",
   "bin": {
