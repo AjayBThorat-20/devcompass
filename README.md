@@ -15,11 +15,23 @@ Analyze your JavaScript projects to find unused dependencies, outdated packages,
 - 📊 **Project health score** - Get a 0-10 rating for your dependencies
 - 🎨 **Beautiful terminal UI** - Colored output with clear sections
 - ⚡ **Fast analysis** - Scans projects in seconds
-- 🔧 **Framework-aware** - Handles React, Next.js, Angular, NestJS
+- 🔧 **Framework-aware** - Handles React, Next.js, Angular, NestJS, PostCSS, Tailwind
 
 ## 🚀 Installation
+
+**Global installation (recommended):**
 ```bash
 npm install -g devcompass
+```
+
+**Local installation:**
+```bash
+npm install --save-dev devcompass
+```
+
+**One-time use (no installation):**
+```bash
+npx devcompass analyze
 ```
 
 ## 📖 Usage
@@ -31,7 +43,7 @@ devcompass analyze
 
 ### Example Output
 ```
-🔍 DevCompass v1.0.0 - Analyzing your project...
+🔍 DevCompass v1.0.1 - Analyzing your project...
 ✔ Scanned 15 dependencies in project
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -72,7 +84,16 @@ devcompass analyze
 - Uses AST parsing via [depcheck](https://github.com/depcheck/depcheck)
 - Scans all `.js`, `.jsx`, `.ts`, `.tsx` files
 - Excludes `node_modules`, `dist`, `build` folders
-- Framework-aware (won't flag React, Next.js core packages)
+- Framework-aware (automatically ignores framework core packages)
+
+### Automatically Ignored Packages
+DevCompass won't flag these as unused (they're typically used in config files):
+- **Frameworks:** React, Next.js, Angular, NestJS
+- **Build tools:** Webpack, Vite, Rollup, ESBuild
+- **Testing:** Jest, Vitest, Mocha, Testing Library
+- **CSS/PostCSS:** PostCSS, Autoprefixer, Tailwind CSS, cssnano
+- **Linting/Formatting:** ESLint, Prettier, ESLint plugins/configs
+- **TypeScript:** TypeScript, @types/* packages
 
 ### Outdated Packages
 - Checks against npm registry
@@ -90,6 +111,9 @@ devcompass analyze
 # Analyze current directory
 devcompass analyze
 
+# Analyze specific directory
+devcompass analyze --path /path/to/project
+
 # Show version
 devcompass --version
 
@@ -97,10 +121,35 @@ devcompass --version
 devcompass --help
 ```
 
+## ⚠️ Known Issues & Best Practices
+
+### Installation
+- **Recommended:** Install globally with `npm install -g devcompass`
+- If installed locally, DevCompass may appear in the unused dependencies list (this is expected)
+- You'll see a warning if running from local installation
+
+### Dependency Warnings
+Some deprecation warnings may appear during installation. These come from third-party dependencies (depcheck, npm-check-updates) and don't affect functionality.
+
+### False Positives
+DevCompass is smart about config-based dependencies, but occasionally may flag packages that are only used in:
+- Config files (webpack.config.js, next.config.js, etc.)
+- Build scripts
+- Type definitions
+
+If you encounter a false positive, please [report it](https://github.com/AjayBThorat-20/devcompass/issues)!
+
 ## 🛠️ Requirements
 
 - Node.js >= 14.0.0
 - npm or yarn
+
+## 💡 Tips
+
+1. **Run regularly** - Add to your CI/CD pipeline or git hooks
+2. **Check before updates** - See what's outdated before updating
+3. **Clean up first** - Remove unused deps before adding new ones
+4. **Verify before uninstalling** - DevCompass helps identify candidates, but always verify before removing
 
 ## 🤝 Contributing
 
@@ -112,6 +161,23 @@ Contributions are welcome! Feel free to:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+### Development
+```bash
+# Clone the repo
+git clone https://github.com/AjayBThorat-20/devcompass.git
+cd devcompass
+
+# Install dependencies
+npm install
+
+# Test locally
+node bin/devcompass.js analyze
+
+# Run on test projects
+cd examples/test-project
+node ../../bin/devcompass.js analyze
+```
+
 ## 📝 License
 
 MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
@@ -121,6 +187,7 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 - [npm Package](https://www.npmjs.com/package/devcompass)
 - [GitHub Repository](https://github.com/AjayBThorat-20/devcompass)
 - [Report Issues](https://github.com/AjayBThorat-20/devcompass/issues)
+- [Changelog](https://github.com/AjayBThorat-20/devcompass/blob/main/CHANGELOG.md)
 
 ## 🙏 Acknowledgments
 
@@ -131,6 +198,14 @@ Built with:
 - [ora](https://github.com/sindresorhus/ora) - Spinners
 - [commander](https://github.com/tj/commander.js) - CLI framework
 
+## 📈 Stats
+
+Check out DevCompass stats:
+- [npm trends](https://npmtrends.com/devcompass)
+- [npm-stat](https://npm-stat.com/charts.html?package=devcompass)
+
 ---
 
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
+
+*DevCompass - Keep your dependencies healthy!* 🧭

@@ -2,8 +2,17 @@
 
 const { Command } = require('commander');
 const chalk = require('chalk');
+const path = require('path');
 const { analyze } = require('../src/commands/analyze');
 const packageJson = require('../package.json');
+
+// Check if running from local node_modules
+const isLocalInstall = __dirname.includes('node_modules');
+if (isLocalInstall && process.argv.includes('analyze')) {
+  console.log(chalk.yellow('\n⚠️  DevCompass is installed locally as a dependency.'));
+  console.log(chalk.yellow('   For best results, install globally:'));
+  console.log(chalk.cyan('   npm install -g devcompass\n'));
+}
 
 const program = new Command();
 

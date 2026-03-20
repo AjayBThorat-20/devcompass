@@ -14,6 +14,7 @@ async function findUnusedDeps(projectPath, dependencies) {
       '*.min.js'
     ],
     ignoreMatches: [
+      // Framework core packages
       'react',
       'react-dom',
       'react-native',
@@ -26,14 +27,34 @@ async function findUnusedDeps(projectPath, dependencies) {
       '@nestjs/platform-express',
       'typescript',
       '@types/*',
+      
+      // Build tools
       'webpack',
       'vite',
       'rollup',
       'esbuild',
+      
+      // Testing
       'jest',
       'vitest',
       'mocha',
-      '@testing-library/*'
+      '@testing-library/*',
+      
+      // CSS/PostCSS (used in config files)
+      'postcss',
+      'autoprefixer',
+      'tailwindcss',
+      'cssnano',
+      
+      // Linting/Formatting (used in config files)
+      'prettier',
+      'eslint',
+      'eslint-config-*',
+      '@eslint/*',
+      'eslint-plugin-*',
+      
+      // Self-reference (don't flag devcompass as unused)
+      'devcompass'
     ]
     // REMOVED parsers - let depcheck use defaults
   };
