@@ -12,4 +12,5 @@ coverage/
 .env
 .env.local
 *.tmp
-.cache/
+.cache/.npmrc
+.npmrc
