@@ -1,3 +1,4 @@
+// src/alerts/index.js
 const { matchIssues } = require('./matcher');
 const { formatAlerts } = require('./formatter');
 const { resolveInstalledVersions } = require('./resolver');

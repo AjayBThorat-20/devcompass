@@ -1,3 +1,4 @@
+// src/analyzers/unused-deps.js
 const depcheck = require('depcheck');
 
 async function findUnusedDeps(projectPath, dependencies) {

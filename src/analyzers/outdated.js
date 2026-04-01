@@ -1,3 +1,5 @@
+// src/analyzers/outdated.js
+
 const ncu = require('npm-check-updates');
 const path = require('path');
 

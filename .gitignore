@@ -14,3 +14,4 @@ coverage/
 *.tmp
 .cache/.npmrc
 .npmrc
+.devcompass-cache.json

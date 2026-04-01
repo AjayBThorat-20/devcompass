@@ -1,3 +1,4 @@
+// src/commands/analyze.js
 const chalk = require('chalk');
 const ora = require('ora');
 const path = require('path');
@@ -18,13 +19,25 @@ const {
   logDivider,
   getScoreColor 
 } = require('../utils/logger');
+const { loadConfig, filterAlerts } = require('../config/loader');
+const { getCached, setCache } = require('../cache/manager');
+const { formatAsJson } = require('../utils/json-formatter');
+const { handleCiMode } = require('../utils/ci-handler');
 const packageJson = require('../../package.json');
 
 async function analyze(options) {
   const projectPath = options.path || process.cwd();
   
-  console.log('\n');
-  log(chalk.cyan.bold(`🔍 DevCompass v${packageJson.version}`) + ' - Analyzing your project...\n');
+  // Load config
+  const config = loadConfig(projectPath);
+  
+  // Handle output modes
+  const outputMode = options.json ? 'json' : (options.ci ? 'ci' : (options.silent ? 'silent' : 'normal'));
+  
+  if (outputMode !== 'silent') {
+    console.log('\n');
+    log(chalk.cyan.bold(`🔍 DevCompass v${packageJson.version}`) + ' - Analyzing your project...\n');
+  }
   
   const spinner = ora({
     text: 'Loading project...',
@@ -63,32 +76,76 @@ async function analyze(options) {
       process.exit(0);
     }
     
-    // Check for ecosystem alerts
+    // Check for ecosystem alerts (with cache)
     spinner.text = 'Checking ecosystem alerts...';
     let alerts = [];
-    try {
-      alerts = await checkEcosystemAlerts(projectPath, dependencies);
-    } catch (error) {
-      console.log(chalk.yellow('\n⚠️  Could not check ecosystem alerts'));
-      console.log(chalk.gray(`   Error: ${error.message}\n`));
+    
+    if (config.cache) {
+      alerts = getCached(projectPath, 'alerts');
     }
     
+    if (!alerts) {
+      try {
+        alerts = await checkEcosystemAlerts(projectPath, dependencies);
+        if (config.cache) {
+          setCache(projectPath, 'alerts', alerts);
+        }
+      } catch (error) {
+        if (outputMode !== 'silent') {
+          console.log(chalk.yellow('\n⚠️  Could not check ecosystem alerts'));
+          console.log(chalk.gray(`   Error: ${error.message}\n`));
+        }
+        alerts = [];
+      }
+    }
+    
+    // Filter alerts based on config
+    alerts = filterAlerts(alerts, config);
+    
+    // Unused dependencies
     spinner.text = 'Detecting unused dependencies...';
     let unusedDeps = [];
-    try {
-      unusedDeps = await findUnusedDeps(projectPath, dependencies);
-    } catch (error) {
-      console.log(chalk.yellow('\n⚠️  Could not detect unused dependencies'));
-      console.log(chalk.gray(`   Error: ${error.message}\n`));
+    
+    if (config.cache) {
+      unusedDeps = getCached(projectPath, 'unused');
     }
     
+    if (!unusedDeps) {
+      try {
+        unusedDeps = await findUnusedDeps(projectPath, dependencies);
+        if (config.cache) {
+          setCache(projectPath, 'unused', unusedDeps);
+        }
+      } catch (error) {
+        if (outputMode !== 'silent') {
+          console.log(chalk.yellow('\n⚠️  Could not detect unused dependencies'));
+          console.log(chalk.gray(`   Error: ${error.message}\n`));
+        }
+        unusedDeps = [];
+      }
+    }
+    
+    // Outdated packages
     spinner.text = 'Checking for outdated packages...';
     let outdatedDeps = [];
-    try {
-      outdatedDeps = await findOutdatedDeps(projectPath, dependencies);
-    } catch (error) {
-      console.log(chalk.yellow('\n⚠️  Could not check for outdated packages'));
-      console.log(chalk.gray(`   Error: ${error.message}\n`));
+    
+    if (config.cache) {
+      outdatedDeps = getCached(projectPath, 'outdated');
+    }
+    
+    if (!outdatedDeps) {
+      try {
+        outdatedDeps = await findOutdatedDeps(projectPath, dependencies);
+        if (config.cache) {
+          setCache(projectPath, 'outdated', outdatedDeps);
+        }
+      } catch (error) {
+        if (outputMode !== 'silent') {
+          console.log(chalk.yellow('\n⚠️  Could not check for outdated packages'));
+          console.log(chalk.gray(`   Error: ${error.message}\n`));
+        }
+        outdatedDeps = [];
+      }
     }
     
     const alertPenalty = calculateAlertPenalty(alerts);
@@ -102,7 +159,18 @@ async function analyze(options) {
     
     spinner.succeed(chalk.green(`Scanned ${totalDeps} dependencies in project`));
     
-    displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps);
+    // Handle different output modes
+    if (outputMode === 'json') {
+      const jsonOutput = formatAsJson(alerts, unusedDeps, outdatedDeps, score, totalDeps);
+      console.log(jsonOutput);
+    } else if (outputMode === 'ci') {
+      displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps);
+      handleCiMode(score, config, alerts, unusedDeps);
+    } else if (outputMode === 'silent') {
+      // Silent mode - no output
+    } else {
+      displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps);
+    }
     
   } catch (error) {
     spinner.fail(chalk.red('Analysis failed'));
@@ -273,6 +341,8 @@ function displayQuickWins(alerts, unusedDeps, outdatedDeps, score, totalDeps) {
     
     const improvedScoreColor = getScoreColor(improvedScore.total);
     log(`  ${chalk.green('✓')} Improve health score → ${improvedScoreColor(improvedScore.total + '/10')}\n`);
+    
+    log(chalk.cyan('💡 TIP: Run') + chalk.bold(' devcompass fix ') + chalk.cyan('to apply these fixes automatically!\n'));
     
     logDivider();
   }

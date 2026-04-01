@@ -1,3 +1,4 @@
+// src/analyzers/scoring.js
 function calculateScore(totalDeps, unusedCount, outdatedCount, alertsCount = 0, alertPenalty = 0) {
   let score = 10;
   

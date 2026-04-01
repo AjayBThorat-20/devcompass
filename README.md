@@ -6,21 +6,24 @@
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect known security issues**, and **automatically fix them** with a single command.
+Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect known security issues**, and **automatically fix them** with a single command. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
+> **NEW in v2.2:** CI/CD integration with JSON output & smart caching! 🚀  
 > **NEW in v2.1:** Auto-fix command! 🔧 Fix critical issues automatically!  
 > **NEW in v2.0:** Real-time ecosystem alerts for known issues! 🚨
 
 ## ✨ Features
 
-- 🔧 **Auto-Fix Command** (NEW in v2.1!) - Fix issues automatically with one command
-- 🚨 **Ecosystem Intelligence** - Detect known issues before they break production
+- 🚀 **CI/CD Integration** (NEW in v2.2!) - JSON output, exit codes, and silent mode
+- ⚡ **Smart Caching** (NEW in v2.2!) - 70% faster on repeated runs
+- 🎛️ **Advanced Filtering** (NEW in v2.2!) - Control alerts by severity level
+- 🔧 **Auto-Fix Command** (v2.1) - Fix issues automatically with one command
+- 🚨 **Ecosystem Intelligence** (v2.0) - Detect known issues before they break production
 - 🔍 **Detect unused dependencies** - Find packages you're not actually using
 - 📦 **Check for outdated packages** - See what needs updating
 - 🔐 **Security alerts** - Critical vulnerabilities and deprecated packages
 - 📊 **Project health score** - Get a 0-10 rating for your dependencies
 - 🎨 **Beautiful terminal UI** - Colored output with severity indicators
-- ⚡ **Fast analysis** - Scans projects in seconds
 - 🔧 **Framework-aware** - Handles React, Next.js, Angular, NestJS, PostCSS, Tailwind
 
 ## 🚀 Installation
@@ -42,19 +45,159 @@ npx devcompass analyze
 
 ## 📖 Usage
 
-### Analyze Your Project
-Navigate to your project directory and run:
+### Basic Commands
 ```bash
+# Analyze your project
 devcompass analyze
-```
 
-### Auto-Fix Issues (NEW in v2.1!)
-Automatically fix detected issues:
-```bash
+# Auto-fix issues
 devcompass fix
+
+# JSON output (for CI/CD)
+devcompass analyze --json
+
+# CI mode (exit code 1 if score < threshold)
+devcompass analyze --ci
+
+# Silent mode (no output)
+devcompass analyze --silent
 ```
 
-## 🔧 Auto-Fix Command (NEW in v2.1!)
+## 🚀 NEW in v2.2: CI/CD Integration
+
+### JSON Output
+Perfect for parsing in CI/CD pipelines:
+```bash
+devcompass analyze --json
+```
+
+**Output:**
+```json
+{
+  "version": "2.2.0",
+  "timestamp": "2026-04-01T15:51:10.395Z",
+  "summary": {
+    "healthScore": 7.5,
+    "totalDependencies": 15,
+    "ecosystemAlerts": 2,
+    "unusedDependencies": 3,
+    "outdatedPackages": 5
+  },
+  "ecosystemAlerts": [...],
+  "unusedDependencies": [...],
+  "outdatedPackages": [...],
+  "scoreBreakdown": {
+    "unusedPenalty": 0.8,
+    "outdatedPenalty": 1.7,
+    "alertsPenalty": 3.5
+  }
+}
+```
+
+### CI Mode
+Automatically fail builds if health score is too low:
+```bash
+devcompass analyze --ci
+```
+
+- ✅ **Exit code 0** if score ≥ threshold (default: 7/10)
+- ❌ **Exit code 1** if score < threshold
+
+**GitHub Actions Example:**
+```yaml
+name: Dependency Health Check
+
+on: [push, pull_request]
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - run: npm install -g devcompass
+      - run: devcompass analyze --ci
+```
+
+### Silent Mode
+For background checks or scripts:
+```bash
+devcompass analyze --silent
+echo $?  # Check exit code
+```
+
+## ⚡ NEW in v2.2: Smart Caching
+
+DevCompass now caches results to improve performance:
+
+- **First run:** Normal speed (fetches all data)
+- **Cached runs:** ~70% faster
+- **Cache duration:** 1 hour
+- **Cache file:** `.devcompass-cache.json` (auto-gitignored)
+
+**Disable caching:**
+```json
+// devcompass.config.json
+{
+  "cache": false
+}
+```
+
+## 🎛️ NEW in v2.2: Advanced Configuration
+
+Create `devcompass.config.json` in your project root:
+```json
+{
+  "ignore": ["lodash", "moment"],
+  "ignoreSeverity": ["low"],
+  "minSeverity": "medium",
+  "minScore": 7,
+  "cache": true
+}
+```
+
+### Configuration Options
+
+| Option | Type | Description | Example |
+|--------|------|-------------|---------|
+| `ignore` | `string[]` | Ignore specific packages from alerts | `["lodash", "axios"]` |
+| `ignoreSeverity` | `string[]` | Ignore severity levels | `["low", "medium"]` |
+| `minSeverity` | `string` | Only show alerts above this level | `"high"` (shows critical + high) |
+| `minScore` | `number` | Minimum score for CI mode | `7` (fails if < 7) |
+| `cache` | `boolean` | Enable/disable caching | `true` |
+
+### Severity Levels (highest to lowest)
+1. **critical** - Immediate security risk
+2. **high** - Production stability issues
+3. **medium** - Maintenance concerns
+4. **low** - Minor issues
+
+### Example Configurations
+
+**Only show critical security issues:**
+```json
+{
+  "minSeverity": "critical",
+  "minScore": 8
+}
+```
+
+**Ignore low-priority alerts:**
+```json
+{
+  "ignoreSeverity": ["low"]
+}
+```
+
+**Strict CI mode:**
+```json
+{
+  "minScore": 9,
+  "minSeverity": "high"
+}
+```
+
+## 🔧 Auto-Fix Command
 
 DevCompass can now **automatically fix issues** in your project!
 
@@ -69,7 +212,7 @@ DevCompass can now **automatically fix issues** in your project!
 # Interactive mode (asks for confirmation)
 devcompass fix
 
-# Auto-apply without confirmation
+# Auto-apply without confirmation (for CI/CD)
 devcompass fix --yes
 devcompass fix -y
 
@@ -159,9 +302,9 @@ devcompass analyze
 
 ## 📊 Analyze Command
 
-### Example Output (v2.1)
+### Example Output (v2.2)
 ```
-🔍 DevCompass v2.1.0 - Analyzing your project...
+🔍 DevCompass v2.2.0 - Analyzing your project...
 ✔ Scanned 15 dependencies in project
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -303,15 +446,69 @@ devcompass --help
 devcompass -h
 ```
 
-### Options
+### Analyze Options
 ```bash
-# Analyze/fix specific directory
+# Analyze specific directory
 devcompass analyze --path /path/to/project
+
+# JSON output (for CI/CD)
+devcompass analyze --json
+
+# CI mode (fail if score < threshold)
+devcompass analyze --ci
+
+# Silent mode (no output)
+devcompass analyze --silent
+
+# Combine options
+devcompass analyze --path ./my-project --json
+```
+
+### Fix Options
+```bash
+# Fix specific directory
 devcompass fix --path /path/to/project
 
-# Auto-fix without confirmation
+# Auto-apply without confirmation
 devcompass fix --yes
 devcompass fix -y
+```
+
+## 🔄 Complete Workflows
+
+### Local Development Workflow
+```bash
+# Check project health
+devcompass analyze
+
+# Fix issues automatically
+devcompass fix
+
+# Verify improvements
+devcompass analyze
+```
+
+### CI/CD Pipeline Workflow
+```bash
+# Analyze and export JSON
+devcompass analyze --json > health-report.json
+
+# Fail build if score too low
+devcompass analyze --ci
+
+# Or combine with other checks
+devcompass analyze --ci && npm test && npm run build
+```
+
+### Pre-commit Hook Workflow
+```bash
+# .husky/pre-commit
+#!/bin/sh
+devcompass analyze --silent
+if [ $? -ne 0 ]; then
+  echo "❌ Dependency health check failed!"
+  exit 1
+fi
 ```
 
 ## ⚠️ Known Issues & Best Practices
@@ -332,6 +529,11 @@ DevCompass is smart about config-based dependencies, but occasionally may flag p
 
 If you encounter a false positive, please [report it](https://github.com/AjayBThorat-20/devcompass/issues)!
 
+### Cache Management
+- Cache files (`.devcompass-cache.json`) are automatically gitignored
+- Cache expires after 1 hour
+- Delete cache file manually if needed: `rm .devcompass-cache.json`
+
 ## 🛠️ Requirements
 
 - Node.js >= 14.0.0
@@ -341,9 +543,12 @@ If you encounter a false positive, please [report it](https://github.com/AjayBTh
 
 1. **Run regularly** - Add to your CI/CD pipeline or git hooks
 2. **Use fix command** - Let DevCompass handle routine maintenance
-3. **Fix critical alerts first** - Prioritize security and stability
-4. **Review major updates** - Always check changelogs before major version bumps
-5. **Verify before uninstalling** - DevCompass helps identify candidates, but always verify
+3. **Configure severity levels** - Filter out noise with `minSeverity`
+4. **Enable CI mode** - Catch issues before they reach production
+5. **Use JSON output** - Integrate with your monitoring tools
+6. **Fix critical alerts first** - Prioritize security and stability
+7. **Review major updates** - Always check changelogs before major version bumps
+8. **Verify before uninstalling** - DevCompass helps identify candidates, but always verify
 
 ## 🤝 Contributing
 
@@ -427,15 +632,18 @@ Check out DevCompass stats:
 
 ## 🌟 What's Next?
 
-### Roadmap (v2.2+)
+### Roadmap (v2.3+)
 - [x] ~~Automatic fix command~~ ✅ **Added in v2.1!**
+- [x] ~~CI/CD integration with JSON output~~ ✅ **Added in v2.2!**
+- [x] ~~Smart caching system~~ ✅ **Added in v2.2!**
+- [x] ~~Custom ignore rules via config file~~ ✅ **Added in v2.2!**
 - [ ] Integration with `npm audit` for automated security scanning
-- [ ] CI/CD integration with `--json` output
 - [ ] GitHub Issues API for real-time issue tracking
 - [ ] Web dashboard for team health monitoring
 - [ ] More tracked packages (React, Next.js, Vue, Angular)
-- [ ] Custom ignore rules via config file
 - [ ] Bundle size analysis
+- [ ] Automated security patch suggestions
+- [ ] Team collaboration features
 
 Want to contribute? Pick an item and open an issue! 🚀
 

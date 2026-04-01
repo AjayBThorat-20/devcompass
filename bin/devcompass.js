@@ -30,6 +30,9 @@ program
   .command('analyze')
   .description('Analyze your project dependencies')
   .option('-p, --path <path>', 'Project path', process.cwd())
+  .option('--json', 'Output results as JSON')
+  .option('--ci', 'CI mode - exit with error code if score below threshold')
+  .option('--silent', 'Silent mode - no output')
   .action(analyze);
 
 program
@@ -40,3 +43,4 @@ program
   .action(fix);
 
 program.parse();
+
