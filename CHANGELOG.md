@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-04-01
+
+### 🚀 Major New Features
+
+#### Auto-Fix Command
+- **NEW:** `devcompass fix` command for automatic issue resolution
+- Automatically fixes critical security vulnerabilities
+- Removes unused dependencies
+- Applies safe updates (patch and minor versions)
+- Skips major updates to prevent breaking changes
+- Interactive confirmation before applying changes
+- `--yes` flag for non-interactive mode (CI/CD friendly)
+
+### Added
+- New `fix` command with smart prioritization:
+  - Fixes critical security issues first
+  - Removes unused dependencies second
+  - Updates safe versions (patch/minor) third
+  - Shows major updates but doesn't auto-apply
+- `--yes` / `-y` flag for auto-applying fixes without confirmation
+- Fix summary showing impact breakdown
+- Post-fix suggestion to run `devcompass analyze`
+- Safety features: confirmation prompts, clear action preview
+
+### Changed
+- CLI now supports two main commands: `analyze` and `fix`
+- Updated help text to include new fix command
+- Enhanced user workflow: analyze → fix → verify
+
+### Technical Details
+- New file: `src/commands/fix.js` with fix logic
+- Uses `child_process.execSync` for npm operations
+- Integrates with existing alerts, unused, and outdated analyzers
+- Graceful error handling during fix operations
+
+### User Experience
+- Shows detailed plan before making any changes
+- Groups actions by type and priority
+- Color-coded output (critical=red, info=cyan, success=green)
+- Clear progress indicators during fix process
+
+---
+
 ## [2.0.0] - 2025-04-01
 
 ### 🚀 Major New Features
@@ -145,6 +188,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[2.1.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.1.0
 [2.0.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.0.0
 [1.0.5]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v1.0.5
 [1.0.2]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v1.0.2

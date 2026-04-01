@@ -6,13 +6,15 @@
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect known security issues**, and get a comprehensive health score.
+Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect known security issues**, and **automatically fix them** with a single command.
 
-> **NEW in v2.0:** Real-time ecosystem alerts for known issues in your dependencies! 🚨
+> **NEW in v2.1:** Auto-fix command! 🔧 Fix critical issues automatically!  
+> **NEW in v2.0:** Real-time ecosystem alerts for known issues! 🚨
 
 ## ✨ Features
 
-- 🚨 **Ecosystem Intelligence** (NEW!) - Detect known issues before they break production
+- 🔧 **Auto-Fix Command** (NEW in v2.1!) - Fix issues automatically with one command
+- 🚨 **Ecosystem Intelligence** - Detect known issues before they break production
 - 🔍 **Detect unused dependencies** - Find packages you're not actually using
 - 📦 **Check for outdated packages** - See what needs updating
 - 🔐 **Security alerts** - Critical vulnerabilities and deprecated packages
@@ -40,14 +42,126 @@ npx devcompass analyze
 
 ## 📖 Usage
 
+### Analyze Your Project
 Navigate to your project directory and run:
 ```bash
 devcompass analyze
 ```
 
-### Example Output (v2.0)
+### Auto-Fix Issues (NEW in v2.1!)
+Automatically fix detected issues:
+```bash
+devcompass fix
 ```
-🔍 DevCompass v2.0.0 - Analyzing your project...
+
+## 🔧 Auto-Fix Command (NEW in v2.1!)
+
+DevCompass can now **automatically fix issues** in your project!
+
+### What it does:
+- 🔴 **Fixes critical security issues** - Upgrades packages with known vulnerabilities
+- 🧹 **Removes unused dependencies** - Cleans up packages you're not using
+- ⬆️ **Safe updates** - Applies patch and minor updates automatically
+- ⚠️ **Skips breaking changes** - Major updates require manual review
+
+### Usage
+```bash
+# Interactive mode (asks for confirmation)
+devcompass fix
+
+# Auto-apply without confirmation
+devcompass fix --yes
+devcompass fix -y
+
+# Fix specific directory
+devcompass fix --path /path/to/project
+```
+
+### Example Output
+```
+🔧 DevCompass Fix - Analyzing and fixing your project...
+
+🔴 CRITICAL ISSUES TO FIX:
+
+🔴 lodash@4.17.19
+   Issue: Prototype pollution vulnerability
+   Fix: Upgrade to 4.17.21
+
+🟠 axios@1.6.0
+   Issue: Memory leak in request interceptors
+   Fix: Upgrade to 1.6.2
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🧹 UNUSED DEPENDENCIES TO REMOVE:
+
+  ● moment
+  ● express
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⬆️  SAFE UPDATES (patch/minor):
+
+  react-dom: 18.2.0 → 18.2.1 (patch update)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  MAJOR UPDATES (skipped - may have breaking changes):
+
+  express: 4.18.0 → 5.2.1
+
+  Run these manually after reviewing changelog:
+  npm install express@5.2.1
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 FIX SUMMARY:
+
+  Critical fixes:  2
+  Remove unused:   2
+  Safe updates:    1
+  Skipped major:   1
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❓ Apply these fixes? (y/N): y
+
+🔧 Applying fixes...
+
+✔ ✅ Removed 2 unused packages
+✔ ✅ Fixed lodash@4.17.21
+✔ ✅ Fixed axios@1.6.2
+✔ ✅ Updated 1 packages
+
+✨ All fixes applied successfully!
+
+💡 Run devcompass analyze to see the new health score.
+```
+
+### Safety Features
+- ✅ Shows what will be changed before applying
+- ✅ Requires confirmation (unless `--yes` flag used)
+- ✅ Skips major updates (may have breaking changes)
+- ✅ Groups actions by priority (critical → cleanup → updates)
+- ✅ Provides clear summary of changes
+
+### Workflow Example
+```bash
+# 1. Analyze your project
+devcompass analyze
+
+# 2. If issues found, auto-fix them
+devcompass fix
+
+# 3. Verify the improvements
+devcompass analyze
+```
+
+## 📊 Analyze Command
+
+### Example Output (v2.1)
+```
+🔍 DevCompass v2.1.0 - Analyzing your project...
 ✔ Scanned 15 dependencies in project
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -106,11 +220,13 @@ devcompass analyze
   ✓ Remove 2 unused packages
   ✓ Reduce node_modules size
   ✓ Improve health score → 8.5/10
+
+💡 TIP: Run 'devcompass fix' to apply these fixes automatically!
 ```
 
-## 🚨 Ecosystem Intelligence (NEW in v2.0!)
+## 🚨 Ecosystem Intelligence
 
-DevCompass now tracks **real-world issues** in popular packages and warns you before they break production!
+DevCompass tracks **real-world issues** in popular packages and warns you before they break production!
 
 ### What Gets Detected:
 - 🔴 **Critical security vulnerabilities** - Zero-day exploits, prototype pollution
@@ -165,22 +281,37 @@ DevCompass won't flag these as unused (they're typically used in config files):
 Calculated from 0-10 based on:
 - Percentage of unused dependencies (−4 points per 100%)
 - Percentage of outdated packages (−3 points per 100%)
-- **NEW:** Ecosystem alerts by severity (−0.2 to −2.0 per issue)
+- Ecosystem alerts by severity (−0.2 to −2.0 per issue)
 - Higher score = healthier project
 
-## ⚙️ Options
+## ⚙️ Commands & Options
+
+### Commands
 ```bash
-# Analyze current directory
+# Analyze project dependencies
 devcompass analyze
 
-# Analyze specific directory
-devcompass analyze --path /path/to/project
+# Auto-fix issues
+devcompass fix
 
 # Show version
 devcompass --version
+devcompass -v
 
 # Show help
 devcompass --help
+devcompass -h
+```
+
+### Options
+```bash
+# Analyze/fix specific directory
+devcompass analyze --path /path/to/project
+devcompass fix --path /path/to/project
+
+# Auto-fix without confirmation
+devcompass fix --yes
+devcompass fix -y
 ```
 
 ## ⚠️ Known Issues & Best Practices
@@ -209,9 +340,9 @@ If you encounter a false positive, please [report it](https://github.com/AjayBTh
 ## 💡 Tips
 
 1. **Run regularly** - Add to your CI/CD pipeline or git hooks
-2. **Check before updates** - See what's outdated before updating
+2. **Use fix command** - Let DevCompass handle routine maintenance
 3. **Fix critical alerts first** - Prioritize security and stability
-4. **Clean up unused deps** - Keep your project lean
+4. **Review major updates** - Always check changelogs before major version bumps
 5. **Verify before uninstalling** - DevCompass helps identify candidates, but always verify
 
 ## 🤝 Contributing
@@ -256,6 +387,7 @@ npm install
 
 # Test locally
 node bin/devcompass.js analyze
+node bin/devcompass.js fix
 
 # Run on test projects
 cd /tmp
@@ -263,6 +395,7 @@ mkdir test-project && cd test-project
 npm init -y
 npm install axios@1.6.0 lodash@4.17.19
 node ~/devcompass/bin/devcompass.js analyze
+node ~/devcompass/bin/devcompass.js fix
 ```
 
 ## 📝 License
@@ -294,14 +427,15 @@ Check out DevCompass stats:
 
 ## 🌟 What's Next?
 
-### Roadmap (v2.1+)
+### Roadmap (v2.2+)
+- [x] ~~Automatic fix command~~ ✅ **Added in v2.1!**
 - [ ] Integration with `npm audit` for automated security scanning
+- [ ] CI/CD integration with `--json` output
 - [ ] GitHub Issues API for real-time issue tracking
 - [ ] Web dashboard for team health monitoring
-- [ ] CI/CD integration with `--json` output
 - [ ] More tracked packages (React, Next.js, Vue, Angular)
 - [ ] Custom ignore rules via config file
-- [ ] Automatic fix suggestions with `devcompass fix` command
+- [ ] Bundle size analysis
 
 Want to contribute? Pick an item and open an issue! 🚀
 
