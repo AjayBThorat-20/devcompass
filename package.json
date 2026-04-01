@@ -1,7 +1,7 @@
 {
   "name": "devcompass",
-  "version": "1.0.5",
-  "description": "Analyze your JavaScript projects for unused dependencies and outdated packages",
+  "version": "2.0.0",
+  "description": "Dependency health checker with ecosystem intelligence for JavaScript/TypeScript projects",
   "main": "src/index.js",
   "bin": {
     "devcompass": "./bin/devcompass.js"
@@ -9,6 +9,7 @@
   "files": [
     "bin/",
     "src/",
+    "data/",
     "README.md",
     "LICENSE"
   ],
@@ -25,7 +26,10 @@
     "cli",
     "devtools",
     "package-manager",
-    "dependency-analysis"
+    "dependency-analysis",
+    "security",
+    "ecosystem",
+    "alerts"
   ],
   "author": "Ajay Thorat <ajaythorat988@gmail.com>",
   "license": "MIT",
@@ -34,7 +38,8 @@
     "commander": "^11.1.0",
     "depcheck": "^1.4.7",
     "npm-check-updates": "^16.14.12",
-    "ora": "^5.4.1"
+    "ora": "^5.4.1",
+    "semver": "^7.6.0"
   },
   "engines": {
     "node": ">=14.0.0"

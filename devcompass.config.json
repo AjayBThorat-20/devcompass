@@ -1,0 +1,6 @@
+{
+  "ignore": ["lodash"],
+  "ignoreSeverity": ["low"],
+  "minScore": 7,
+  "cache": true
+}

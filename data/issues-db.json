@@ -1,0 +1,60 @@
+{
+  "axios": [
+    {
+      "title": "Memory leak in request interceptors",
+      "severity": "high",
+      "affected": ">=1.5.0 <1.6.2",
+      "fix": "1.6.2",
+      "source": "GitHub Issue #5456",
+      "reported": "2024-01-15"
+    },
+    {
+      "title": "Breaking change in error handling",
+      "severity": "medium",
+      "affected": ">=1.4.0 <1.5.0",
+      "fix": "1.5.0",
+      "source": "GitHub Release Notes",
+      "reported": "2023-11-20"
+    }
+  ],
+  "lodash": [
+    {
+      "title": "Prototype pollution vulnerability",
+      "severity": "critical",
+      "affected": "<4.17.21",
+      "fix": "4.17.21",
+      "source": "npm advisory 1523",
+      "reported": "2021-02-15"
+    }
+  ],
+  "moment": [
+    {
+      "title": "Package is deprecated - no longer maintained",
+      "severity": "medium",
+      "affected": "*",
+      "fix": "Use dayjs or date-fns instead",
+      "source": "npm deprecation notice",
+      "reported": "2023-09-01"
+    }
+  ],
+  "request": [
+    {
+      "title": "Package deprecated - use node-fetch or axios",
+      "severity": "high",
+      "affected": "*",
+      "fix": "Migrate to axios or node-fetch",
+      "source": "npm deprecation notice",
+      "reported": "2020-02-11"
+    }
+  ],
+  "express": [
+    {
+      "title": "Security vulnerability in qs dependency",
+      "severity": "medium",
+      "affected": ">=4.0.0 <4.18.2",
+      "fix": "4.18.2",
+      "source": "npm advisory 1867",
+      "reported": "2022-11-26"
+    }
+  ]
+}
