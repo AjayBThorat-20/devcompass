@@ -8,6 +8,9 @@ const { findUnusedDeps } = require('../analyzers/unused-deps');
 const { findOutdatedDeps } = require('../analyzers/outdated');
 const { calculateScore } = require('../analyzers/scoring');
 const { checkEcosystemAlerts } = require('../alerts');
+const { checkSecurity, calculateSecurityPenalty } = require('../analyzers/security');
+const { analyzeBundleSizes, findHeavyPackages } = require('../analyzers/bundle-size');
+const { checkLicenses, findProblematicLicenses } = require('../analyzers/licenses');
 const { 
   formatAlerts, 
   getSeverityDisplay, 
@@ -34,15 +37,25 @@ async function analyze(options) {
   // Handle output modes
   const outputMode = options.json ? 'json' : (options.ci ? 'ci' : (options.silent ? 'silent' : 'normal'));
   
-  if (outputMode !== 'silent') {
+  // Only show header for normal and CI modes
+  if (outputMode !== 'silent' && outputMode !== 'json') {
     console.log('\n');
     log(chalk.cyan.bold(`🔍 DevCompass v${packageJson.version}`) + ' - Analyzing your project...\n');
   }
   
-  const spinner = ora({
-    text: 'Loading project...',
-    color: 'cyan'
-  }).start();
+  // Create spinner (disabled for json/silent modes to prevent EPIPE errors)
+  const spinner = (outputMode === 'json' || outputMode === 'silent')
+    ? { 
+        start: function() { return this; },
+        succeed: function() {},
+        fail: function(msg) { if (msg) console.error(msg); },
+        text: '',
+        set text(val) {}
+      }
+    : ora({
+        text: 'Loading project...',
+        color: 'cyan'
+      }).start();
   
   try {
     const packageJsonPath = path.join(projectPath, 'package.json');
@@ -148,28 +161,95 @@ async function analyze(options) {
       }
     }
     
+    // Check security vulnerabilities (NEW)
+    spinner.text = 'Checking security vulnerabilities...';
+    let securityData = { vulnerabilities: [], metadata: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 } };
+    
+    if (config.cache) {
+      const cached = getCached(projectPath, 'security');
+      if (cached) securityData = cached;
+    }
+    
+    if (securityData.metadata.total === 0) {
+      try {
+        securityData = await checkSecurity(projectPath);
+        if (config.cache) {
+          setCache(projectPath, 'security', securityData);
+        }
+      } catch (error) {
+        if (outputMode !== 'silent') {
+          console.log(chalk.yellow('\n⚠️  Could not check security vulnerabilities'));
+          console.log(chalk.gray(`   Error: ${error.message}\n`));
+        }
+      }
+    }
+    
+    // Analyze bundle sizes (NEW)
+    spinner.text = 'Analyzing bundle sizes...';
+    let bundleSizes = [];
+    
+    if (config.cache) {
+      const cached = getCached(projectPath, 'bundleSizes');
+      if (cached) bundleSizes = cached;
+    }
+    
+    if (bundleSizes.length === 0) {
+      try {
+        bundleSizes = await analyzeBundleSizes(projectPath, dependencies);
+        if (config.cache && bundleSizes.length > 0) {
+          setCache(projectPath, 'bundleSizes', bundleSizes);
+        }
+      } catch (error) {
+        // Bundle size analysis is optional
+      }
+    }
+    
+    // Check licenses (NEW)
+    spinner.text = 'Checking licenses...';
+    let licenses = [];
+    
+    if (config.cache) {
+      const cached = getCached(projectPath, 'licenses');
+      if (cached) licenses = cached;
+    }
+    
+    if (licenses.length === 0) {
+      try {
+        licenses = await checkLicenses(projectPath, dependencies);
+        if (config.cache && licenses.length > 0) {
+          setCache(projectPath, 'licenses', licenses);
+        }
+      } catch (error) {
+        // License checking is optional
+      }
+    }
+    
+    // Calculate score (UPDATED)
     const alertPenalty = calculateAlertPenalty(alerts);
+    const securityPenalty = calculateSecurityPenalty(securityData.metadata);
+    
     const score = calculateScore(
       totalDeps,
       unusedDeps.length,
       outdatedDeps.length,
       alerts.length,
-      alertPenalty
+      alertPenalty,
+      securityPenalty
     );
     
     spinner.succeed(chalk.green(`Scanned ${totalDeps} dependencies in project`));
     
     // Handle different output modes
     if (outputMode === 'json') {
-      const jsonOutput = formatAsJson(alerts, unusedDeps, outdatedDeps, score, totalDeps);
+      const jsonOutput = formatAsJson(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses);
       console.log(jsonOutput);
     } else if (outputMode === 'ci') {
-      displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps);
+      displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses);
       handleCiMode(score, config, alerts, unusedDeps);
     } else if (outputMode === 'silent') {
       // Silent mode - no output
     } else {
-      displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps);
+      displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses);
     }
     
   } catch (error) {
@@ -182,10 +262,40 @@ async function analyze(options) {
   }
 }
 
-function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps) {
+function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses) {
   logDivider();
   
-  // ECOSYSTEM ALERTS (NEW SECTION)
+  // SECURITY VULNERABILITIES (NEW SECTION)
+  if (securityData.metadata.total > 0) {
+    const criticalCount = securityData.metadata.critical;
+    const highCount = securityData.metadata.high;
+    const moderateCount = securityData.metadata.moderate;
+    const lowCount = securityData.metadata.low;
+    
+    logSection('🔐 SECURITY VULNERABILITIES', securityData.metadata.total);
+    
+    if (criticalCount > 0) {
+      log(chalk.red.bold(`\n  🔴 CRITICAL: ${criticalCount}`));
+    }
+    if (highCount > 0) {
+      log(chalk.red(`  🟠 HIGH: ${highCount}`));
+    }
+    if (moderateCount > 0) {
+      log(chalk.yellow(`  🟡 MODERATE: ${moderateCount}`));
+    }
+    if (lowCount > 0) {
+      log(chalk.gray(`  ⚪ LOW: ${lowCount}`));
+    }
+    
+    log(chalk.cyan('\n  Run') + chalk.bold(' npm audit fix ') + chalk.cyan('to fix vulnerabilities\n'));
+  } else {
+    logSection('✅ SECURITY VULNERABILITIES');
+    log(chalk.green('  No vulnerabilities detected!\n'));
+  }
+  
+  logDivider();
+  
+  // ECOSYSTEM ALERTS
   if (alerts.length > 0) {
     logSection('🚨 ECOSYSTEM ALERTS', alerts.length);
     
@@ -266,12 +376,56 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps) {
   
   logDivider();
   
+  // BUNDLE SIZE (NEW SECTION)
+  const heavyPackages = findHeavyPackages(bundleSizes);
+  if (heavyPackages.length > 0) {
+    logSection('📦 HEAVY PACKAGES', heavyPackages.length);
+    
+    log(chalk.gray('  Packages larger than 1MB:\n'));
+    
+    heavyPackages.slice(0, 10).forEach(pkg => {
+      const nameCol = pkg.name.padEnd(25);
+      const size = pkg.size > 5120 
+        ? chalk.red(pkg.sizeFormatted)
+        : chalk.yellow(pkg.sizeFormatted);
+      
+      log(`  ${nameCol} ${size}`);
+    });
+    
+    log('');
+    logDivider();
+  }
+  
+  // LICENSE WARNINGS (NEW SECTION - ALWAYS SHOW)
+  const problematicLicenses = findProblematicLicenses(licenses);
+  if (problematicLicenses.length > 0) {
+    logSection('⚖️  LICENSE WARNINGS', problematicLicenses.length);
+    
+    problematicLicenses.forEach(pkg => {
+      const type = pkg.type === 'restrictive' 
+        ? chalk.red('Restrictive') 
+        : chalk.yellow('Unknown');
+      log(`  ${chalk.bold(pkg.package)} - ${type} (${pkg.license})`);
+    });
+    
+    log(chalk.gray('\n  Note: Restrictive licenses may require legal review\n'));
+  } else {
+    logSection('✅ LICENSE COMPLIANCE');
+    log(chalk.green('  All licenses are permissive!\n'));
+  }
+  
+  logDivider();
+  
   // PROJECT HEALTH
   logSection('📊 PROJECT HEALTH');
   
   const scoreColor = getScoreColor(score.total);
   log(`  Overall Score:              ${scoreColor(score.total + '/10')}`);
   log(`  Total Dependencies:         ${chalk.cyan(totalDeps)}`);
+  
+  if (securityData.metadata.total > 0) {
+    log(`  Security Vulnerabilities:   ${chalk.red(securityData.metadata.total)}`);
+  }
   
   if (alerts.length > 0) {
     log(`  Ecosystem Alerts:           ${chalk.red(alerts.length)}`);
@@ -283,16 +437,23 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps) {
   logDivider();
   
   // QUICK WINS
-  displayQuickWins(alerts, unusedDeps, outdatedDeps, score, totalDeps);
+  displayQuickWins(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData);
 }
 
-function displayQuickWins(alerts, unusedDeps, outdatedDeps, score, totalDeps) {
+function displayQuickWins(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData) {
   const hasCriticalAlerts = alerts.some(a => a.severity === 'critical' || a.severity === 'high');
+  const hasCriticalSecurity = securityData.metadata.critical > 0 || securityData.metadata.high > 0;
   
-  if (hasCriticalAlerts || unusedDeps.length > 0) {
+  if (hasCriticalSecurity || hasCriticalAlerts || unusedDeps.length > 0) {
     logSection('💡 QUICK WINS');
     
-    // Fix critical alerts first
+    // Fix security vulnerabilities first
+    if (hasCriticalSecurity) {
+      log('  🔐 Fix security vulnerabilities:\n');
+      log(chalk.cyan(`  npm audit fix\n`));
+    }
+    
+    // Fix critical alerts
     if (hasCriticalAlerts) {
       const criticalAlerts = alerts.filter(a => a.severity === 'critical' || a.severity === 'high');
       
@@ -325,13 +486,18 @@ function displayQuickWins(alerts, unusedDeps, outdatedDeps, score, totalDeps) {
       0,
       outdatedDeps.length,
       alerts.length - alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length,
-      alertPenalty
+      alertPenalty,
+      0 // Assume security issues fixed
     );
     
     log('  Expected impact:');
     
+    if (hasCriticalSecurity) {
+      log(`  ${chalk.green('✓')} Resolve security vulnerabilities`);
+    }
+    
     if (hasCriticalAlerts) {
-      log(`  ${chalk.green('✓')} Resolve critical security/stability issues`);
+      log(`  ${chalk.green('✓')} Resolve critical stability issues`);
     }
     
     if (unusedDeps.length > 0) {

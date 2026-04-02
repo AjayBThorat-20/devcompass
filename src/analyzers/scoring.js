@@ -1,5 +1,12 @@
 // src/analyzers/scoring.js
-function calculateScore(totalDeps, unusedCount, outdatedCount, alertsCount = 0, alertPenalty = 0) {
+function calculateScore(
+  totalDeps, 
+  unusedCount, 
+  outdatedCount, 
+  alertsCount = 0, 
+  alertPenalty = 0,
+  securityPenalty = 0  // NEW
+) {
   let score = 10;
   
   if (totalDeps === 0) {
@@ -9,9 +16,11 @@ function calculateScore(totalDeps, unusedCount, outdatedCount, alertsCount = 0, 
         unused: 0,
         outdated: 0,
         alerts: 0,
+        security: 0,
         unusedPenalty: 0,
         outdatedPenalty: 0,
-        alertsPenalty: 0
+        alertsPenalty: 0,
+        securityPenalty: 0
       }
     };
   }
@@ -26,8 +35,11 @@ function calculateScore(totalDeps, unusedCount, outdatedCount, alertsCount = 0, 
   const outdatedPenalty = outdatedRatio * 3;
   score -= outdatedPenalty;
   
-  // Ecosystem alerts penalty (from formatter.calculateAlertPenalty)
+  // Ecosystem alerts penalty
   score -= alertPenalty;
+  
+  // Security vulnerabilities penalty (NEW)
+  score -= securityPenalty;
   
   // Ensure score is between 0 and 10
   score = Math.max(0, Math.min(10, score));
@@ -38,9 +50,11 @@ function calculateScore(totalDeps, unusedCount, outdatedCount, alertsCount = 0, 
       unused: unusedCount,
       outdated: outdatedCount,
       alerts: alertsCount,
+      security: securityPenalty > 0 ? 1 : 0, // Binary indicator
       unusedPenalty: parseFloat(unusedPenalty.toFixed(1)),
       outdatedPenalty: parseFloat(outdatedPenalty.toFixed(1)),
-      alertsPenalty: parseFloat(alertPenalty.toFixed(1))
+      alertsPenalty: parseFloat(alertPenalty.toFixed(1)),
+      securityPenalty: parseFloat(securityPenalty.toFixed(1))
     }
   };
 }

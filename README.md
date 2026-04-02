@@ -6,22 +6,24 @@
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect known security issues**, and **automatically fix them** with a single command. Perfect for **CI/CD pipelines** with JSON output and exit codes.
+Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **check bundle sizes**, **verify licenses**, and **automatically fix issues** with a single command. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
+> **NEW in v2.3:** Security scanning, bundle analysis & license checker! 🔐  
 > **NEW in v2.2:** CI/CD integration with JSON output & smart caching! 🚀  
 > **NEW in v2.1:** Auto-fix command! 🔧 Fix critical issues automatically!  
 > **NEW in v2.0:** Real-time ecosystem alerts for known issues! 🚨
 
 ## ✨ Features
 
-- 🚀 **CI/CD Integration** (NEW in v2.2!) - JSON output, exit codes, and silent mode
-- ⚡ **Smart Caching** (NEW in v2.2!) - 70% faster on repeated runs
-- 🎛️ **Advanced Filtering** (NEW in v2.2!) - Control alerts by severity level
+- 🔐 **Security Scanning** (NEW in v2.3!) - npm audit integration with severity breakdown
+- 📦 **Bundle Size Analysis** (NEW in v2.3!) - Identify heavy packages (> 1MB)
+- ⚖️ **License Checker** (NEW in v2.3!) - Detect restrictive licenses (GPL, AGPL)
+- 🚀 **CI/CD Integration** (v2.2) - JSON output, exit codes, and silent mode
+- ⚡ **Smart Caching** (v2.2) - 70% faster on repeated runs
+- 🎛️ **Advanced Filtering** (v2.2) - Control alerts by severity level
 - 🔧 **Auto-Fix Command** (v2.1) - Fix issues automatically with one command
 - 🚨 **Ecosystem Intelligence** (v2.0) - Detect known issues before they break production
 - 🔍 **Detect unused dependencies** - Find packages you're not actually using
-- 📦 **Check for outdated packages** - See what needs updating
-- 🔐 **Security alerts** - Critical vulnerabilities and deprecated packages
 - 📊 **Project health score** - Get a 0-10 rating for your dependencies
 - 🎨 **Beautiful terminal UI** - Colored output with severity indicators
 - 🔧 **Framework-aware** - Handles React, Next.js, Angular, NestJS, PostCSS, Tailwind
@@ -63,7 +65,155 @@ devcompass analyze --ci
 devcompass analyze --silent
 ```
 
-## 🚀 NEW in v2.2: CI/CD Integration
+## 🔐 NEW in v2.3: Security & Compliance Features
+
+### Security Vulnerability Scanning
+
+DevCompass now integrates with **npm audit** to detect security vulnerabilities automatically!
+
+**Example Output:**
+```
+🔐 SECURITY VULNERABILITIES (12)
+
+  🔴 CRITICAL: 2
+  🟠 HIGH: 4
+  🟡 MODERATE: 5
+  ⚪ LOW: 1
+
+  Run npm audit fix to fix vulnerabilities
+```
+
+**How it works:**
+1. Runs `npm audit` in the background
+2. Parses vulnerability data
+3. Shows severity breakdown
+4. Impacts health score (-2.5 per critical issue)
+5. Suggests fix commands
+
+**Health Score Impact:**
+- Critical: −2.5 points each
+- High: −1.5 points each
+- Moderate: −0.5 points each
+- Low: −0.2 points each
+
+### Bundle Size Analysis
+
+Identify large dependencies that bloat your `node_modules`!
+
+**Example Output:**
+```
+📦 HEAVY PACKAGES (3)
+
+  Packages larger than 1MB:
+
+  webpack                   2.3 MB
+  typescript                8.1 MB
+  @tensorflow/tfjs          12.4 MB
+```
+
+**Perfect for:**
+- Frontend developers optimizing bundle size
+- Identifying unnecessary large dependencies
+- Web performance optimization
+- Docker image size reduction
+
+### License Compliance Checker
+
+Detect restrictive licenses that may require legal review!
+
+**Example Output:**
+```
+⚖️ LICENSE WARNINGS (2)
+
+  sharp - Restrictive (LGPL-3.0)
+  custom-lib - Unknown (UNLICENSED)
+
+  Note: Restrictive licenses may require legal review
+```
+
+**What gets flagged:**
+- **Restrictive licenses:** GPL, AGPL, LGPL (may require source code disclosure)
+- **Unknown licenses:** Packages without license information
+- **Unlicensed packages:** Legal risk for commercial use
+
+**Supported licenses:**
+- ✅ **Safe:** MIT, Apache-2.0, BSD, ISC, CC0
+- ⚠️ **Restrictive:** GPL, AGPL, LGPL
+- ❓ **Unknown:** Missing or custom licenses
+
+### Combined Analysis Example (v2.3)
+
+**Full Output:**
+```
+🔍 DevCompass v2.3.0 - Analyzing your project...
+✔ Scanned 25 dependencies in project
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔐 SECURITY VULNERABILITIES (5)
+
+  🔴 CRITICAL: 1
+  🟠 HIGH: 2
+  🟡 MODERATE: 2
+
+  Run npm audit fix to fix vulnerabilities
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚨 ECOSYSTEM ALERTS (1)
+
+🟠 HIGH
+  axios@1.6.0
+    Issue: Memory leak in request interceptors
+    Fix: 1.6.2
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📦 HEAVY PACKAGES (2)
+
+  Packages larger than 1MB:
+
+  typescript                8.1 MB
+  webpack                   2.3 MB
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚖️ LICENSE WARNINGS (1)
+
+  sharp - Restrictive (LGPL-3.0)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 PROJECT HEALTH
+
+  Overall Score:              6.2/10
+  Total Dependencies:         25
+  Security Vulnerabilities:   5
+  Ecosystem Alerts:           1
+  Unused:                     0
+  Outdated:                   3
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 QUICK WINS
+
+  🔐 Fix security vulnerabilities:
+
+  npm audit fix
+
+  🔴 Fix critical issues:
+
+  npm install axios@1.6.2
+
+  Expected impact:
+  ✓ Resolve security vulnerabilities
+  ✓ Resolve critical stability issues
+  ✓ Improve health score → 8.7/10
+
+💡 TIP: Run 'devcompass fix' to apply these fixes automatically!
+```
+
+## 🚀 CI/CD Integration (v2.2)
 
 ### JSON Output
 Perfect for parsing in CI/CD pipelines:
@@ -71,26 +221,43 @@ Perfect for parsing in CI/CD pipelines:
 devcompass analyze --json
 ```
 
-**Output:**
+**Output (v2.3):**
 ```json
 {
-  "version": "2.2.0",
-  "timestamp": "2026-04-01T15:51:10.395Z",
+  "version": "2.3.0",
+  "timestamp": "2026-04-02T10:30:00.000Z",
   "summary": {
-    "healthScore": 7.5,
-    "totalDependencies": 15,
-    "ecosystemAlerts": 2,
-    "unusedDependencies": 3,
-    "outdatedPackages": 5
+    "healthScore": 6.2,
+    "totalDependencies": 25,
+    "securityVulnerabilities": 5,
+    "ecosystemAlerts": 1,
+    "unusedDependencies": 0,
+    "outdatedPackages": 3,
+    "heavyPackages": 2,
+    "licenseWarnings": 1
+  },
+  "security": {
+    "total": 5,
+    "critical": 1,
+    "high": 2,
+    "moderate": 2,
+    "low": 0,
+    "vulnerabilities": [...]
+  },
+  "bundleAnalysis": {
+    "heavyPackages": [
+      { "name": "typescript", "size": "8.1 MB" },
+      { "name": "webpack", "size": "2.3 MB" }
+    ]
+  },
+  "licenses": {
+    "warnings": [
+      { "package": "sharp", "license": "LGPL-3.0", "type": "restrictive" }
+    ]
   },
   "ecosystemAlerts": [...],
   "unusedDependencies": [...],
-  "outdatedPackages": [...],
-  "scoreBreakdown": {
-    "unusedPenalty": 0.8,
-    "outdatedPenalty": 1.7,
-    "alertsPenalty": 3.5
-  }
+  "outdatedPackages": [...]
 }
 ```
 
@@ -115,8 +282,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
-      - run: npm install -g devcompass
-      - run: devcompass analyze --ci
+      - run: npm install
+      - run: npx devcompass analyze --ci
 ```
 
 ### Silent Mode
@@ -126,14 +293,22 @@ devcompass analyze --silent
 echo $?  # Check exit code
 ```
 
-## ⚡ NEW in v2.2: Smart Caching
+## ⚡ Smart Caching (v2.2)
 
-DevCompass now caches results to improve performance:
+DevCompass caches results to improve performance:
 
 - **First run:** Normal speed (fetches all data)
 - **Cached runs:** ~70% faster
 - **Cache duration:** 1 hour
 - **Cache file:** `.devcompass-cache.json` (auto-gitignored)
+
+**What gets cached:**
+- Security vulnerabilities
+- Ecosystem alerts
+- Unused dependencies
+- Outdated packages
+- Bundle sizes
+- License information
 
 **Disable caching:**
 ```json
@@ -143,7 +318,7 @@ DevCompass now caches results to improve performance:
 }
 ```
 
-## 🎛️ NEW in v2.2: Advanced Configuration
+## 🎛️ Advanced Configuration (v2.2)
 
 Create `devcompass.config.json` in your project root:
 ```json
@@ -174,32 +349,33 @@ Create `devcompass.config.json` in your project root:
 
 ### Example Configurations
 
-**Only show critical security issues:**
+**Security-focused (strict):**
 ```json
 {
   "minSeverity": "critical",
-  "minScore": 8
+  "minScore": 9
 }
 ```
 
-**Ignore low-priority alerts:**
+**Balanced (recommended):**
 ```json
 {
-  "ignoreSeverity": ["low"]
+  "ignoreSeverity": ["low"],
+  "minScore": 7
 }
 ```
 
-**Strict CI mode:**
+**Relaxed (development):**
 ```json
 {
-  "minScore": 9,
-  "minSeverity": "high"
+  "ignoreSeverity": ["low", "medium"],
+  "minScore": 5
 }
 ```
 
-## 🔧 Auto-Fix Command
+## 🔧 Auto-Fix Command (v2.1)
 
-DevCompass can now **automatically fix issues** in your project!
+DevCompass can **automatically fix issues** in your project!
 
 ### What it does:
 - 🔴 **Fixes critical security issues** - Upgrades packages with known vulnerabilities
@@ -218,67 +394,6 @@ devcompass fix -y
 
 # Fix specific directory
 devcompass fix --path /path/to/project
-```
-
-### Example Output
-```
-🔧 DevCompass Fix - Analyzing and fixing your project...
-
-🔴 CRITICAL ISSUES TO FIX:
-
-🔴 lodash@4.17.19
-   Issue: Prototype pollution vulnerability
-   Fix: Upgrade to 4.17.21
-
-🟠 axios@1.6.0
-   Issue: Memory leak in request interceptors
-   Fix: Upgrade to 1.6.2
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🧹 UNUSED DEPENDENCIES TO REMOVE:
-
-  ● moment
-  ● express
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⬆️  SAFE UPDATES (patch/minor):
-
-  react-dom: 18.2.0 → 18.2.1 (patch update)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⚠️  MAJOR UPDATES (skipped - may have breaking changes):
-
-  express: 4.18.0 → 5.2.1
-
-  Run these manually after reviewing changelog:
-  npm install express@5.2.1
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📊 FIX SUMMARY:
-
-  Critical fixes:  2
-  Remove unused:   2
-  Safe updates:    1
-  Skipped major:   1
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-❓ Apply these fixes? (y/N): y
-
-🔧 Applying fixes...
-
-✔ ✅ Removed 2 unused packages
-✔ ✅ Fixed lodash@4.17.21
-✔ ✅ Fixed axios@1.6.2
-✔ ✅ Updated 1 packages
-
-✨ All fixes applied successfully!
-
-💡 Run devcompass analyze to see the new health score.
 ```
 
 ### Safety Features
@@ -300,74 +415,7 @@ devcompass fix
 devcompass analyze
 ```
 
-## 📊 Analyze Command
-
-### Example Output (v2.2)
-```
-🔍 DevCompass v2.2.0 - Analyzing your project...
-✔ Scanned 15 dependencies in project
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🚨 ECOSYSTEM ALERTS (2)
-
-🔴 CRITICAL
-  lodash@4.17.19
-    Issue: Prototype pollution vulnerability
-    Affected: <4.17.21
-    Fix: 4.17.21
-    Source: npm advisory 1523
-
-🟠 HIGH
-  axios@1.6.0
-    Issue: Memory leak in request interceptors
-    Affected: >=1.5.0 <1.6.2
-    Fix: 1.6.2
-    Source: GitHub Issue #5456
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🔴 UNUSED DEPENDENCIES (2)
-  ● moment
-  ● request
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🟡 OUTDATED PACKAGES (3)
-  react          18.2.0 → ^19.0.0  (major update)
-  express        4.18.0 → ^4.19.0  (patch update)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📊 PROJECT HEALTH
-  Overall Score:       5.5/10
-  Total Dependencies:  15
-  Ecosystem Alerts:    2
-  Unused:              2
-  Outdated:            3
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💡 QUICK WINS
-  🔴 Fix critical issues:
-
-  npm install lodash@4.17.21
-  npm install axios@1.6.2
-
-  🧹 Clean up unused dependencies:
-
-  npm uninstall moment request
-
-  Expected impact:
-  ✓ Resolve critical security/stability issues
-  ✓ Remove 2 unused packages
-  ✓ Reduce node_modules size
-  ✓ Improve health score → 8.5/10
-
-💡 TIP: Run 'devcompass fix' to apply these fixes automatically!
-```
-
-## 🚨 Ecosystem Intelligence
+## 🚨 Ecosystem Intelligence (v2.0)
 
 DevCompass tracks **real-world issues** in popular packages and warns you before they break production!
 
@@ -420,11 +468,12 @@ DevCompass won't flag these as unused (they're typically used in config files):
 - Shows current vs latest versions
 - Indicates update type (major/minor/patch)
 
-### Health Score (Enhanced in v2.0)
+### Health Score (Enhanced in v2.3)
 Calculated from 0-10 based on:
 - Percentage of unused dependencies (−4 points per 100%)
 - Percentage of outdated packages (−3 points per 100%)
 - Ecosystem alerts by severity (−0.2 to −2.0 per issue)
+- Security vulnerabilities by severity (−0.2 to −2.5 per issue)
 - Higher score = healthier project
 
 ## ⚙️ Commands & Options
@@ -511,6 +560,21 @@ if [ $? -ne 0 ]; then
 fi
 ```
 
+### Security-Focused Workflow
+```bash
+# 1. Run security scan
+devcompass analyze
+
+# 2. Check for critical vulnerabilities
+devcompass analyze --json | jq '.security.critical'
+
+# 3. Auto-fix if possible
+npm audit fix
+
+# 4. Verify fixes
+devcompass analyze
+```
+
 ## ⚠️ Known Issues & Best Practices
 
 ### Installation
@@ -543,12 +607,14 @@ If you encounter a false positive, please [report it](https://github.com/AjayBTh
 
 1. **Run regularly** - Add to your CI/CD pipeline or git hooks
 2. **Use fix command** - Let DevCompass handle routine maintenance
-3. **Configure severity levels** - Filter out noise with `minSeverity`
-4. **Enable CI mode** - Catch issues before they reach production
-5. **Use JSON output** - Integrate with your monitoring tools
-6. **Fix critical alerts first** - Prioritize security and stability
-7. **Review major updates** - Always check changelogs before major version bumps
-8. **Verify before uninstalling** - DevCompass helps identify candidates, but always verify
+3. **Check security first** - Prioritize fixing critical vulnerabilities
+4. **Monitor bundle size** - Keep an eye on heavy packages
+5. **Review licenses** - Ensure compliance with your legal requirements
+6. **Configure severity levels** - Filter out noise with `minSeverity`
+7. **Enable CI mode** - Catch issues before they reach production
+8. **Use JSON output** - Integrate with your monitoring tools
+9. **Review major updates** - Always check changelogs before major version bumps
+10. **Verify before uninstalling** - DevCompass helps identify candidates, but always verify
 
 ## 🤝 Contributing
 
@@ -632,18 +698,21 @@ Check out DevCompass stats:
 
 ## 🌟 What's Next?
 
-### Roadmap (v2.3+)
+### Roadmap (v2.4+)
 - [x] ~~Automatic fix command~~ ✅ **Added in v2.1!**
 - [x] ~~CI/CD integration with JSON output~~ ✅ **Added in v2.2!**
 - [x] ~~Smart caching system~~ ✅ **Added in v2.2!**
 - [x] ~~Custom ignore rules via config file~~ ✅ **Added in v2.2!**
-- [ ] Integration with `npm audit` for automated security scanning
-- [ ] GitHub Issues API for real-time issue tracking
-- [ ] Web dashboard for team health monitoring
-- [ ] More tracked packages (React, Next.js, Vue, Angular)
-- [ ] Bundle size analysis
-- [ ] Automated security patch suggestions
-- [ ] Team collaboration features
+- [x] ~~npm audit integration~~ ✅ **Added in v2.3!**
+- [x] ~~Bundle size analysis~~ ✅ **Added in v2.3!**
+- [x] ~~License compliance checker~~ ✅ **Added in v2.3!**
+- [ ] GitHub Issues API for real-time issue tracking (v2.4.0)
+- [ ] Automated security patch suggestions (v2.4.0)
+- [ ] Dependency graph visualization (v2.5.0)
+- [ ] Web dashboard for team health monitoring (v2.5.0)
+- [ ] More tracked packages (React, Next.js, Vue, Angular) (v2.5.0)
+- [ ] Team collaboration features (v2.6.0)
+- [ ] Slack/Discord notifications (v2.6.0)
 
 Want to contribute? Pick an item and open an issue! 🚀
 

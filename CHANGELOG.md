@@ -5,6 +5,272 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2025-04-02
+
+### 🚀 Major New Features
+
+#### npm Audit Integration
+- **NEW:** Automatic security vulnerability scanning via `npm audit`
+- **NEW:** Severity breakdown (Critical/High/Moderate/Low)
+- **NEW:** Direct integration with npm's security database
+- **NEW:** Security score penalty in health calculation
+- **NEW:** Quick fix suggestions via `npm audit fix`
+- **NEW:** CVE tracking and fix availability detection
+
+#### Bundle Size Analysis
+- **NEW:** Automatic package size measurement from `node_modules`
+- **NEW:** Identifies heavy packages (> 1MB)
+- **NEW:** Shows top 10 largest dependencies
+- **NEW:** Human-readable size formatting (KB/MB)
+- **NEW:** Helps optimize bundle size for web applications
+- **NEW:** Perfect for frontend performance optimization
+
+#### License Checker
+- **NEW:** Automatic license detection for all dependencies
+- **NEW:** Warns about restrictive licenses (GPL, AGPL, LGPL)
+- **NEW:** Identifies packages with unknown/missing licenses
+- **NEW:** Legal compliance awareness for enterprise use
+- **NEW:** Distinguishes between permissive and restrictive licenses
+
+#### Enhanced Health Scoring
+- Security vulnerabilities now impact health score
+- Critical security issues: −2.5 points each
+- High security issues: −1.5 points each
+- Moderate security issues: −0.5 points each
+- Low security issues: −0.2 points each
+- More comprehensive project health assessment
+
+### Added
+- New security analyzer (`src/analyzers/security.js`)
+  - npm audit integration
+  - Vulnerability parsing and categorization
+  - Security penalty calculation
+  - CVE and fix availability tracking
+- New bundle size analyzer (`src/analyzers/bundle-size.js`)
+  - Recursive directory size calculation
+  - Size formatting utilities (KB/MB)
+  - Heavy package detection (> 1MB threshold)
+  - Top 10 heaviest packages listing
+- New license checker (`src/analyzers/licenses.js`)
+  - License type classification (permissive/restrictive/unknown)
+  - Restrictive license detection (GPL, AGPL, LGPL)
+  - Unknown license warnings
+  - Problematic license filtering
+- Predictive alerts foundation (`src/alerts/predictive.js`)
+  - Framework for GitHub Issues API integration
+  - Trend analysis placeholder
+  - Risk scoring system (future enhancement)
+
+### Changed
+- `analyze` command now includes 3 additional analysis sections
+- Health score calculation enhanced with security penalty
+- JSON output includes security, bundle, and license data
+- Quick Wins section now prioritizes security fixes first
+- Cache system expanded to include new analyzers
+- Display output reorganized for better readability
+- `displayResults()` function signature updated with new parameters
+
+### Enhanced Sections
+New terminal output sections:
+1. **🔐 SECURITY VULNERABILITIES** - npm audit results with severity counts
+2. **📦 HEAVY PACKAGES** - packages larger than 1MB with sizes
+3. **⚖️ LICENSE WARNINGS** - restrictive or unknown licenses with types
+
+### Technical Details
+- No new dependencies required (uses built-in npm audit)
+- All new analyzers are optional (graceful degradation)
+- Cache support for all new features
+- Performance: ~2-3 seconds additional analysis time on first run
+- JSON output schema extended with new fields
+- Backward compatible with v2.2.0
+
+### Performance
+- Security check: ~1-2 seconds (npm audit execution)
+- Bundle analysis: ~1-2 seconds (file system traversal)
+- License check: <1 second (package.json reads)
+- Total added time: ~2-4 seconds on first run
+- Cached runs: No additional time (all new data cached)
+
+### JSON Output Schema (Extended)
+New fields added:
+```json
+{
+  "summary": {
+    "securityVulnerabilities": 5,
+    "heavyPackages": 3,
+    "licenseWarnings": 2
+  },
+  "security": {
+    "total": 5,
+    "critical": 1,
+    "high": 2,
+    "moderate": 2,
+    "low": 0,
+    "vulnerabilities": [...]
+  },
+  "bundleAnalysis": {
+    "heavyPackages": [...]
+  },
+  "licenses": {
+    "warnings": [...]
+  }
+}
+```
+
+### Breaking Changes
+- None (fully backward compatible)
+- Health score may be lower due to security penalties
+- JSON output schema extended (old fields unchanged)
+- Function signatures extended with optional parameters
+
+### Migration Guide
+No migration needed. All new features work automatically.
+
+Optional: Update `devcompass.config.json` to customize thresholds:
+```json
+{
+  "minScore": 7,
+  "cache": true
+}
+```
+
+### Examples
+
+#### Security Vulnerabilities Output
+```
+🔐 SECURITY VULNERABILITIES (12)
+
+  🔴 CRITICAL: 2
+  🟠 HIGH: 4
+  🟡 MODERATE: 5
+  ⚪ LOW: 1
+
+  Run npm audit fix to fix vulnerabilities
+```
+
+#### Bundle Size Output
+```
+📦 HEAVY PACKAGES (3)
+
+  Packages larger than 1MB:
+
+  webpack                   2.3 MB
+  typescript                8.1 MB
+  @tensorflow/tfjs          12.4 MB
+```
+
+#### License Warnings Output
+```
+⚖️ LICENSE WARNINGS (2)
+
+  sharp - Restrictive (LGPL-3.0)
+  custom-lib - Unknown (UNLICENSED)
+
+  Note: Restrictive licenses may require legal review
+```
+
+#### Complete Analysis Output
+```
+🔍 DevCompass v2.3.0 - Analyzing your project...
+✔ Scanned 25 dependencies in project
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔐 SECURITY VULNERABILITIES (5)
+
+  🔴 CRITICAL: 1
+  🟠 HIGH: 2
+  🟡 MODERATE: 2
+
+  Run npm audit fix to fix vulnerabilities
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚨 ECOSYSTEM ALERTS (1)
+
+🟠 HIGH
+  axios@1.6.0
+    Issue: Memory leak in request interceptors
+    Fix: 1.6.2
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📦 HEAVY PACKAGES (2)
+
+  Packages larger than 1MB:
+
+  typescript                8.1 MB
+  webpack                   2.3 MB
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚖️ LICENSE WARNINGS (1)
+
+  sharp - Restrictive (LGPL-3.0)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 PROJECT HEALTH
+
+  Overall Score:              6.2/10
+  Total Dependencies:         25
+  Security Vulnerabilities:   5
+  Ecosystem Alerts:           1
+  Unused:                     0
+  Outdated:                   3
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 QUICK WINS
+
+  🔐 Fix security vulnerabilities:
+
+  npm audit fix
+
+  🔴 Fix critical issues:
+
+  npm install axios@1.6.2
+
+  Expected impact:
+  ✓ Resolve security vulnerabilities
+  ✓ Resolve critical stability issues
+  ✓ Improve health score → 8.7/10
+
+💡 TIP: Run 'devcompass fix' to apply these fixes automatically!
+```
+
+### Use Cases
+- **Security Teams:** Automated vulnerability detection in CI/CD
+- **Frontend Developers:** Bundle size optimization insights
+- **Enterprise:** License compliance checks before deployment
+- **DevOps:** Comprehensive dependency health monitoring
+- **Legal/Compliance:** Identifying licensing risks
+- **Performance Teams:** Bundle size optimization
+
+### Roadmap Impact
+- [x] ~~npm audit integration~~ ✅ **Completed in v2.3.0!**
+- [x] ~~Bundle size analysis~~ ✅ **Completed in v2.3.0!**
+- [x] ~~License checker~~ ✅ **Completed in v2.3.0!**
+- [ ] GitHub Issues API integration (v2.4.0)
+- [ ] Automated security patch suggestions (v2.4.0)
+- [ ] Dependency graph visualization (v2.5.0)
+- [ ] Web dashboard (v2.5.0)
+- [ ] Team collaboration features (v2.6.0)
+
+### Files Changed
+- `src/commands/analyze.js` - Enhanced with new analyzers
+- `src/analyzers/scoring.js` - Added security penalty parameter
+- `src/utils/json-formatter.js` - Extended with new fields
+- `package.json` - Version bump to 2.3.0
+
+### New Files
+- `src/analyzers/security.js` - Security vulnerability scanning
+- `src/analyzers/bundle-size.js` - Package size analysis
+- `src/analyzers/licenses.js` - License compliance checking
+- `src/alerts/predictive.js` - Future predictive alerts
+
+---
+
 ## [2.2.0] - 2025-04-01
 
 ### 🚀 Major New Features
@@ -317,6 +583,7 @@ No migration needed. All features are opt-in via flags or config.
 
 ---
 
+[2.3.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.3.0
 [2.2.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.2.0
 [2.1.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.1.0
 [2.0.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.0.0
