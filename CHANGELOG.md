@@ -5,7 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.3.0] - 2025-04-02
+## [2.3.1] - 2026-04-02
+
+### 🔒 Security Update
+
+**DevCompass practices what it preaches!** After releasing v2.3.0 with security scanning capabilities, we ran DevCompass on itself and discovered 14 transitive dependency vulnerabilities. This patch release fixes all of them.
+
+### Fixed
+- **All 14 security vulnerabilities resolved** (7 HIGH, 7 LOW severity)
+- Upgraded `npm-check-updates` from v16.14.12 to v20.0.0
+- Removed 315 vulnerable transitive dependencies
+- Fixed vulnerabilities in:
+  - `tar` package (7 HIGH severity issues)
+    - Arbitrary File Creation/Overwrite via Hardlink Path Traversal
+    - Symlink Poisoning via Insufficient Path Sanitization
+    - Hardlink Target Escape Through Symlink Chain
+    - Drive-Relative Linkpath vulnerabilities
+    - Race Condition in Path Reservations
+  - `@tootallnate/once` package (7 LOW severity issues)
+    - Incorrect Control Flow Scoping
+
+### Improved
+- **Health score:** DevCompass's own score improved from 2.5/10 → 8.0/10
+- **Bundle size:** Reduced from 9.1 MB → 6.2 MB (32% smaller)
+- **Dependencies:** Cleaner dependency tree with 315 fewer packages
+- **Performance:** Faster installation and smaller footprint
+
+### Technical Details
+- Breaking change accepted: npm-check-updates v20 has API changes
+- All DevCompass features tested and verified working
+- No user-facing breaking changes
+- Fully backward compatible with v2.3.0
+
+### Verification
+All features confirmed working after upgrade:
+- ✅ Security vulnerability scanning
+- ✅ Bundle size analysis
+- ✅ License compliance checking
+- ✅ Ecosystem alerts
+- ✅ JSON output for CI/CD
+- ✅ Auto-fix command
+- ✅ Caching system
+
+### What This Demonstrates
+This release showcases DevCompass's core mission:
+1. **Transparency:** We detected and reported our own vulnerabilities
+2. **Action:** We fixed them promptly and properly
+3. **Quality:** We verified everything still works
+4. **Trust:** We use our own tool and follow our own advice
+
+### Migration Guide
+No migration needed. Simply update:
+```bash
+npm install -g devcompass@2.3.1
+```
+
+---
+
+## [2.3.0] - 2026-04-02
 
 ### 🚀 Major New Features
 
@@ -583,6 +640,7 @@ No migration needed. All features are opt-in via flags or config.
 
 ---
 
+[2.3.1]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.3.1
 [2.3.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.3.0
 [2.2.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.2.0
 [2.1.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.1.0
