@@ -1,6 +1,6 @@
 {
   "name": "devcompass",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Dependency health checker with ecosystem intelligence for JavaScript/TypeScript projects",
   "main": "src/index.js",
   "bin": {
