@@ -184,7 +184,7 @@ async function analyze(options) {
       }
     }
     
-    // Check for predictive warnings (GitHub Issues) - UPDATED for v2.5.0
+    // Check for predictive warnings (GitHub Issues) - ENHANCED v2.6.0
     const { getTrackedPackageCount, TRACKED_REPOS } = require('../alerts/github-tracker');
     const totalTracked = getTrackedPackageCount();
     
@@ -192,12 +192,13 @@ async function analyze(options) {
     const installedTrackedCount = Object.keys(dependencies).filter(pkg => TRACKED_REPOS[pkg]).length;
     
     if (installedTrackedCount > 0) {
-      spinner.text = `Checking GitHub activity (${installedTrackedCount}/${totalTracked} tracked packages)...`;
+      spinner.text = `Checking GitHub activity (0/${installedTrackedCount} packages)...`;
     } else {
       spinner.text = 'Checking GitHub activity...';
     }
     
     let predictiveWarnings = [];
+    let githubCheckTime = 0;
     
     if (config.cache) {
       predictiveWarnings = getCached(projectPath, 'predictive');
@@ -206,7 +207,20 @@ async function analyze(options) {
     if (!predictiveWarnings) {
       try {
         const { generatePredictiveWarnings } = require('../alerts/predictive');
-        predictiveWarnings = await generatePredictiveWarnings(dependencies);
+        
+        // Track performance - NEW in v2.6.0
+        const startTime = Date.now();
+        
+        // Pass progress callback - NEW in v2.6.0
+        predictiveWarnings = await generatePredictiveWarnings(dependencies, {
+          onProgress: (current, total, packageName) => {
+            if (outputMode === 'normal') {
+              spinner.text = `Checking GitHub activity (${current}/${total} packages) - ${packageName}`;
+            }
+          }
+        });
+        
+        githubCheckTime = Date.now() - startTime;
         
         if (config.cache && predictiveWarnings.length > 0) {
           setCache(projectPath, 'predictive', predictiveWarnings);
@@ -274,6 +288,12 @@ async function analyze(options) {
     );
     
     spinner.succeed(chalk.green(`Scanned ${totalDeps} dependencies in project`));
+    
+    // Show performance info if GitHub check was performed - NEW in v2.6.0
+    if (githubCheckTime > 0 && outputMode === 'normal' && installedTrackedCount > 0) {
+      const timeInSeconds = (githubCheckTime / 1000).toFixed(2);
+      console.log(chalk.gray(`⚡ GitHub check completed in ${timeInSeconds}s (parallel processing)`));
+    }
     
     // Handle different output modes
     if (outputMode === 'json') {
@@ -371,7 +391,7 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, secu
   
   logDivider();
   
-  // PREDICTIVE WARNINGS (UPDATED for v2.5.0)
+  // PREDICTIVE WARNINGS (v2.5.0+)
   if (predictiveWarnings.length > 0) {
     const { getTrackedPackageCount } = require('../alerts/github-tracker');
     const totalTracked = getTrackedPackageCount();

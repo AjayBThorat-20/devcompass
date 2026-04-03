@@ -3,9 +3,11 @@ const { checkGitHubIssues } = require('./github-tracker');
 
 /**
  * Generate predictive warnings based on GitHub activity
- * OPTIMIZED: Only checks packages that are actually installed
+ * ENHANCED v2.6.0: Added progress callback support for parallel processing
  */
-async function generatePredictiveWarnings(packages) {
+async function generatePredictiveWarnings(packages, options = {}) {
+  const { onProgress } = options;
+  
   try {
     // Only check packages that are actually installed
     const installedPackages = Object.keys(packages);
@@ -14,8 +16,12 @@ async function generatePredictiveWarnings(packages) {
       return [];
     }
     
-    // Pass only installed packages to GitHub checker
-    const githubData = await checkGitHubIssues(packages);
+    // Pass options to GitHub checker (including progress callback)
+    // v2.6.0: Now supports parallel processing with concurrency control
+    const githubData = await checkGitHubIssues(packages, {
+      concurrency: 5, // Process 5 packages in parallel
+      onProgress: onProgress // Pass through progress callback
+    });
     
     const warnings = [];
     
