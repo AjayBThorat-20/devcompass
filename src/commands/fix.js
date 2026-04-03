@@ -3,11 +3,13 @@ const chalk = require('chalk');
 const ora = require('ora');
 const { execSync } = require('child_process');
 const readline = require('readline');
+const path = require('path');
 
 const { findUnusedDeps } = require('../analyzers/unused-deps');
 const { findOutdatedDeps } = require('../analyzers/outdated');
 const { checkEcosystemAlerts } = require('../alerts');
 const { getSeverityDisplay } = require('../alerts/formatter');
+const { clearCache } = require('../cache/manager');
 
 async function fix(options) {
   const projectPath = options.path || process.cwd();
@@ -22,7 +24,6 @@ async function fix(options) {
   
   try {
     const fs = require('fs');
-    const path = require('path');
     const packageJsonPath = path.join(projectPath, 'package.json');
     
     if (!fs.existsSync(packageJsonPath)) {
@@ -52,7 +53,7 @@ async function fix(options) {
     spinner.succeed(chalk.green('Analysis complete!\n'));
     
     // Show what will be fixed
-    await showFixPlan(criticalAlerts, unusedDeps, outdatedDeps, options);
+    await showFixPlan(criticalAlerts, unusedDeps, outdatedDeps, options, projectPath);
     
   } catch (error) {
     spinner.fail(chalk.red('Analysis failed'));
@@ -61,7 +62,7 @@ async function fix(options) {
   }
 }
 
-async function showFixPlan(criticalAlerts, unusedDeps, outdatedDeps, options) {
+async function showFixPlan(criticalAlerts, unusedDeps, outdatedDeps, options, projectPath) {
   const actions = [];
   
   // Critical alerts
@@ -160,19 +161,19 @@ async function showFixPlan(criticalAlerts, unusedDeps, outdatedDeps, options) {
   
   // Confirm
   if (options.yes) {
-    await applyFixes(actions);
+    await applyFixes(actions, projectPath);
   } else {
     const confirmed = await askConfirmation('\n❓ Apply these fixes?');
     
     if (confirmed) {
-      await applyFixes(actions);
+      await applyFixes(actions, projectPath);
     } else {
       console.log(chalk.yellow('\n⚠️  Fix cancelled. No changes made.\n'));
     }
   }
 }
 
-async function applyFixes(actions) {
+async function applyFixes(actions, projectPath) {
   console.log(chalk.cyan.bold('\n🔧 Applying fixes...\n'));
   
   const spinner = ora('Processing...').start();
@@ -221,6 +222,11 @@ async function applyFixes(actions) {
     
     console.log(chalk.green.bold('\n✨ All fixes applied successfully!\n'));
     console.log(chalk.cyan('💡 Run') + chalk.bold(' devcompass analyze ') + chalk.cyan('to see the new health score.\n'));
+    
+    // Clear cache after fixes - ADDED
+    spinner.text = 'Clearing cache...';
+    clearCache(projectPath);
+    spinner.succeed(chalk.gray('Cache cleared'));
     
   } catch (error) {
     spinner.fail(chalk.red('Fix failed'));

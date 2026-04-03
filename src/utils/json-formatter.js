@@ -3,7 +3,7 @@
 /**
  * Format analysis results as JSON
  */
-function formatAsJson(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses) {
+function formatAsJson(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses, predictiveWarnings = []) {
   const problematicLicenses = licenses.filter(l => l.type === 'restrictive' || l.type === 'unknown');
   const heavyPackages = bundleSizes.filter(p => p.size > 1024);
   
@@ -15,6 +15,7 @@ function formatAsJson(alerts, unusedDeps, outdatedDeps, score, totalDeps, securi
       totalDependencies: totalDeps,
       securityVulnerabilities: securityData.metadata.total,
       ecosystemAlerts: alerts.length,
+      predictiveWarnings: predictiveWarnings.length,
       unusedDependencies: unusedDeps.length,
       outdatedPackages: outdatedDeps.length,
       heavyPackages: heavyPackages.length,
@@ -43,6 +44,14 @@ function formatAsJson(alerts, unusedDeps, outdatedDeps, score, totalDeps, securi
       fix: alert.fix,
       source: alert.source,
       reported: alert.reported
+    })),
+    predictiveWarnings: predictiveWarnings.map(warning => ({
+      package: warning.package,
+      severity: warning.severity,
+      title: warning.title,
+      description: warning.description,
+      recommendation: warning.recommendation,
+      githubData: warning.data
     })),
     unusedDependencies: unusedDeps.map(dep => ({
       name: dep.name

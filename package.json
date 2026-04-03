@@ -1,7 +1,7 @@
 {
   "name": "devcompass",
-  "version": "2.3.1",
-  "description": "Dependency health checker with ecosystem intelligence for JavaScript/TypeScript projects",
+  "version": "2.4.0",
+  "description": "Dependency health checker with ecosystem intelligence and real-time GitHub issue tracking for JavaScript/TypeScript projects",
   "main": "src/index.js",
   "bin": {
     "devcompass": "./bin/devcompass.js"
@@ -36,7 +36,12 @@
     "json-output",
     "npm-audit",
     "bundle-size",
-    "license-checker"
+    "license-checker",
+    "github-issues",
+    "predictive-warnings",
+    "risk-detection",
+    "dependency-monitoring",
+    "issue-tracking"
   ],
   "author": "Ajay Thorat <ajaythorat988@gmail.com>",
   "license": "MIT",

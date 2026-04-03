@@ -161,7 +161,7 @@ async function analyze(options) {
       }
     }
     
-    // Check security vulnerabilities (NEW)
+    // Check security vulnerabilities
     spinner.text = 'Checking security vulnerabilities...';
     let securityData = { vulnerabilities: [], metadata: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 } };
     
@@ -184,7 +184,32 @@ async function analyze(options) {
       }
     }
     
-    // Analyze bundle sizes (NEW)
+    // Check for predictive warnings (GitHub Issues) - NEW
+    spinner.text = 'Checking GitHub activity...';
+    let predictiveWarnings = [];
+    
+    if (config.cache) {
+      predictiveWarnings = getCached(projectPath, 'predictive');
+    }
+    
+    if (!predictiveWarnings) {
+      try {
+        const { generatePredictiveWarnings } = require('../alerts/predictive');
+        predictiveWarnings = await generatePredictiveWarnings(dependencies);
+        
+        if (config.cache && predictiveWarnings.length > 0) {
+          setCache(projectPath, 'predictive', predictiveWarnings);
+        }
+      } catch (error) {
+        if (outputMode !== 'silent') {
+          console.log(chalk.yellow('\n⚠️  Could not check GitHub activity'));
+          console.log(chalk.gray(`   Error: ${error.message}\n`));
+        }
+        predictiveWarnings = [];
+      }
+    }
+    
+    // Analyze bundle sizes
     spinner.text = 'Analyzing bundle sizes...';
     let bundleSizes = [];
     
@@ -204,7 +229,7 @@ async function analyze(options) {
       }
     }
     
-    // Check licenses (NEW)
+    // Check licenses
     spinner.text = 'Checking licenses...';
     let licenses = [];
     
@@ -224,7 +249,7 @@ async function analyze(options) {
       }
     }
     
-    // Calculate score (UPDATED)
+    // Calculate score
     const alertPenalty = calculateAlertPenalty(alerts);
     const securityPenalty = calculateSecurityPenalty(securityData.metadata);
     
@@ -241,15 +266,15 @@ async function analyze(options) {
     
     // Handle different output modes
     if (outputMode === 'json') {
-      const jsonOutput = formatAsJson(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses);
+      const jsonOutput = formatAsJson(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses, predictiveWarnings);
       console.log(jsonOutput);
     } else if (outputMode === 'ci') {
-      displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses);
+      displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses, predictiveWarnings);
       handleCiMode(score, config, alerts, unusedDeps);
     } else if (outputMode === 'silent') {
       // Silent mode - no output
     } else {
-      displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses);
+      displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses, predictiveWarnings);
     }
     
   } catch (error) {
@@ -262,10 +287,10 @@ async function analyze(options) {
   }
 }
 
-function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses) {
+function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses, predictiveWarnings) {
   logDivider();
   
-  // SECURITY VULNERABILITIES (NEW SECTION)
+  // SECURITY VULNERABILITIES
   if (securityData.metadata.total > 0) {
     const criticalCount = securityData.metadata.critical;
     const highCount = securityData.metadata.high;
@@ -335,6 +360,33 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, secu
   
   logDivider();
   
+  // PREDICTIVE WARNINGS (NEW SECTION)
+  if (predictiveWarnings.length > 0) {
+    logSection('🔮 PREDICTIVE WARNINGS', predictiveWarnings.length);
+    
+    log(chalk.gray('  Based on recent GitHub activity:\n'));
+    
+    predictiveWarnings.forEach(warning => {
+      const display = getSeverityDisplay(warning.severity);
+      
+      log(`${display.emoji} ${display.color(warning.package)}`);
+      log(`   ${chalk.yellow(warning.title)}`);
+      log(`   ${warning.description}`);
+      log(`   ${chalk.cyan('→')} ${warning.recommendation}`);
+      
+      if (warning.data && warning.data.repoUrl) {
+        log(chalk.gray(`   GitHub: ${warning.data.repoUrl}`));
+      }
+      
+      log('');
+    });
+  } else {
+    logSection('✅ PREDICTIVE ANALYSIS');
+    log(chalk.green('  No unusual activity detected!\n'));
+  }
+  
+  logDivider();
+  
   // UNUSED DEPENDENCIES
   if (unusedDeps.length > 0) {
     logSection('🔴 UNUSED DEPENDENCIES', unusedDeps.length);
@@ -376,7 +428,7 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, secu
   
   logDivider();
   
-  // BUNDLE SIZE (NEW SECTION)
+  // BUNDLE SIZE
   const heavyPackages = findHeavyPackages(bundleSizes);
   if (heavyPackages.length > 0) {
     logSection('📦 HEAVY PACKAGES', heavyPackages.length);
@@ -396,7 +448,7 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, secu
     logDivider();
   }
   
-  // LICENSE WARNINGS (NEW SECTION - ALWAYS SHOW)
+  // LICENSE WARNINGS
   const problematicLicenses = findProblematicLicenses(licenses);
   if (problematicLicenses.length > 0) {
     logSection('⚖️  LICENSE WARNINGS', problematicLicenses.length);
@@ -429,6 +481,10 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, secu
   
   if (alerts.length > 0) {
     log(`  Ecosystem Alerts:           ${chalk.red(alerts.length)}`);
+  }
+  
+  if (predictiveWarnings.length > 0) {
+    log(`  Predictive Warnings:        ${chalk.yellow(predictiveWarnings.length)}`);
   }
   
   log(`  Unused:                     ${chalk.red(unusedDeps.length)}`);

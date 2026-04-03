@@ -5,6 +5,197 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-04-04
+
+### 🚀 Major New Features
+
+#### GitHub Issues Integration
+- **NEW:** Real-time tracking of GitHub issues for popular packages
+- **NEW:** Predictive warnings based on recent bug activity
+- **NEW:** Risk scoring system (low/medium/high severity)
+- **NEW:** Issue trend analysis (increasing/stable/decreasing)
+- **NEW:** Automatic detection of high-activity packages
+- **NEW:** Live data from GitHub Issues API
+- **NEW:** Smart recommendations based on issue trends
+
+### Added
+- GitHub Issues API integration (`src/alerts/github-tracker.js`)
+  - Tracks open issues for 14+ popular packages
+  - Analyzes issues by recency (last 7/30 days)
+  - Detects critical issues via labels (critical, security, regression, breaking)
+  - Calculates risk scores based on activity
+  - Fetches live data from GitHub repositories
+  - Rate limiting: 1 request per second to respect API limits
+- Enhanced predictive warnings (`src/alerts/predictive.js`)
+  - Real-time package health monitoring
+  - Trend detection (increasing/stable/decreasing)
+  - Risk score calculation (0-5 scale)
+  - Actionable recommendations per package
+  - Integration with GitHub issue data
+- New output section: **🔮 PREDICTIVE WARNINGS**
+  - Shows packages with unusual activity
+  - Displays issue counts and trends
+  - Links to GitHub repositories
+  - Provides monitoring recommendations
+- Cache clearing after fix command
+  - Ensures fresh analysis after package changes
+  - Automatic cache invalidation
+  - Prevents stale data issues
+
+### Changed
+- `analyze` command now includes GitHub activity analysis
+- Cache system expanded to include predictive warnings
+- JSON output includes `predictiveWarnings` field with GitHub data
+- Display output includes new predictive analysis section
+- `fix` command now clears cache after applying changes
+- Health score display includes predictive warning count
+
+### Tracked Packages (v2.4.0)
+Currently monitoring GitHub issues for:
+- **axios** - axios/axios
+- **lodash** - lodash/lodash
+- **moment** - moment/moment
+- **express** - expressjs/express
+- **react** - facebook/react
+- **vue** - vuejs/core
+- **next** - vercel/next.js
+- **webpack** - webpack/webpack
+- **typescript** - microsoft/TypeScript
+- **eslint** - eslint/eslint
+- **jest** - jestjs/jest
+- **prettier** - prettier/prettier
+- **node-fetch** - node-fetch/node-fetch
+- **chalk** - chalk/chalk
+
+### Technical Details
+- Uses GitHub REST API v3
+- No authentication required (public API)
+- Rate limiting: 1 second delay between requests
+- Cache support for GitHub data (1 hour TTL)
+- Graceful degradation if GitHub API unavailable
+- Issue analysis includes:
+  - Total open issues count
+  - Issues in last 7 days
+  - Issues in last 30 days
+  - Critical issue detection by labels
+  - Trend calculation (comparing weekly vs monthly)
+
+### Risk Scoring Algorithm
+```
+Risk Score = 0-5 points based on:
+- 3 points: >15 issues in last 7 days
+- 2 points: 10-15 issues in last 7 days
+- 1 point: 5-10 issues in last 7 days
+- 2 points: >5 critical issues
+- 1 point: 2-5 critical issues
+- 1 point: Increasing trend detected
+```
+
+### Performance
+- GitHub check: ~1 second per package
+- Total for 14 packages: ~14 seconds on first run
+- Cached runs: No additional time (data cached for 1 hour)
+- Respects GitHub rate limits automatically
+
+### Example Output
+```
+🔮 PREDICTIVE WARNINGS (2)
+
+  Based on recent GitHub activity:
+
+🟠 axios
+   High bug activity detected
+   15 new issues in last 7 days
+   → Consider delaying upgrade or monitoring closely
+   GitHub: https://github.com/axios/axios
+
+🟡 webpack
+   Increased issue activity
+   8 issues opened recently
+   → Monitor for stability
+   GitHub: https://github.com/webpack/webpack
+```
+
+### JSON Output Schema (Extended)
+New fields added to JSON output:
+```json
+{
+  "summary": {
+    "predictiveWarnings": 2
+  },
+  "predictiveWarnings": [
+    {
+      "package": "axios",
+      "severity": "high",
+      "title": "High bug activity detected",
+      "description": "15 new issues in last 7 days",
+      "recommendation": "Consider delaying upgrade or monitoring closely",
+      "githubData": {
+        "totalIssues": 234,
+        "recentIssues": 15,
+        "criticalIssues": 3,
+        "trend": "increasing",
+        "repoUrl": "https://github.com/axios/axios"
+      }
+    }
+  ]
+}
+```
+
+### Breaking Changes
+- None (fully backward compatible)
+
+### Migration Guide
+No migration needed. Feature works automatically.
+
+To disable predictive warnings (if needed):
+```json
+// devcompass.config.json
+{
+  "cache": false  // Disables all caching including GitHub data
+}
+```
+
+### Use Cases
+- **Proactive monitoring:** Detect issues before official announcements
+- **Upgrade timing:** Know when to delay or proceed with updates
+- **Package evaluation:** Compare activity levels when choosing packages
+- **Risk assessment:** Identify high-maintenance dependencies
+- **CI/CD integration:** Fail builds on high-risk package activity
+
+### Files Changed
+- `src/commands/analyze.js` - Added predictive warnings check
+- `src/commands/fix.js` - Added cache clearing after fixes
+- `src/utils/json-formatter.js` - Extended with predictive warnings field
+- `package.json` - Version bump to 2.4.0, added new keywords
+
+### New Files
+- `src/alerts/github-tracker.js` - GitHub Issues API integration
+  - Fetches issues from GitHub repositories
+  - Analyzes issue trends and patterns
+  - Calculates risk scores
+  - Determines trend direction
+- `src/alerts/predictive.js` - Enhanced with GitHub integration
+  - Generates warnings from GitHub data
+  - Risk assessment logic
+  - Recommendation engine
+
+### Known Limitations
+- GitHub API rate limit: 60 requests/hour (unauthenticated)
+- Only tracks packages in TRACKED_REPOS list (14 packages currently)
+- Requires internet connection for GitHub data
+- Cache prevents real-time updates (1 hour TTL)
+
+### Future Enhancements (v2.5.0+)
+- Expand to top 500 npm packages
+- GitHub authentication for higher rate limits
+- Configurable tracked packages list
+- Historical trend tracking
+- Email/Slack notifications for critical warnings
+- Custom risk thresholds
+
+---
+
 ## [2.3.1] - 2026-04-02
 
 ### 🔒 Security Update
@@ -640,6 +831,7 @@ No migration needed. All features are opt-in via flags or config.
 
 ---
 
+[2.4.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.4.0
 [2.3.1]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.3.1
 [2.3.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.3.0
 [2.2.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.2.0

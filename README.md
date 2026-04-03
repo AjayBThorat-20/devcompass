@@ -1,40 +1,50 @@
-cd ~/devCampuss
-cat > README.md << 'EOF'
 # 🧭 DevCompass
 
-**Dependency health checker with ecosystem intelligence for JavaScript/TypeScript projects**
+**Dependency health checker with ecosystem intelligence and real-time GitHub issue tracking for JavaScript/TypeScript projects**
 
 [![npm version](https://img.shields.io/npm/v/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **check bundle sizes**, **verify licenses**, and **automatically fix issues** with a single command. Perfect for **CI/CD pipelines** with JSON output and exit codes.
+Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time**, **check bundle sizes**, **verify licenses**, and **automatically fix issues** with a single command. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
+> **NEW in v2.4.0:** Real-time GitHub issue tracking & predictive warnings! 🔮  
 > **NEW in v2.3.1:** Fixed all security vulnerabilities! Health score: 2.5/10 → 8/10 🔒  
 > **NEW in v2.3:** Security scanning, bundle analysis & license checker! 🔐  
 > **NEW in v2.2:** CI/CD integration with JSON output & smart caching! 🚀  
 > **NEW in v2.1:** Auto-fix command! 🔧 Fix critical issues automatically!  
 > **NEW in v2.0:** Real-time ecosystem alerts for known issues! 🚨
 
-## 🎉 Latest Update: v2.3.1
+## 🎉 Latest Update: v2.4.0
 
-**We practice what we preach!** After releasing v2.3.0 with security scanning, we ran DevCompass on itself and found 14 vulnerabilities. We fixed them all:
+**Real-time GitHub issue tracking is here!** DevCompass now monitors live GitHub activity for 14+ popular packages:
 
-- ✅ **Health score improved:** 2.5/10 → 8/10
-- ✅ **Security vulnerabilities:** 14 → 0
-- ✅ **Bundle size reduced:** 9.1 MB → 6.2 MB (32% smaller)
-- ✅ **Dependencies upgraded:** npm-check-updates v16 → v20
-- ✅ **Removed 315 vulnerable packages**
+- 🔮 **Predictive warnings** based on recent bug activity
+- 📊 **Risk scoring** (high/medium/low severity)
+- 📈 **Trend analysis** (increasing/stable/decreasing)
+- ⚡ **93% faster** with smart caching (8s → 0.5s)
+- 🔗 **Direct links** to GitHub repositories
 
-This is what "eating your own dog food" looks like. DevCompass helps you catch and fix security issues before they reach production.
+**Example warning:**
+```
+🔮 PREDICTIVE WARNINGS (1)
+
+🟡 express
+   Increased issue activity
+   15 new issues in last 7 days
+   → Monitor for stability
+   GitHub: https://github.com/expressjs/express
+```
 
 ## ✨ Features
 
+- 🔮 **GitHub Issue Tracking** (v2.4) - Real-time monitoring of package health
+- 📈 **Predictive Warnings** (v2.4) - Detect issues before they're announced
 - 🔐 **Security Scanning** (v2.3) - npm audit integration with severity breakdown
 - 📦 **Bundle Size Analysis** (v2.3) - Identify heavy packages (> 1MB)
 - ⚖️ **License Checker** (v2.3) - Detect restrictive licenses (GPL, AGPL)
 - 🚀 **CI/CD Integration** (v2.2) - JSON output, exit codes, and silent mode
-- ⚡ **Smart Caching** (v2.2) - 70% faster on repeated runs
+- ⚡ **Smart Caching** (v2.2) - 93% faster on repeated runs
 - 🎛️ **Advanced Filtering** (v2.2) - Control alerts by severity level
 - 🔧 **Auto-Fix Command** (v2.1) - Fix issues automatically with one command
 - 🚨 **Ecosystem Intelligence** (v2.0) - Detect known issues before they break production
@@ -79,6 +89,55 @@ devcompass analyze --ci
 # Silent mode (no output)
 devcompass analyze --silent
 ```
+
+## 🔮 Predictive Warnings (v2.4.0)
+
+DevCompass now monitors **real-time GitHub activity** to detect potential issues before they're officially reported!
+
+### What it tracks:
+- 🐛 **Open bug reports** in the last 7/30 days
+- 🔥 **High-activity packages** with unusual issue spikes
+- 📈 **Trend analysis** (increasing/stable/decreasing)
+- ⚠️ **Critical issues** flagged by maintainers
+
+### Currently tracked packages (14+):
+- **axios**, **lodash**, **moment**, **express**
+- **react**, **vue**, **next**, **webpack**
+- **typescript**, **eslint**, **jest**, **prettier**
+- **node-fetch**, **chalk**
+
+### Example Output:
+```
+🔮 PREDICTIVE WARNINGS (2)
+
+  Based on recent GitHub activity:
+
+🟠 axios
+   High bug activity detected
+   15 new issues in last 7 days
+   → Consider delaying upgrade or monitoring closely
+   GitHub: https://github.com/axios/axios
+
+🟡 webpack
+   Increased issue activity
+   8 issues opened recently
+   → Monitor for stability
+   GitHub: https://github.com/webpack/webpack
+```
+
+### How it works:
+1. Fetches live issue data from GitHub API
+2. Analyzes issue frequency (last 7/30 days)
+3. Detects critical issues via labels
+4. Calculates risk scores
+5. Provides actionable recommendations
+
+### Performance:
+- **First run:** ~8 seconds (fetches GitHub data for 14 packages)
+- **Cached runs:** ~0.5 seconds (93% faster!)
+- **Cache duration:** 1 hour
+
+> More packages being added in v2.5.0 (expanding to top 500)!
 
 ## 🔐 Security & Compliance Features
 
@@ -160,7 +219,7 @@ Detect restrictive licenses that may require legal review!
 
 **Full Output:**
 ```
-🔍 DevCompass v2.3.1 - Analyzing your project...
+🔍 DevCompass v2.4.0 - Analyzing your project...
 ✔ Scanned 25 dependencies in project
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -177,6 +236,18 @@ Detect restrictive licenses that may require legal review!
   axios@1.6.0
     Issue: Memory leak in request interceptors
     Fix: 1.6.2
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔮 PREDICTIVE WARNINGS (1)
+
+  Based on recent GitHub activity:
+
+🟡 express
+   Increased issue activity
+   8 issues opened recently
+   → Monitor for stability
+   GitHub: https://github.com/expressjs/express
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -200,6 +271,7 @@ Detect restrictive licenses that may require legal review!
   Overall Score:              8.5/10
   Total Dependencies:         25
   Ecosystem Alerts:           1
+  Predictive Warnings:        1
   Unused:                     0
   Outdated:                   2
 
@@ -229,13 +301,14 @@ devcompass analyze --json
 **Output:**
 ```json
 {
-  "version": "2.3.1",
-  "timestamp": "2026-04-02T10:30:00.000Z",
+  "version": "2.4.0",
+  "timestamp": "2026-04-04T10:30:00.000Z",
   "summary": {
     "healthScore": 8.5,
     "totalDependencies": 25,
     "securityVulnerabilities": 0,
     "ecosystemAlerts": 1,
+    "predictiveWarnings": 1,
     "unusedDependencies": 0,
     "outdatedPackages": 2,
     "heavyPackages": 2,
@@ -249,6 +322,21 @@ devcompass analyze --json
     "low": 0,
     "vulnerabilities": []
   },
+  "predictiveWarnings": [
+    {
+      "package": "express",
+      "severity": "medium",
+      "title": "Increased issue activity",
+      "description": "8 issues opened recently",
+      "recommendation": "Monitor for stability",
+      "githubData": {
+        "totalIssues": 234,
+        "recentIssues": 8,
+        "trend": "increasing",
+        "repoUrl": "https://github.com/expressjs/express"
+      }
+    }
+  ],
   "bundleAnalysis": {
     "heavyPackages": [
       { "name": "typescript", "size": "8.1 MB" },
@@ -300,12 +388,14 @@ echo $?  # Check exit code
 
 DevCompass caches results to improve performance:
 
-- **First run:** Normal speed (fetches all data)
-- **Cached runs:** ~70% faster
+- **First run:** ~8 seconds (fetches GitHub + npm data)
+- **Cached runs:** ~0.5 seconds (93% faster!)
 - **Cache duration:** 1 hour
 - **Cache file:** `.devcompass-cache.json` (auto-gitignored)
 
 **What gets cached:**
+- GitHub issue data (NEW in v2.4.0)
+- Predictive warnings (NEW in v2.4.0)
 - Security vulnerabilities
 - Ecosystem alerts
 - Unused dependencies
@@ -385,6 +475,7 @@ DevCompass can **automatically fix issues** in your project!
 - 🧹 **Removes unused dependencies** - Cleans up packages you're not using
 - ⬆️ **Safe updates** - Applies patch and minor updates automatically
 - ⚠️ **Skips breaking changes** - Major updates require manual review
+- 🔄 **Clears cache** - Ensures fresh analysis after fixes (NEW in v2.4.0)
 
 ### Usage
 ```bash
@@ -404,6 +495,7 @@ devcompass fix --path /path/to/project
 - ✅ Requires confirmation (unless `--yes` flag used)
 - ✅ Skips major updates (may have breaking changes)
 - ✅ Groups actions by priority (critical → cleanup → updates)
+- ✅ Clears cache after fixes (NEW in v2.4.0)
 - ✅ Provides clear summary of changes
 
 ### Workflow Example
@@ -618,6 +710,8 @@ If you encounter a false positive, please [report it](https://github.com/AjayBTh
 8. **Use JSON output** - Integrate with your monitoring tools
 9. **Review major updates** - Always check changelogs before major version bumps
 10. **Verify before uninstalling** - DevCompass helps identify candidates, but always verify
+11. **Watch predictive warnings** - Monitor packages with increasing issue activity (NEW)
+12. **Cache for speed** - First run takes ~8s, cached runs ~0.5s (NEW)
 
 ## 🤝 Contributing
 
@@ -710,13 +804,16 @@ Check out DevCompass stats:
 - [x] ~~Bundle size analysis~~ ✅ **Added in v2.3!**
 - [x] ~~License compliance checker~~ ✅ **Added in v2.3!**
 - [x] ~~Fix all security vulnerabilities~~ ✅ **Fixed in v2.3.1!**
-- [ ] GitHub Issues API for real-time issue tracking (v2.4.0)
-- [ ] Automated security patch suggestions (v2.4.0)
-- [ ] Dependency graph visualization (v2.5.0)
-- [ ] Web dashboard for team health monitoring (v2.5.0)
-- [ ] More tracked packages (React, Next.js, Vue, Angular) (v2.5.0)
-- [ ] Team collaboration features (v2.6.0)
-- [ ] Slack/Discord notifications (v2.6.0)
+- [x] ~~GitHub Issues API for real-time issue tracking~~ ✅ **Added in v2.4.0!**
+- [x] ~~Predictive warnings based on bug activity~~ ✅ **Added in v2.4.0!**
+- [ ] Expand to top 500 npm packages (v2.5.0)
+- [ ] Performance optimizations (v2.6.0)
+- [ ] Advanced security features with Snyk (v2.7.0)
+- [ ] Enhanced fix command improvements (v2.8.0)
+- [ ] Dependency graph visualization (v3.0.0)
+- [ ] Web dashboard for team health monitoring (v3.0.0)
+- [ ] Team collaboration features (v3.1.0)
+- [ ] Slack/Discord notifications (v3.1.0)
 
 Want to contribute? Pick an item and open an issue! 🚀
 
@@ -727,4 +824,3 @@ Want to contribute? Pick an item and open an issue! 🚀
 *DevCompass - Keep your dependencies healthy!* 🧭
 
 **Like Lighthouse for your dependencies** ⚡
-EOF
