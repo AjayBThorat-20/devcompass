@@ -3,11 +3,19 @@ const { checkGitHubIssues } = require('./github-tracker');
 
 /**
  * Generate predictive warnings based on GitHub activity
+ * OPTIMIZED: Only checks packages that are actually installed
  */
 async function generatePredictiveWarnings(packages) {
   try {
-    const packageNames = Object.keys(packages);
-    const githubData = await checkGitHubIssues(packageNames);
+    // Only check packages that are actually installed
+    const installedPackages = Object.keys(packages);
+    
+    if (installedPackages.length === 0) {
+      return [];
+    }
+    
+    // Pass only installed packages to GitHub checker
+    const githubData = await checkGitHubIssues(packages);
     
     const warnings = [];
     
@@ -40,6 +48,25 @@ async function generatePredictiveWarnings(packages) {
           title: 'Increased issue activity',
           description: `${data.last7Days} issues opened recently`,
           recommendation: 'Monitor for stability',
+          data: {
+            totalIssues: data.totalIssues,
+            recentIssues: data.last7Days,
+            criticalIssues: data.criticalIssues,
+            trend: data.trend,
+            repoUrl: data.repoUrl
+          }
+        });
+      }
+      
+      // Low risk: stable but worth noting
+      else if (data.riskScore >= 1) {
+        warnings.push({
+          package: data.package,
+          severity: 'low',
+          type: 'predictive',
+          title: 'Minor issue activity',
+          description: `${data.last7Days} issues in last week`,
+          recommendation: 'No immediate action needed',
           data: {
             totalIssues: data.totalIssues,
             recentIssues: data.last7Days,
@@ -78,7 +105,21 @@ function calculateRiskScore(githubData) {
   return score;
 }
 
+/**
+ * Get statistics about predictive warnings
+ */
+function getPredictiveStats(warnings) {
+  return {
+    total: warnings.length,
+    high: warnings.filter(w => w.severity === 'high').length,
+    medium: warnings.filter(w => w.severity === 'medium').length,
+    low: warnings.filter(w => w.severity === 'low').length,
+    packages: warnings.map(w => w.package)
+  };
+}
+
 module.exports = {
   generatePredictiveWarnings,
-  calculateRiskScore
+  calculateRiskScore,
+  getPredictiveStats
 };

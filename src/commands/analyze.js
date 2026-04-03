@@ -184,8 +184,19 @@ async function analyze(options) {
       }
     }
     
-    // Check for predictive warnings (GitHub Issues) - NEW
-    spinner.text = 'Checking GitHub activity...';
+    // Check for predictive warnings (GitHub Issues) - UPDATED for v2.5.0
+    const { getTrackedPackageCount, TRACKED_REPOS } = require('../alerts/github-tracker');
+    const totalTracked = getTrackedPackageCount();
+    
+    // Count how many installed packages are tracked
+    const installedTrackedCount = Object.keys(dependencies).filter(pkg => TRACKED_REPOS[pkg]).length;
+    
+    if (installedTrackedCount > 0) {
+      spinner.text = `Checking GitHub activity (${installedTrackedCount}/${totalTracked} tracked packages)...`;
+    } else {
+      spinner.text = 'Checking GitHub activity...';
+    }
+    
     let predictiveWarnings = [];
     
     if (config.cache) {
@@ -360,11 +371,14 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, secu
   
   logDivider();
   
-  // PREDICTIVE WARNINGS (NEW SECTION)
+  // PREDICTIVE WARNINGS (UPDATED for v2.5.0)
   if (predictiveWarnings.length > 0) {
+    const { getTrackedPackageCount } = require('../alerts/github-tracker');
+    const totalTracked = getTrackedPackageCount();
+    
     logSection('🔮 PREDICTIVE WARNINGS', predictiveWarnings.length);
     
-    log(chalk.gray('  Based on recent GitHub activity:\n'));
+    log(chalk.gray(`  Based on recent GitHub activity (${totalTracked}+ packages monitored):\n`));
     
     predictiveWarnings.forEach(warning => {
       const display = getSeverityDisplay(warning.severity);
@@ -381,8 +395,11 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, secu
       log('');
     });
   } else {
+    const { getTrackedPackageCount } = require('../alerts/github-tracker');
+    const totalTracked = getTrackedPackageCount();
+    
     logSection('✅ PREDICTIVE ANALYSIS');
-    log(chalk.green('  No unusual activity detected!\n'));
+    log(chalk.green(`  No unusual activity detected (${totalTracked}+ packages monitored)!\n`));
   }
   
   logDivider();
