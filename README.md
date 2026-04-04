@@ -8,13 +8,29 @@
 
 Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 500+ packages**, **check bundle sizes**, **verify licenses**, **detect supply chain attacks**, **analyze package quality**, and **automatically fix issues** with a single command. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
+> **LATEST v2.7.1:** Bugfix - Fixed false positive typosquatting warnings! 🐛  
 > **NEW in v2.7.0:** Advanced security features - Supply chain analysis, license risk detection, package quality metrics! 🔐  
 > **NEW in v2.6.0:** 80% faster with parallel processing! ⚡  
 > **NEW in v2.5.0:** Expanded to 502 packages across 33 categories! 🎯  
-> **NEW in v2.4.0:** Real-time GitHub issue tracking & predictive warnings! 🔮  
-> **NEW in v2.3.1:** Fixed all security vulnerabilities! Health score: 2.5/10 → 8/10 🔒
+> **NEW in v2.4.0:** Real-time GitHub issue tracking & predictive warnings! 🔮
 
-## 🎉 Latest Update: v2.7.0
+## 🎉 Latest Update: v2.7.1
+
+**Quick bugfix release!** Fixed false positive typosquatting warnings in v2.7.0.
+
+### What's Fixed in v2.7.1:
+- ✅ **No more chalk vs chai warnings** - Enhanced whitelist prevents legitimate packages from being flagged
+- ✅ **Improved typosquatting detection** - Skip comparison when both packages are legitimate
+- ✅ **Better object iteration** - Fixed handling of typosquat_patterns structure
+
+**Upgrade now:**
+```bash
+npm install -g devcompass@2.7.1
+```
+
+---
+
+## 🎉 v2.7.0 Features
 
 **Comprehensive security analysis without external dependencies!** DevCompass now includes advanced security features:
 
@@ -27,39 +43,26 @@ Analyze your JavaScript projects to find unused dependencies, outdated packages,
 
 **Example output:**
 ```
-🛡️ SUPPLY CHAIN SECURITY (2 warnings)
+🛡️ SUPPLY CHAIN SECURITY
 
-🟠 TYPOSQUATTING RISK
-  expresss
-    Similar to: express (official package)
-    → Remove expresss and install express
+✅ No supply chain risks detected!
 
-⚖️ LICENSE RISK ANALYSIS (1 warning)
+⚖️ LICENSE RISK ANALYSIS
 
-🔴 CRITICAL LICENSE RISKS
-  gpl-package@1.0.0
-    License: AGPL-3.0
-    Network copyleft - very restrictive
-    → Replace with permissive alternative immediately
+  Project License: MIT
+
+✅ All licenses are compliant!
 
 📊 PACKAGE QUALITY METRICS (20 analyzed)
 
-🔴 ABANDONED PACKAGES (1)
-  old-lib@1.0.0
-    Health Score: 1.2/10
-    Last Update: 3 years ago
-    → Migrate to actively maintained alternative
+✅ HEALTHY PACKAGES (18)
+  react, axios, lodash, express, webpack...
 
 💡 SECURITY RECOMMENDATIONS (Prioritized)
 
-🔴 CRITICAL (Fix Immediately)
-  1. Remove typosquatting package
-     $ npm uninstall expresss && npm install express
-
 📈 Expected Impact:
-  ✓ Current Health Score: 4.2/10
-  ✓ Expected Score: 8.7/10
-  ✓ Improvement: +4.5 points (45% increase)
+  ✓ Current Health Score: 8.5/10
+  ✓ Project is in excellent health!
 ```
 
 ## ✨ Features
@@ -136,6 +139,7 @@ DevCompass now detects **supply chain attacks** including malicious packages, ty
 - **Exact pattern matching** - Database of 15+ known malicious packages
 - **Levenshtein distance** - Detects 1-2 character differences from popular packages
 - **Pattern analysis** - Scans install scripts for suspicious commands
+- **Smart whitelist** (v2.7.1) - Prevents false positives for legitimate packages
 
 ### Example Output:
 ```
@@ -165,6 +169,10 @@ DevCompass now detects **supply chain attacks** including malicious packages, ty
 - express, request, lodash, axios, webpack
 - react, vue, angular, next, typescript
 - eslint, prettier, jest, mocha, chai
+
+**Whitelisted legitimate packages (40+):**
+- chalk, ora, yargs, commander, semver
+- And more to prevent false positives!
 
 **Suspicious install script patterns:**
 - Network operations: curl, wget, http://, https://
@@ -349,7 +357,7 @@ Intelligent, **prioritized recommendations** with actionable commands and impact
 💡 TIP: Run devcompass fix to apply automated fixes!
 ```
 
-## 🔮 Predictive Warnings (v2.7.0)
+## 🔮 Predictive Warnings (v2.7.1)
 
 DevCompass monitors **real-time GitHub activity for 500+ packages** to detect potential issues before they're officially reported!
 
@@ -512,9 +520,9 @@ Detect restrictive licenses that may require legal review!
 
 ### Combined Analysis Example
 
-**Full Output (v2.7.0):**
+**Full Output (v2.7.1):**
 ```
-🔍 DevCompass v2.7.0 - Analyzing your project...
+🔍 DevCompass v2.7.1 - Analyzing your project...
 ✔ Scanned 25 dependencies in project
 ⚡ GitHub check completed in 1.23s (parallel processing)
 
@@ -526,12 +534,9 @@ Detect restrictive licenses that may require legal review!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🛡️ SUPPLY CHAIN SECURITY (1 warning)
+✅ SUPPLY CHAIN SECURITY
 
-🟠 TYPOSQUATTING RISK
-  expresss
-    Similar to: express (official package)
-    → Remove expresss and install express
+  No supply chain risks detected!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -544,23 +549,15 @@ Detect restrictive licenses that may require legal review!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🔮 PREDICTIVE WARNINGS (1)
+✅ PREDICTIVE ANALYSIS
 
-  Based on recent GitHub activity (502+ packages monitored):
-
-🟡 express
-   Increased issue activity
-   8 issues opened recently
-   → Monitor for stability
-   GitHub: https://github.com/expressjs/express
+  No unusual activity detected (502+ packages monitored)!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⚖️ LICENSE RISK ANALYSIS
+✅ LICENSE COMPLIANCE
 
-  Project License: MIT
-
-✅ All licenses are compliant!
+  All licenses are compliant!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -589,9 +586,9 @@ Detect restrictive licenses that may require legal review!
 
   Overall Score:              8.5/10
   Total Dependencies:         25
-  Supply Chain Warnings:      1
+  Supply Chain Warnings:      0
   Ecosystem Alerts:           1
-  Predictive Warnings:        1
+  Predictive Warnings:        0
   License Risks:              0
   Quality Issues:             0
   Unused:                     0
@@ -603,11 +600,7 @@ Detect restrictive licenses that may require legal review!
 
 🟠 HIGH (Fix Soon)
 
-  1. Typosquatting attempt detected
-     Package: expresss
-     $ npm uninstall expresss && npm install express
-
-  2. Upgrade vulnerable package
+  1. Upgrade vulnerable package
      Package: axios@1.6.0
      $ npm install axios@1.6.2
 
@@ -616,8 +609,6 @@ Detect restrictive licenses that may require legal review!
   ✓ Current Health Score: 8.5/10
   ✓ Expected Score: 9.8/10
   ✓ Improvement: +1.3 points (13% increase)
-  ✓ Eliminate 1 supply chain risk
-  ✓ Resolve 1 high-priority issue
 
 💡 TIP: Run 'devcompass fix' to apply these fixes automatically!
 ```
@@ -630,26 +621,26 @@ Perfect for parsing in CI/CD pipelines:
 devcompass analyze --json
 ```
 
-**Output (v2.7.0):**
+**Output (v2.7.1):**
 ```json
 {
-  "version": "2.7.0",
+  "version": "2.7.1",
   "timestamp": "2026-04-04T10:30:00.000Z",
   "summary": {
     "healthScore": 8.5,
     "totalDependencies": 25,
     "securityVulnerabilities": 0,
-    "supplyChainWarnings": 1,
+    "supplyChainWarnings": 0,
     "ecosystemAlerts": 1,
-    "predictiveWarnings": 1,
+    "predictiveWarnings": 0,
     "licenseRisks": 0,
     "qualityIssues": 0,
     "unusedDependencies": 0,
     "outdatedPackages": 2
   },
   "supplyChain": {
-    "total": 1,
-    "warnings": [...]
+    "total": 0,
+    "warnings": []
   },
   "licenseRisk": {
     "total": 0,
@@ -663,9 +654,9 @@ devcompass analyze --json
     "packages": [...]
   },
   "recommendations": {
-    "total": 2,
+    "total": 1,
     "critical": 0,
-    "high": 2,
+    "high": 1,
     "items": [...]
   }
 }
@@ -712,7 +703,7 @@ DevCompass caches results to improve performance:
 - **Cache duration:** 1 hour
 - **Cache file:** `.devcompass-cache.json` (auto-gitignored)
 
-**What gets cached (v2.7.0):**
+**What gets cached (v2.7.1):**
 - Supply chain analysis
 - License risk data
 - Package quality metrics
@@ -1035,6 +1026,7 @@ If you encounter a false positive, please [report it](https://github.com/AjayBTh
 13. **Monitor supply chain** - Check for typosquatting regularly (v2.7.0)
 14. **Review license risks** - Ensure GPL/AGPL compliance (v2.7.0)
 15. **Track package quality** - Replace abandoned packages proactively (v2.7.0)
+16. **Update regularly** - Stay on latest version for bug fixes (v2.7.1 fixed false positives!)
 
 ## 🤝 Contributing
 
@@ -1143,6 +1135,7 @@ Check out DevCompass stats:
   - [x] Enhanced license risk detection
   - [x] Package quality metrics
   - [x] Security recommendations engine
+- [x] ~~Fix false positive typosquatting warnings~~ ✅ **Fixed in v2.7.1!**
 - [ ] Enhanced fix command improvements (v2.8.0)
 - [ ] Dependency graph visualization (v3.0.0)
 - [ ] Web dashboard for team health monitoring (v3.0.0)

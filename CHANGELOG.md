@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.1] - 2026-04-04
+
+### 🐛 Bug Fix: Typosquatting False Positives
+
+Quick bugfix release to eliminate false positive warnings from typosquatting detection.
+
+### Fixed
+- **Chalk vs Chai false positive** - DevCompass was incorrectly flagging `chalk` as similar to `chai`
+- **Typosquat iteration error** - Fixed iteration over `typosquat_patterns` object structure
+- **Whitelist logic** - Added skip logic when official package is also whitelisted
+
+### Changed
+- Enhanced `detectTyposquatting()` function in `src/analyzers/supply-chain.js`
+  - Added 40+ legitimate packages to whitelist (chalk, chai, ora, yargs, commander, etc.)
+  - Skip typosquatting check when both the checked package AND official package are whitelisted
+  - Fixed iteration to use `Object.keys(patterns)` instead of treating object as array
+
+### Technical Details
+**Root Cause:**
+- Levenshtein distance between "chalk" and "chai" is 2, triggering false positive
+- Both are legitimate popular packages that happen to have similar names
+
+**Solution:**
+- Whitelist prevents legitimate packages from being flagged
+- Skip logic when official package is also whitelisted
+- Fixed object iteration (was treating object as array)
+
+### Impact
+- ✅ Cleaner output - No more false alarms
+- ✅ Better UX - DevCompass itself no longer triggers warnings
+- ✅ Maintained security - Still detects actual typosquatting
+
+### Files Changed
+- `src/analyzers/supply-chain.js` - Fixed typosquatting detection
+
+### Breaking Changes
+**None** - Fully backward compatible with v2.7.0
+
+---
+
 ## [2.7.0] - 2026-04-04
 
 ### 🔐 Major Feature: Advanced Security Features
@@ -1464,6 +1504,7 @@ No migration needed. All features are opt-in via flags or config.
 
 ---
 
+[2.7.1]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.7.1
 [2.7.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.7.0
 [2.6.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.6.0
 [2.5.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.5.0
