@@ -5,6 +5,87 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.2] - 2026-04-04
+
+### ✨ Features
+
+#### License Conflict Auto-Fix
+- **Automatic license conflict resolution** - Detects and fixes GPL/AGPL conflicts
+- **Package alternative finder** - Suggests MIT/Apache alternatives for conflicting packages
+- **Smart replacement** - Auto-replaces incompatible packages with compatible alternatives
+- **Legal compliance automation** - Ensures license compatibility with project license
+
+#### Enhanced License Risk Analysis
+- Added `autoFixable` flags to license warnings
+- Added `suggestedAlternative` field with package details
+- Enhanced conflict detection with GPL, AGPL, LGPL support
+- Alternative package database with 50+ replacements
+
+#### Fix Workflow Integration
+- License conflicts run SECOND (after supply chain, before security)
+- Seamless integration with v2.8.0 and v2.8.1 features
+- Progress tracking during license fixes
+- Detailed fix summary with replacement counts
+
+### 📦 New Files
+- `data/package-alternatives.json` - Curated database of license-compatible alternatives
+- `src/utils/license-conflict-fixer.js` - LicenseConflictFixer class (~250 lines)
+
+### 🔧 Enhanced Files
+- `src/analyzers/license-risk.js` - Added autoFixable metadata and alternative finder
+- `src/commands/fix.js` - Integrated license conflict fixes into workflow
+
+### 📊 Technical Details
+- ~350 new lines of code
+- Database: 50+ package alternatives (GPL → MIT/Apache)
+- Supports: GPL, AGPL, LGPL conflict resolution
+- Confirmation required for replacements (unless --yes flag)
+
+### 🎯 Example Usage
+```bash
+# Analyze project (detects license conflicts)
+devcompass analyze
+
+# Preview license conflict fixes
+devcompass fix --dry-run
+
+# Apply fixes (with confirmation)
+devcompass fix
+
+# Auto-apply in CI/CD
+devcompass fix --yes
+```
+
+### 📈 Example Output
+
+🟠 LICENSE CONFLICT FIXES
+sharp
+→ License conflict: LGPL-3.0
+Replace with: jimp (MIT)
+Action: Replace with jimp (MIT)
+✓ License Conflict Fixes Applied: 2
+• GPL packages replaced: 1
+• LGPL packages replaced: 1
+
+### 🛡️ Safety Features
+- ✅ Requires confirmation for replacements
+- ✅ Automatic backups before changes
+- ✅ Dry-run mode for testing
+- ✅ Comprehensive fix reports
+- ✅ Skips packages without alternatives
+
+### 🐛 Bug Fixes
+- None
+
+### 💥 Breaking Changes
+- None
+
+### 🔄 Backward Compatibility
+- Fully compatible with v2.8.0 and v2.8.1
+- All existing features continue to work
+
+---
+
 ## [2.8.1] - 2026-04-04
 
 ### Added - Supply Chain Auto-Fix
@@ -1656,6 +1737,7 @@ No migration needed. All features are opt-in via flags or config.
 
 ---
 
+[2.8.1]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.8.1
 [2.8.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.8.0
 [2.7.1]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.7.1
 [2.7.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.7.0

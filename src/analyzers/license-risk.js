@@ -95,6 +95,57 @@ function getLicenseRisk(license) {
 }
 
 /**
+ * Load package alternatives database
+ */
+function loadAlternatives() {
+  try {
+    const alternativesPath = path.join(__dirname, '../../data/package-alternatives.json');
+    if (fs.existsSync(alternativesPath)) {
+      return JSON.parse(fs.readFileSync(alternativesPath, 'utf8'));
+    }
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Find alternative package for license conflict
+ */
+function findAlternative(packageName, license) {
+  const alternatives = loadAlternatives();
+  if (!alternatives) return null;
+
+  const pkgName = packageName.split('@')[0];
+  
+  // Check GPL alternatives
+  if (license.includes('GPL') && !license.includes('LGPL')) {
+    const gplAlts = alternatives.gpl_alternatives[pkgName];
+    if (gplAlts && gplAlts.alternatives.length > 0) {
+      return gplAlts.alternatives[0];
+    }
+  }
+
+  // Check AGPL alternatives
+  if (license.includes('AGPL')) {
+    const agplAlts = alternatives.agpl_alternatives[pkgName];
+    if (agplAlts && agplAlts.alternatives.length > 0) {
+      return agplAlts.alternatives[0];
+    }
+  }
+
+  // Check LGPL alternatives
+  if (license.includes('LGPL')) {
+    const lgplAlts = alternatives.lgpl_alternatives[pkgName];
+    if (lgplAlts && lgplAlts.alternatives.length > 0) {
+      return lgplAlts.alternatives[0];
+    }
+  }
+
+  return null;
+}
+
+/**
  * Check license compatibility
  */
 function checkLicenseCompatibility(projectLicense, dependencyLicenses) {
@@ -108,6 +159,8 @@ function checkLicenseCompatibility(projectLicense, dependencyLicenses) {
     
     // Check if copyleft license conflicts with permissive project
     if (depRisk.type === 'copyleft' && !compatible.includes(depNormalized)) {
+      const alternative = findAlternative(pkg, license);
+      
       conflicts.push({
         package: pkg,
         license: license,
@@ -115,7 +168,13 @@ function checkLicenseCompatibility(projectLicense, dependencyLicenses) {
         severity: 'high',
         issue: 'License incompatibility',
         message: `${license} dependency may conflict with ${projectLicense} project license`,
-        recommendation: 'Review license compatibility with legal team'
+        recommendation: alternative 
+          ? `Replace with ${alternative.name} (${alternative.license})`
+          : 'Review license compatibility with legal team',
+        autoFixable: alternative ? true : false,
+        autoFixAction: alternative ? 'replace' : 'review',
+        suggestedAlternative: alternative,
+        requiresConfirmation: true
       });
     }
   }
@@ -173,6 +232,8 @@ async function analyzeLicenseRisks(projectPath, licenses) {
     if (risk.risk === 'critical' || risk.risk === 'high') {
       stats[risk.risk]++;
       
+      const alternative = findAlternative(pkg.package, pkg.license);
+      
       warnings.push({
         package: pkg.package,
         license: pkg.license,
@@ -180,9 +241,15 @@ async function analyzeLicenseRisks(projectPath, licenses) {
         type: risk.type,
         issue: 'High-risk license',
         message: `${pkg.license}: ${risk.business}`,
-        recommendation: risk.risk === 'critical' 
-          ? 'Replace with permissive alternative immediately'
-          : 'Consider replacing with MIT/Apache alternative'
+        recommendation: alternative
+          ? `Replace with ${alternative.name} (${alternative.license})`
+          : risk.risk === 'critical' 
+            ? 'Replace with permissive alternative immediately'
+            : 'Consider replacing with MIT/Apache alternative',
+        autoFixable: alternative ? true : false,
+        autoFixAction: alternative ? 'replace' : 'review',
+        suggestedAlternative: alternative,
+        requiresConfirmation: true
       });
     } else if (risk.risk === 'medium') {
       stats.medium++;
@@ -221,5 +288,6 @@ module.exports = {
   checkLicenseCompatibility,
   normalizeLicense,
   getLicenseRiskScore,
+  findAlternative,
   LICENSE_RISKS
 };

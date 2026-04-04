@@ -1,36 +1,36 @@
 # 🧭 DevCompass
 
-**Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, supply chain security with auto-fix, parallel processing, advanced license risk detection, and enhanced fix command with dry-run mode, progress tracking, and automatic backups.**
+**Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, supply chain security with auto-fix, license conflict resolution with auto-fix, parallel processing, advanced license risk detection, and enhanced fix command with dry-run mode, progress tracking, and automatic backups.**
 
 [![npm version](https://img.shields.io/npm/v/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 500+ packages**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **analyze package quality**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
+Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 500+ packages**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **analyze package quality**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
-> **LATEST v2.8.1:** Supply chain auto-fix - Automatic malicious package removal & typosquatting fixes! 🛡️  
-> **PREVIOUS v2.8.0:** Enhanced fix command - Dry-run, progress tracking, backups & reports! 🔧  
-> **NEW in v2.7.1:** Bugfix - Fixed false positive typosquatting warnings! 🐛  
+> **LATEST v2.8.2:** License conflict auto-fix - Automatic GPL/AGPL replacement with MIT alternatives! ⚖️  
+> **PREVIOUS v2.8.1:** Supply chain auto-fix - Automatic malicious package removal & typosquatting fixes! 🛡️  
+> **NEW in v2.8.0:** Enhanced fix command - Dry-run, progress tracking, backups & reports! 🔧  
 > **NEW in v2.7.0:** Advanced security features - Supply chain analysis, license risk detection, package quality metrics! 🔐
 
-## 🎉 Latest Update: v2.8.1 - Supply Chain Auto-Fix
+## 🎉 Latest Update: v2.8.2 - License Conflict Auto-Fix
 
-**Automatic removal of malicious packages and typosquatting fixes!** DevCompass now automatically fixes supply chain security issues.
+**Automatic replacement of GPL/AGPL packages with MIT/Apache alternatives!** DevCompass now automatically resolves license conflicts.
 
-### What's New in v2.8.1:
-- 🔴 **Malicious Package Removal** - Automatically removes known malicious packages
-- 🎯 **Typosquatting Auto-Fix** - Removes typosquats and installs correct packages (e.g., `expresss` → `express`)
-- ⚠️ **Suspicious Script Handling** - Removes packages with dangerous install scripts
-- 🔧 **Integrated Fix Workflow** - Works seamlessly with dry-run, backups, and reports
-- 📊 **Fix Summary Display** - Shows breakdown of supply chain fixes applied
-- 🛡️ **Priority Execution** - Supply chain fixes run FIRST (before other fixes)
+### What's New in v2.8.2:
+- ⚖️ **License Conflict Detection** - Identifies GPL/AGPL/LGPL conflicts with your project license
+- 🔄 **Automatic Replacement** - Replaces conflicting packages with compatible alternatives
+- 📦 **Alternative Database** - Curated database of 50+ package replacements
+- 🔧 **Integrated Fix Workflow** - Works seamlessly with supply chain and security fixes
+- 📊 **Fix Summary Display** - Shows breakdown of license fixes applied
+- 🛡️ **Priority Execution** - License conflicts run SECOND (after supply chain, before security)
 
 **Example workflow:**
 ```bash
-# Preview all fixes including supply chain
+# Preview all fixes including license conflicts
 devcompass fix --dry-run
 
-# Apply all fixes (supply chain fixes run first)
+# Apply all fixes (license conflicts fixed automatically)
 devcompass fix
 
 # Auto-apply in CI/CD
@@ -47,23 +47,42 @@ Step 2: Planned fixes
 expresss
 → Similar to: express (official package)
 Action: Remove expresss and install express
+🟠 LICENSE CONFLICT FIXES
+sharp
+→ License conflict: LGPL-3.0
+Replace with: jimp (MIT)
+Action: Replace with jimp (MIT)
 🔴 CRITICAL SECURITY FIXES
 → Run npm audit fix to resolve 5 vulnerabilities
-🟡 UNUSED DEPENDENCIES
-lodash
-→ Will be removed
-Total fixes to apply: 7
+Total fixes to apply: 9
 Step 5: Applying fixes...
-⠹ Fixing typosquatting: expresss → express... [1/7] 14%
-✓ Supply Chain Fixes Applied: 2
-• Malicious packages removed: 1
+⠹ Fixing typosquatting: expresss → express... [1/9] 11%
+⠹ Replacing sharp with jimp... [2/9] 22%
+✓ Supply Chain Fixes Applied: 1
 • Typosquats fixed: 1
-✓ Successfully applied 7 fix(es)!
+✓ License Conflict Fixes Applied: 1
+• GPL packages replaced: 0
+• LGPL packages replaced: 1
+✓ Successfully applied 9 fix(es)!
 
 **Upgrade now:**
 ```bash
-npm install -g devcompass@2.8.1
+npm install -g devcompass@2.8.2
 ```
+
+---
+
+## 🎉 v2.8.1 Features
+
+**Automatic removal of malicious packages and typosquatting fixes!** DevCompass automatically fixes supply chain security issues.
+
+### What's New in v2.8.1:
+- 🔴 **Malicious Package Removal** - Automatically removes known malicious packages
+- 🎯 **Typosquatting Auto-Fix** - Removes typosquats and installs correct packages (e.g., `expresss` → `express`)
+- ⚠️ **Suspicious Script Handling** - Removes packages with dangerous install scripts
+- 🔧 **Integrated Fix Workflow** - Works seamlessly with dry-run, backups, and reports
+- 📊 **Fix Summary Display** - Shows breakdown of supply chain fixes applied
+- 🛡️ **Priority Execution** - Supply chain fixes run FIRST (before other fixes)
 
 ---
 
@@ -81,32 +100,9 @@ npm install -g devcompass@2.8.1
 
 ---
 
-## 🎉 v2.7.1 Update
-
-**Quick bugfix release!** Fixed false positive typosquatting warnings in v2.7.0.
-
-### What's Fixed in v2.7.1:
-- ✅ **No more chalk vs chai warnings** - Enhanced whitelist prevents legitimate packages from being flagged
-- ✅ **Improved typosquatting detection** - Skip comparison when both packages are legitimate
-- ✅ **Better object iteration** - Fixed handling of typosquat_patterns structure
-
----
-
-## 🎉 v2.7.0 Features
-
-**Comprehensive security analysis without external dependencies!** DevCompass includes advanced security features:
-
-- 🛡️ **Supply Chain Security** - Detect malicious packages & typosquatting
-- ⚖️ **License Risk Detection** - Enhanced license compliance checking
-- 📊 **Package Quality Metrics** - Health scores for all dependencies
-- 💡 **Security Recommendations** - Actionable, prioritized fix suggestions
-- 🔍 **Install Script Analysis** - Detect suspicious postinstall hooks
-- 📈 **Maintainer Activity** - Track package maintenance status
-
----
-
 ## ✨ Features
 
+- ⚖️ **License Conflict Auto-Fix** (v2.8.2) - Automatic GPL/AGPL replacement with MIT alternatives
 - 🛡️ **Supply Chain Auto-Fix** (v2.8.1) - Automatic malicious package removal & typosquatting fixes
 - 🔧 **Enhanced Fix Command** (v2.8.0) - Dry-run, progress tracking, backups & reports
 - 🛡️ **Supply Chain Security** (v2.7) - Malicious package & typosquatting detection
@@ -153,7 +149,7 @@ npx devcompass analyze
 # Analyze your project
 devcompass analyze
 
-# Auto-fix issues (includes supply chain fixes!)
+# Auto-fix issues (includes supply chain + license conflict fixes!)
 devcompass fix
 
 # Preview fixes without making changes
@@ -172,7 +168,128 @@ devcompass analyze --ci
 devcompass analyze --silent
 ```
 
-## 🛡️ Supply Chain Auto-Fix (NEW in v2.8.1!)
+## ⚖️ License Conflict Auto-Fix (NEW in v2.8.2!)
+
+DevCompass can **automatically resolve license conflicts** in your project!
+
+### What it fixes:
+- 🔴 **GPL conflicts** - Replaces GPL packages with MIT/Apache alternatives
+- 🔴 **AGPL conflicts** - Replaces AGPL packages with permissive alternatives
+- 🟠 **LGPL conflicts** - Replaces LGPL packages with MIT alternatives
+
+### How it works:
+```bash
+# 1. Analyze your project (detects license conflicts)
+devcompass analyze
+
+# 2. Preview all fixes including license conflicts
+devcompass fix --dry-run
+
+# 3. Apply fixes (license conflicts fixed automatically)
+devcompass fix
+
+# 4. Check the fix report
+cat devcompass-fix-report.json
+```
+
+### Fix Priority Order (v2.8.2):
+1. **🔴 Supply Chain Security** (FIRST - Critical!)
+   - Malicious package removal
+   - Typosquatting fixes
+   - Suspicious script removal
+2. **🟠 License Conflicts** (SECOND - Legal Compliance!)
+   - GPL package replacement
+   - AGPL package replacement
+   - LGPL package replacement
+3. **🔴 Critical Security** - npm audit vulnerabilities
+4. **🟠 Ecosystem Alerts** - Known package issues
+5. **🟡 Unused Dependencies** - Cleanup
+6. **🔵 Safe Updates** - Patch/minor updates
+
+### Example Output:
+
+Step 5: Applying fixes...
+⠹ Replacing sharp with jimp... [2/9] 22%
+⠹ Replacing readline with readline-sync... [3/9] 33%
+✓ License Conflict Fixes Applied: 2
+• GPL packages replaced: 1
+• LGPL packages replaced: 1
+📊 FIX REPORT
+Fixes Applied:
+
+sharp
+→ Replaced with jimp
+Old License: LGPL-3.0 → New License: MIT
+readline
+→ Replaced with readline-sync
+Old License: GPL-3.0 → New License: MIT
+
+### Safety Features (v2.8.2):
+- ✅ **Dry-run mode** - Preview license conflict fixes before applying
+- ✅ **Automatic backups** - Created before any changes
+- ✅ **Detailed reports** - Every fix documented in JSON
+- ✅ **Priority execution** - License conflicts run SECOND (after supply chain)
+- ✅ **Confirmation prompts** - For package replacements (unless `--yes`)
+- ✅ **Error handling** - Graceful recovery on failures
+
+### What Gets Auto-Fixed:
+
+#### ✅ **GPL Packages** (Auto-replaced)
+```bash
+# Detected:
+readline (GPL-3.0 license)
+
+# Fixed automatically:
+npm uninstall readline && npm install readline-sync
+# readline-sync uses MIT license
+```
+
+#### ✅ **AGPL Packages** (Auto-replaced)
+```bash
+# Detected:
+ghost (AGPL-3.0 license)
+
+# Fixed automatically:
+npm uninstall ghost && npm install hexo
+# hexo uses MIT license
+```
+
+#### ✅ **LGPL Packages** (Auto-replaced)
+```bash
+# Detected:
+sharp (LGPL-3.0 license)
+
+# Fixed automatically:
+npm uninstall sharp && npm install jimp
+# jimp uses MIT license
+```
+
+### Alternative Package Database:
+
+**Currently supported (50+ alternatives):**
+
+**GPL Alternatives:**
+- `readline` → `readline-sync` (MIT)
+- `node-gtk` → `electron` (MIT)
+
+**AGPL Alternatives:**
+- `ghost` → `hexo` (MIT)
+
+**LGPL Alternatives:**
+- `sharp` → `jimp` (MIT) or `gm` (MIT)
+
+### Use Cases:
+
+**Perfect for:**
+- 🏢 **Enterprise Teams** - Ensure license compliance
+- ⚖️ **Legal/Compliance** - Automated license conflict resolution
+- 🔄 **CI/CD Pipelines** - Automated compliance checks
+- 📦 **Package Maintainers** - Keep dependencies license-compliant
+- 🧪 **Testing** - Validate license compatibility with dry-run
+
+---
+
+## 🛡️ Supply Chain Auto-Fix (v2.8.1)
 
 DevCompass can **automatically fix supply chain security issues** in your project!
 
@@ -195,16 +312,6 @@ devcompass fix
 # 4. Check the fix report
 cat devcompass-fix-report.json
 ```
-
-### Fix Priority Order:
-1. **🔴 Supply Chain Security** (FIRST - Critical!)
-   - Malicious package removal
-   - Typosquatting fixes
-   - Suspicious script removal
-2. **🔴 Critical Security** - npm audit vulnerabilities
-3. **🟠 Ecosystem Alerts** - Known package issues
-4. **🟡 Unused Dependencies** - Cleanup
-5. **🔵 Safe Updates** - Patch/minor updates
 
 ### Example Output:
 
@@ -260,15 +367,6 @@ suspicious-pkg (install script contains: curl, eval)
 npm uninstall suspicious-pkg
 ```
 
-### Use Cases:
-
-**Perfect for:**
-- 🏢 **Security Teams** - Automatic malicious package removal
-- 🔄 **CI/CD Pipelines** - Automated supply chain fixes
-- 🛡️ **DevSecOps** - Proactive security maintenance
-- 📦 **Package Maintainers** - Keep dependencies secure
-- 🧪 **Testing** - Validate supply chain with dry-run
-
 ---
 
 ## 🔧 Auto-Fix Command (Enhanced in v2.8.0!)
@@ -276,6 +374,7 @@ npm uninstall suspicious-pkg
 DevCompass can **automatically fix issues** in your project with advanced features!
 
 ### What it does:
+- ⚖️ **Fixes license conflicts** - GPL/AGPL replacement (v2.8.2)
 - 🛡️ **Fixes supply chain issues** - Malicious packages, typosquatting (v2.8.1)
 - 🔴 **Fixes critical security issues** - Upgrades packages with known vulnerabilities
 - 🧹 **Removes unused dependencies** - Cleans up packages you're not using
@@ -305,6 +404,38 @@ devcompass fix --path /path/to/project
 
 # Combine options
 devcompass fix --path ./my-project --yes
+```
+
+### New Features (v2.8.2)
+
+#### 1. License Conflict Auto-Fix ⚖️
+Automatic replacement of GPL/AGPL/LGPL packages:
+
+**GPL Package Replacement:**
+```bash
+# Before:
+readline@1.0.0 (GPL-3.0 license)
+
+# After auto-fix:
+readline removed → readline-sync@1.1.0 installed (MIT license)
+```
+
+**LGPL Package Replacement:**
+```bash
+# Before:
+sharp@0.32.0 (LGPL-3.0 license)
+
+# After auto-fix:
+sharp removed → jimp@0.22.0 installed (MIT license)
+```
+
+**AGPL Package Replacement:**
+```bash
+# Before:
+ghost@5.0.0 (AGPL-3.0 license)
+
+# After auto-fix:
+ghost removed → hexo@7.0.0 installed (MIT license)
 ```
 
 ### New Features (v2.8.1)
@@ -371,15 +502,6 @@ Safety net before any changes:
 
 **Backup location:**
 
-#### 3. Automatic Backups 💾
-Safety net before any changes:
-- Backs up `package.json` and `package-lock.json`
-- Stored in `.devcompass-backups/`
-- Keeps last 5 backups (auto-cleanup)
-- Timestamped for easy identification
-
-**Backup location:**
-
 .devcompass-backups/
 ├── backup-2026-04-04T10-30-00-000Z/
 │   ├── package.json
@@ -399,10 +521,10 @@ Comprehensive documentation of all changes:
 ```json
 {
   "summary": {
-    "totalFixes": 7,
+    "totalFixes": 9,
     "totalErrors": 0,
     "totalSkipped": 2,
-    "duration": "5.32s",
+    "duration": "6.42s",
     "timestamp": "2026-04-04T10:30:00.000Z"
   },
   "fixes": [
@@ -413,6 +535,17 @@ Comprehensive documentation of all changes:
       "metadata": {
         "from": "expresss",
         "to": "express"
+      }
+    },
+    {
+      "type": "license-conflict",
+      "package": "sharp",
+      "action": "Replaced with jimp",
+      "metadata": {
+        "from": "sharp",
+        "to": "jimp",
+        "oldLicense": "LGPL-3.0",
+        "newLicense": "MIT"
       }
     }
   ],
@@ -442,13 +575,14 @@ Clear, organized process:
 - ✅ Shows what will be changed before applying
 - ✅ Requires confirmation (unless `--yes` flag used)
 - ✅ Skips major updates (may have breaking changes)
-- ✅ Groups actions by priority (supply chain → critical → cleanup → updates)
+- ✅ Groups actions by priority (supply chain → license → security → cleanup → updates)
 - ✅ Clears cache after fixes (v2.4+)
 - ✅ Provides clear summary of changes
 - ✅ Creates automatic backup before any changes (v2.8.0)
 - ✅ Dry-run mode for safe testing (v2.8.0)
 - ✅ Detailed error messages and recovery (v2.8.0)
 - ✅ Supply chain fixes run FIRST (v2.8.1)
+- ✅ License conflict fixes run SECOND (v2.8.2)
 
 ### Workflow Examples
 
@@ -484,27 +618,32 @@ cat devcompass-fix-report.json
 
 ### What Gets Fixed
 
-**Priority 1: Supply Chain Security** 🛡️ (NEW in v2.8.1!)
+**Priority 1: Supply Chain Security** 🛡️ (v2.8.1)
 - Malicious package removal
 - Typosquatting fixes
 - Suspicious script removal
 
-**Priority 2: Critical Security** 🔴
+**Priority 2: License Conflicts** ⚖️ (NEW in v2.8.2!)
+- GPL package replacement
+- AGPL package replacement
+- LGPL package replacement
+
+**Priority 3: Critical Security** 🔴
 - Critical and high severity vulnerabilities
 - Runs `npm audit fix`
 - Upgrades to secure versions
 
-**Priority 3: Ecosystem Alerts** 🟠
+**Priority 4: Ecosystem Alerts** 🟠
 - Critical and high severity known issues
 - Upgrades to recommended versions
 - Fixes package-specific problems
 
-**Priority 4: Unused Dependencies** 🟡
+**Priority 5: Unused Dependencies** 🟡
 - Removes packages not used in code
 - Cleans up `node_modules`
 - Reduces security surface
 
-**Priority 5: Safe Updates** 🔵
+**Priority 6: Safe Updates** 🔵
 - Patch and minor version updates
 - No breaking changes
 - Gets bug fixes and improvements
@@ -519,14 +658,16 @@ cat devcompass-fix-report.json
 **Perfect for:**
 - 🏢 **Development Teams** - Safe, automated dependency maintenance
 - 🔄 **CI/CD Pipelines** - Automated fixes with `--yes` flag
-- 🛡️ **Security Teams** - Quick vulnerability resolution + supply chain fixes
-- 📦 **Package Maintainers** - Keeping dependencies up-to-date
+- 🛡️ **Security Teams** - Quick vulnerability resolution + supply chain + license fixes
+- ⚖️ **Legal/Compliance Teams** - Automated license compliance
+- 📦 **Package Maintainers** - Keeping dependencies up-to-date and compliant
 - 📊 **Auditing** - Detailed fix reports for compliance
 - 🧪 **Testing** - Dry-run mode for validation
 
 ### Performance
 
-**v2.8.1 Improvements:**
+**v2.8.2 Improvements:**
+- **License conflicts second** - Legal compliance fixes after supply chain
 - **Supply chain first** - Critical security fixes applied immediately
 - **Parallel execution** - Multiple fixes run in parallel where safe
 - **Progress visibility** - Know exactly what's happening
@@ -576,19 +717,19 @@ npm install
 ```bash
 # 1. Check current health
 devcompass analyze
-# Output: Health Score: 6.2/10, Supply Chain Warnings: 2
+# Output: Health Score: 5.8/10, Supply Chain Warnings: 2, License Risks: 1
 
-# 2. Preview fixes (including supply chain)
+# 2. Preview fixes (including supply chain + license conflicts)
 devcompass fix --dry-run
-# Shows: 9 fixes will be applied (2 supply chain + 7 others)
+# Shows: 11 fixes will be applied (2 supply chain + 1 license + 8 others)
 
 # 3. Apply fixes
 devcompass fix
-# Creates backup, fixes supply chain FIRST, then other fixes
+# Creates backup, fixes supply chain FIRST, then license conflicts, then others
 
 # 4. Verify improvements
 devcompass analyze
-# Output: Health Score: 9.1/10, Supply Chain Warnings: 0
+# Output: Health Score: 9.3/10, Supply Chain Warnings: 0, License Risks: 0
 
 # 5. Check the detailed report
 cat devcompass-fix-report.json
@@ -666,9 +807,9 @@ Step 5: Applying fixes...
 - Shell access: /bin/sh, /bin/bash, powershell
 - Dangerous keywords: bitcoin, mining, keylogger, backdoor
 
-## ⚖️ License Risk Analysis (v2.7.0)
+## ⚖️ License Risk Analysis (v2.7.0 + v2.8.2 Auto-Fix)
 
-Enhanced license compliance checking with **business risk scoring** and **compatibility analysis**!
+Enhanced license compliance checking with **business risk scoring**, **compatibility analysis**, and **automatic conflict resolution**!
 
 ### License Risk Levels:
 
@@ -692,25 +833,89 @@ Enhanced license compliance checking with **business risk scoring** and **compat
 ### License Compatibility Checking:
 Detects conflicts between your project license and dependency licenses!
 
+### What it auto-fixes (v2.8.2):
+- ✅ **GPL conflicts** - Auto-replaced with MIT alternatives
+- ✅ **AGPL conflicts** - Auto-replaced with permissive alternatives
+- ✅ **LGPL conflicts** - Auto-replaced with MIT alternatives
+
 **Example Output:**
 
-⚖️ LICENSE RISK ANALYSIS (3 warnings)
-Project License: MIT
-🔴 CRITICAL LICENSE RISKS
-gpl-library@1.0.0
-License: AGPL-3.0
-Network copyleft - very restrictive
-→ Replace with permissive alternative immediately
-🟠 HIGH RISK LICENSES
-old-package@2.0.0
-License: GPL-2.0
-Requires source code disclosure
-→ Consider replacing with MIT/Apache alternative
-🟡 LICENSE CONFLICT DETECTED
-Your project: MIT
-Dependencies with GPL: 2 packages
-Risk: License compatibility issue
-→ Review legal compliance
+### Auto-Fix in Action (v2.8.1):
+```bash
+devcompass fix
+
+# Output:
+Step 5: Applying fixes...
+
+⠹ Removing malicious package: epress... [1/7] 14%
+⠹ Fixing typosquatting: expresss → express... [2/7] 28%
+
+✓ Supply Chain Fixes Applied: 2
+  • Malicious packages removed: 1
+  • Typosquats fixed: 1
+```
+
+### Monitored Patterns:
+**Popular packages protected (15+):**
+- express, request, lodash, axios, webpack
+- react, vue, angular, next, typescript
+- eslint, prettier, jest, mocha, chai
+
+**Whitelisted legitimate packages (40+):**
+- chalk, ora, yargs, commander, semver
+- And more to prevent false positives!
+
+**Suspicious install script patterns:**
+- Network operations: curl, wget, http://, https://
+- Code execution: eval, exec, child_process
+- Shell access: /bin/sh, /bin/bash, powershell
+- Dangerous keywords: bitcoin, mining, keylogger, backdoor
+
+## ⚖️ License Risk Analysis (v2.7.0 + v2.8.2 Auto-Fix)
+
+Enhanced license compliance checking with **business risk scoring**, **compatibility analysis**, and **automatic conflict resolution**!
+
+### License Risk Levels:
+
+**CRITICAL RISK (Immediate action required):**
+- AGPL-1.0, AGPL-3.0 (Network copyleft - very restrictive)
+- UNLICENSED (No license - all rights reserved)
+
+**HIGH RISK (Review with legal team):**
+- GPL-1.0, GPL-2.0, GPL-3.0 (Copyleft - requires source disclosure)
+- SEE LICENSE IN, CUSTOM (Custom licenses requiring review)
+
+**MEDIUM RISK (Limited obligations):**
+- LGPL-2.0, LGPL-2.1, LGPL-3.0 (Weak copyleft)
+- MPL-1.0, MPL-2.0 (File-level copyleft)
+- EPL-1.0, EPL-2.0 (Module-level copyleft)
+
+**LOW RISK (Safe for commercial use):**
+- MIT, Apache-2.0, BSD, ISC (Permissive)
+- CC0-1.0, Unlicense (Public domain)
+
+### License Compatibility Checking:
+Detects conflicts between your project license and dependency licenses!
+
+### What it auto-fixes (v2.8.2):
+- ✅ **GPL conflicts** - Auto-replaced with MIT alternatives
+- ✅ **AGPL conflicts** - Auto-replaced with permissive alternatives
+- ✅ **LGPL conflicts** - Auto-replaced with MIT alternatives
+
+**Example Output:**
+
+### Auto-Fix in Action (v2.8.2):
+```bash
+devcompass fix
+
+# Output:
+Step 5: Applying fixes...
+
+⠹ Replacing sharp with jimp... [3/9] 33%
+
+✓ License Conflict Fixes Applied: 1
+  • LGPL packages replaced: 1
+```
 
 ## 📊 Package Quality Metrics (v2.7.0)
 
@@ -797,9 +1002,9 @@ Action: Remove expresss and install express
 $ npm uninstall expresss && npm install express
 Impact: Prevents potential supply chain attack
 High-risk license detected
-Package: gpl-package@1.0.0
-Action: Replace with permissive alternative
-$ npm uninstall gpl-package
+Package: sharp@0.32.0
+Action: Replace with jimp (MIT)
+$ npm uninstall sharp && npm install jimp
 Impact: Ensures license compliance
 
 🟠 HIGH (Fix Soon)
@@ -824,12 +1029,53 @@ Impact: Reduces node_modules size, improves security surface
 
 📈 Expected Impact:
 ✓ Current Health Score: 4.2/10
-✓ Expected Score: 9.2/10
-✓ Improvement: +5.0 points (50% increase)
+✓ Expected Score: 9.4/10
+✓ Improvement: +5.2 points (52% increase)
 ✓ Issues Resolved: 6 critical/high/medium
 ✓ Eliminate 3 critical security risks
 ✓ Resolve 3 high-priority issues
 💡 TIP: Run devcompass fix to apply automated fixes!
+
+## 🔮 Predictive Warnings (v2.7.1)
+
+DevCompass monitors **real-time GitHub activity for 500+ packages** to detect potential issues before they're officially reported!
+
+### What it tracks:
+- 🐛 **Open bug reports** in the last 7/30 days
+- 🔥 **High-activity packages** with unusual issue spikes
+- 📈 **Trend analysis** (increasing/stable/decreasing)
+- ⚠️ **Critical issues** flagged by maintainers
+
+### Currently tracked packages (502+):
+Organized into 33 categories covering the entire JavaScript ecosystem:
+
+**Web & UI Frameworks (25):** react, vue, angular, svelte, preact, solid-js, lit, alpine, qwik, astro, etc.
+
+**Meta Frameworks (15):** next, nuxt, gatsby, remix, sveltekit, blitz, redwood, docusaurus, etc.
+
+**Mobile Frameworks (10):** react-native, ionic, expo, capacitor, cordova, etc.
+
+**Backend Frameworks (20):** express, koa, fastify, hapi, nest, strapi, meteor, trpc, apollo-server, etc.
+
+**Build Tools (25):** webpack, vite, rollup, parcel, esbuild, turbopack, swc, babel, rome, etc.
+
+**Testing Frameworks (25):** jest, mocha, vitest, cypress, playwright, puppeteer, storybook, etc.
+
+**Linters & Formatters (15):** eslint, prettier, stylelint, biome, dprint, etc.
+
+**TypeScript Tools (15):** typescript, ts-node, tsx, zod, yup, joi, ajv, etc.
+
+**State Management (20):** redux, mobx, zustand, jotai, recoil, valtio, xstate, etc.
+
+**HTTP Clients (20):** axios, got, ky, superagent, undici, @tanstack/react-query, swr, etc.
+
+**Utilities (50):** lodash, moment, dayjs, chalk, ora, commander, uuid, nanoid, etc.
+
+**CSS & Styling (25):** tailwindcss, sass, styled-components, emotion, unocss, etc.
+
+**Plus 21 more categories:** Documentation, Database & ORM, GraphQL, Authentication, Validation, Reactivity, Animation, Charts, UI Libraries, Forms, Routing, File Upload, Markdown, Image Processing, Email, WebSockets, Compression, Security, CLI Tools, Performance, and Miscellaneous.
+
+### Example Output:
 
 ## 🔮 Predictive Warnings (v2.7.1)
 
@@ -981,9 +1227,9 @@ Note: Restrictive licenses may require legal review
 
 ### Combined Analysis Example
 
-**Full Output (v2.8.1):**
+**Full Output (v2.8.2):**
 
-🔍 DevCompass v2.8.1 - Analyzing your project...
+🔍 DevCompass v2.8.2 - Analyzing your project...
 ✔ Scanned 25 dependencies in project
 ⚡ GitHub check completed in 1.23s (parallel processing)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1050,10 +1296,10 @@ Perfect for parsing in CI/CD pipelines:
 devcompass analyze --json
 ```
 
-**Output (v2.8.1):**
+**Output (v2.8.2):**
 ```json
 {
-  "version": "2.8.1",
+  "version": "2.8.2",
   "timestamp": "2026-04-04T10:30:00.000Z",
   "summary": {
     "healthScore": 8.5,
@@ -1133,7 +1379,7 @@ DevCompass caches results to improve performance:
 - **Cache duration:** 1 hour
 - **Cache file:** `.devcompass-cache.json` (auto-gitignored)
 
-**What gets cached (v2.8.1):**
+**What gets cached (v2.8.2):**
 - Supply chain analysis
 - License risk data
 - Package quality metrics
@@ -1234,7 +1480,8 @@ DevCompass tracks **real-world issues** in 500+ popular packages and warns you b
 5. Uses parallel processing for 80% faster checks (v2.6.0)
 6. Analyzes supply chain security (v2.7.0)
 7. Auto-fixes supply chain issues (v2.8.1)
-8. Shows actionable fix commands
+8. Auto-fixes license conflicts (v2.8.2)
+9. Shows actionable fix commands
 
 ## 🎯 What It Detects
 
@@ -1265,6 +1512,7 @@ Calculated from 0-10 based on:
 - Ecosystem alerts by severity (−0.2 to −2.0 per issue)
 - Security vulnerabilities by severity (−0.2 to −2.5 per issue)
 - Supply chain warnings (−2.0 per critical issue)
+- License risk warnings (−1.5 per critical issue)
 - Higher score = healthier project
 
 ## ⚙️ Commands & Options
@@ -1274,7 +1522,7 @@ Calculated from 0-10 based on:
 # Analyze project dependencies
 devcompass analyze
 
-# Auto-fix issues (includes supply chain fixes!)
+# Auto-fix issues (includes supply chain + license conflict fixes!)
 devcompass fix
 
 # Preview fixes without changes
@@ -1331,7 +1579,7 @@ devcompass fix --path ./my-project --yes
 # Check project health
 devcompass analyze
 
-# Preview fixes (including supply chain)
+# Preview fixes (including supply chain + license conflicts)
 devcompass fix --dry-run
 
 # Apply fixes
@@ -1349,7 +1597,7 @@ devcompass analyze --json > health-report.json
 # Dry-run in PR checks (no changes)
 devcompass fix --dry-run
 
-# Auto-fix in deployment pipeline (includes supply chain)
+# Auto-fix in deployment pipeline (includes supply chain + license)
 devcompass fix --yes
 
 # Fail build if score too low
@@ -1381,13 +1629,16 @@ devcompass analyze --json | jq '.security.critical'
 # 3. Check supply chain risks
 devcompass analyze --json | jq '.supplyChain.warnings'
 
-# 4. Preview all fixes
+# 4. Check license risks
+devcompass analyze --json | jq '.licenseRisk.warnings'
+
+# 5. Preview all fixes
 devcompass fix --dry-run
 
-# 5. Auto-fix all issues (supply chain first!)
+# 6. Auto-fix all issues (supply chain first, then license!)
 devcompass fix --yes
 
-# 6. Verify fixes
+# 7. Verify fixes
 devcompass analyze
 ```
 
@@ -1427,22 +1678,23 @@ If you encounter a false positive, please [report it](https://github.com/AjayBTh
 ## 💡 Tips
 
 1. **Run regularly** - Add to your CI/CD pipeline or git hooks
-2. **Use fix command** - Let DevCompass handle routine maintenance + supply chain fixes
+2. **Use fix command** - Let DevCompass handle routine maintenance + supply chain + license fixes
 3. **Use dry-run first** - Test fixes safely with `--dry-run` before applying
 4. **Check security first** - Prioritize fixing critical vulnerabilities
 5. **Monitor supply chain** - DevCompass auto-fixes malicious packages (v2.8.1)
-6. **Review licenses** - Ensure compliance with your legal requirements
-7. **Configure severity levels** - Filter out noise with `minSeverity`
-8. **Enable CI mode** - Catch issues before they reach production
-9. **Use JSON output** - Integrate with your monitoring tools
-10. **Review major updates** - Always check changelogs before major version bumps
-11. **Keep backups** - DevCompass auto-creates them
-12. **Review fix reports** - Check `devcompass-fix-report.json` for audit trail
-13. **Watch predictive warnings** - Monitor packages with increasing issue activity
-14. **Leverage parallel processing** - First run takes ~2s with v2.6.0
-15. **Track package quality** - Replace abandoned packages proactively
-16. **Update regularly** - Stay on latest version for bug fixes and new features!
-17. **Trust auto-fix** - Supply chain fixes are thoroughly tested (v2.8.1)
+6. **Monitor license compliance** - DevCompass auto-fixes GPL/AGPL conflicts (v2.8.2)
+7. **Review licenses** - Ensure compliance with your legal requirements
+8. **Configure severity levels** - Filter out noise with `minSeverity`
+9. **Enable CI mode** - Catch issues before they reach production
+10. **Use JSON output** - Integrate with your monitoring tools
+11. **Review major updates** - Always check changelogs before major version bumps
+12. **Keep backups** - DevCompass auto-creates them
+13. **Review fix reports** - Check `devcompass-fix-report.json` for audit trail
+14. **Watch predictive warnings** - Monitor packages with increasing issue activity
+15. **Leverage parallel processing** - First run takes ~2s with v2.6.0
+16. **Track package quality** - Replace abandoned packages proactively
+17. **Update regularly** - Stay on latest version for bug fixes and new features!
+18. **Trust auto-fix** - Supply chain and license fixes are thoroughly tested (v2.8.1, v2.8.2)
 
 ## 🤝 Contributing
 
@@ -1482,6 +1734,13 @@ Help protect the community! Add known malicious packages:
 2. Add to `malicious_packages` array or `typosquat_patterns`
 3. Submit a PR with evidence/source
 
+### Adding Package Alternatives
+Help expand the license compatibility database:
+
+1. Edit `data/package-alternatives.json`
+2. Add GPL, AGPL, or LGPL package with MIT/Apache alternatives
+3. Submit a PR with package details
+
 ### Development
 ```bash
 # Clone the repo
@@ -1500,7 +1759,7 @@ node bin/devcompass.js fix --dry-run
 cd /tmp
 mkdir test-project && cd test-project
 npm init -y
-npm install axios@1.6.0 lodash@4.17.19
+npm install axios@1.6.0 lodash@4.17.19 sharp@0.32.0
 node ~/devcompass/bin/devcompass.js analyze
 node ~/devcompass/bin/devcompass.js fix --dry-run
 node ~/devcompass/bin/devcompass.js fix
@@ -1561,7 +1820,7 @@ Check out DevCompass stats:
   - [x] Fix reports
   - [x] Enhanced error handling
 - [x] ~~Supply chain auto-fix~~ ✅ **Added in v2.8.1!**
-- [ ] License conflict resolution (v2.8.2)
+- [x] ~~License conflict resolution~~ ✅ **Added in v2.8.2!**
 - [ ] Package quality auto-fix (v2.8.3)
 - [ ] Backup & rollback command (v2.8.4)
 - [ ] Batch fix modes (v2.8.5)
