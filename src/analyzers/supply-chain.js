@@ -54,42 +54,48 @@ function levenshteinDistance(str1, str2) {
 /**
  * Detect typosquatting attempts
  */
-function detectTyposquatting(packageName, database) {
+function detectTyposquatting(packageName, packageVersion, maliciousDb) {
   const warnings = [];
   
-  // Check against known typosquat patterns
-  for (const [official, typos] of Object.entries(database.typosquat_patterns)) {
-    if (typos.includes(packageName.toLowerCase())) {
-      warnings.push({
-        package: packageName,
-        type: 'typosquatting',
-        severity: 'high',
-        official: official,
-        message: `Potential typosquatting: "${packageName}" is similar to official package "${official}"`,
-        recommendation: `Remove ${packageName} and install ${official} instead`
-      });
-    }
+  // Whitelist of legitimate popular packages that might have similar names
+  // These should NEVER be flagged as typosquatting
+  const LEGITIMATE_PACKAGES = [
+    'chalk', 'chai', 'ora', 'yargs', 'meow', 'execa', 'globby', 'del', 'make-dir',
+    'p-map', 'p-limit', 'p-queue', 'got', 'ky', 'node-fetch', 'cross-fetch',
+    'uuid', 'nanoid', 'cuid', 'luxon', 'date-fns', 'ms', 'bytes', 'filesize',
+    'fast-glob', 'chokidar', 'picomatch', 'micromatch', 'anymatch',
+    'semver', 'commander', 'yargs', 'inquirer', 'prompts', 'enquirer',
+    'debug', 'pino', 'winston', 'bunyan', 'signale'
+  ];
+  
+  // Skip whitelist packages
+  if (LEGITIMATE_PACKAGES.includes(packageName)) {
+    return warnings;
   }
   
-  // Check Levenshtein distance against popular packages
-  const popularPackages = Object.keys(database.typosquat_patterns);
-  for (const popular of popularPackages) {
-    const distance = levenshteinDistance(packageName.toLowerCase(), popular.toLowerCase());
+  // Check against known typosquat patterns
+  // typosquat_patterns is an object: { "express": ["epress", "expres"], ... }
+  const patterns = maliciousDb.typosquat_patterns || {};
+  
+  for (const officialName of Object.keys(patterns)) {
+    // Skip if the official package is also whitelisted (both are legitimate)
+    // This prevents false positives like "chalk" vs "chai"
+    if (LEGITIMATE_PACKAGES.includes(officialName)) {
+      continue;
+    }
     
-    // If distance is 1-2 characters and not already flagged
-    if (distance > 0 && distance <= 2 && packageName !== popular) {
-      const alreadyFlagged = warnings.some(w => w.package === packageName);
-      
-      if (!alreadyFlagged) {
-        warnings.push({
-          package: packageName,
-          type: 'typosquatting_suspected',
-          severity: 'medium',
-          official: popular,
-          message: `Possible typosquatting: "${packageName}" is very similar to "${popular}"`,
-          recommendation: `Verify if you meant to install ${popular}`
-        });
-      }
+    const distance = levenshteinDistance(packageName, officialName);
+    
+    // Flag if 1-2 character difference (typosquatting likely)
+    if (distance > 0 && distance <= 2 && packageName !== officialName) {
+      warnings.push({
+        package: `${packageName}@${packageVersion}`,
+        type: 'typosquatting',
+        severity: distance === 1 ? 'high' : 'medium',
+        message: `Similar to: ${officialName} (official package)`,
+        recommendation: `Verify if you meant to install ${officialName}`,
+        official: officialName
+      });
     }
   }
   
@@ -181,7 +187,7 @@ async function analyzeSupplyChain(projectPath, dependencies) {
     }
     
     // 2. Detect typosquatting
-    const typosquatWarnings = detectTyposquatting(packageName, database);
+    const typosquatWarnings = detectTyposquatting(packageName, version, database);
     warnings.push(...typosquatWarnings);
   }
   
