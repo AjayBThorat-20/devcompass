@@ -1,0 +1,308 @@
+{
+  "abandoned_alternatives": {
+    "request": {
+      "alternatives": ["axios", "got", "ky"],
+      "recommended": "axios",
+      "reason": "request is deprecated since 2020",
+      "migration_guide": "https://github.com/request/request/issues/3142"
+    },
+    "moment": {
+      "alternatives": ["dayjs", "date-fns", "luxon"],
+      "recommended": "dayjs",
+      "reason": "moment is in maintenance mode",
+      "migration_guide": "https://momentjs.com/docs/#/-project-status/"
+    },
+    "tslint": {
+      "alternatives": ["eslint"],
+      "recommended": "eslint",
+      "reason": "tslint is deprecated",
+      "migration_guide": "https://github.com/palantir/tslint/issues/4534"
+    },
+    "node-sass": {
+      "alternatives": ["sass", "dart-sass"],
+      "recommended": "sass",
+      "reason": "node-sass is deprecated, use Dart Sass",
+      "migration_guide": "https://sass-lang.com/blog/libsass-is-deprecated"
+    },
+    "babel-core": {
+      "alternatives": ["@babel/core"],
+      "recommended": "@babel/core",
+      "reason": "babel-core is deprecated",
+      "migration_guide": "https://babeljs.io/docs/en/v7-migration"
+    },
+    "colors": {
+      "alternatives": ["chalk", "colorette", "picocolors"],
+      "recommended": "chalk",
+      "reason": "colors had a security incident in 2022",
+      "migration_guide": "https://github.com/Marak/colors.js/issues/285"
+    },
+    "mkdirp": {
+      "alternatives": ["native fs.mkdir with recursive option"],
+      "recommended": "native",
+      "reason": "mkdirp is obsolete, use native fs.mkdir({recursive: true})",
+      "migration_guide": "https://nodejs.org/api/fs.html#fspromisesmkdirpath-options"
+    },
+    "rimraf": {
+      "alternatives": ["native fs.rm with recursive option"],
+      "recommended": "native",
+      "reason": "rimraf is obsolete, use native fs.rm({recursive: true})",
+      "migration_guide": "https://nodejs.org/api/fs.html#fspromisesrmpath-options"
+    },
+    "node-uuid": {
+      "alternatives": ["uuid"],
+      "recommended": "uuid",
+      "reason": "node-uuid is deprecated",
+      "migration_guide": "https://github.com/kelektiv/node-uuid"
+    },
+    "validator": {
+      "alternatives": ["validator (different package)", "joi", "yup"],
+      "recommended": "joi",
+      "reason": "Old validator package is abandoned",
+      "migration_guide": "https://joi.dev/api/"
+    },
+    "babel-preset-es2015": {
+      "alternatives": ["@babel/preset-env"],
+      "recommended": "@babel/preset-env",
+      "reason": "babel-preset-es2015 is deprecated",
+      "migration_guide": "https://babeljs.io/docs/en/babel-preset-env"
+    },
+    "babel-preset-react": {
+      "alternatives": ["@babel/preset-react"],
+      "recommended": "@babel/preset-react",
+      "reason": "babel-preset-react is deprecated",
+      "migration_guide": "https://babeljs.io/docs/en/babel-preset-react"
+    },
+    "react-addons-test-utils": {
+      "alternatives": ["react-dom/test-utils", "@testing-library/react"],
+      "recommended": "@testing-library/react",
+      "reason": "react-addons-test-utils is deprecated",
+      "migration_guide": "https://testing-library.com/docs/react-testing-library/migrate-from-enzyme"
+    },
+    "prop-types": {
+      "alternatives": ["TypeScript", "Zod"],
+      "recommended": "typescript",
+      "reason": "Consider TypeScript for type safety",
+      "migration_guide": "https://react-typescript-cheatsheet.netlify.app/"
+    },
+    "react-router-redux": {
+      "alternatives": ["connected-react-router", "react-router v6"],
+      "recommended": "react-router",
+      "reason": "react-router-redux is deprecated",
+      "migration_guide": "https://reactrouter.com/en/main/upgrading/v5"
+    },
+    "redux-devtools-extension": {
+      "alternatives": ["@redux-devtools/extension"],
+      "recommended": "@redux-devtools/extension",
+      "reason": "redux-devtools-extension is deprecated",
+      "migration_guide": "https://github.com/reduxjs/redux-devtools"
+    },
+    "enzyme": {
+      "alternatives": ["@testing-library/react", "react-testing-library"],
+      "recommended": "@testing-library/react",
+      "reason": "enzyme is no longer maintained",
+      "migration_guide": "https://testing-library.com/docs/react-testing-library/migrate-from-enzyme"
+    },
+    "faker": {
+      "alternatives": ["@faker-js/faker"],
+      "recommended": "@faker-js/faker",
+      "reason": "faker was archived, use @faker-js/faker",
+      "migration_guide": "https://fakerjs.dev/guide/upgrading.html"
+    },
+    "gulp-util": {
+      "alternatives": ["individual gulp utilities"],
+      "recommended": "native",
+      "reason": "gulp-util is deprecated",
+      "migration_guide": "https://github.com/gulpjs/gulp-util"
+    },
+    "native-promise-only": {
+      "alternatives": ["native Promise"],
+      "recommended": "native",
+      "reason": "native-promise-only is obsolete",
+      "migration_guide": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise"
+    },
+    "q": {
+      "alternatives": ["native Promise", "bluebird"],
+      "recommended": "native",
+      "reason": "Q promise library is obsolete",
+      "migration_guide": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise"
+    },
+    "coffee-script": {
+      "alternatives": ["coffeescript"],
+      "recommended": "coffeescript",
+      "reason": "coffee-script is renamed to coffeescript",
+      "migration_guide": "https://coffeescript.org/"
+    },
+    "node-pre-gyp": {
+      "alternatives": ["@mapbox/node-pre-gyp"],
+      "recommended": "@mapbox/node-pre-gyp",
+      "reason": "node-pre-gyp moved to @mapbox scope",
+      "migration_guide": "https://github.com/mapbox/node-pre-gyp"
+    },
+    "bower": {
+      "alternatives": ["npm", "yarn"],
+      "recommended": "npm",
+      "reason": "bower is deprecated",
+      "migration_guide": "https://bower.io/blog/2017/how-to-migrate-away-from-bower/"
+    },
+    "grunt": {
+      "alternatives": ["gulp", "webpack", "vite"],
+      "recommended": "vite",
+      "reason": "grunt is largely unmaintained",
+      "migration_guide": "https://vitejs.dev/guide/migration.html"
+    },
+    "phantomjs": {
+      "alternatives": ["puppeteer", "playwright"],
+      "recommended": "playwright",
+      "reason": "phantomjs is abandoned",
+      "migration_guide": "https://playwright.dev/docs/intro"
+    },
+    "protractor": {
+      "alternatives": ["cypress", "playwright", "@playwright/test"],
+      "recommended": "playwright",
+      "reason": "protractor is deprecated",
+      "migration_guide": "https://playwright.dev/docs/protractor"
+    },
+    "karma": {
+      "alternatives": ["vitest", "jest", "playwright"],
+      "recommended": "vitest",
+      "reason": "karma is in maintenance mode",
+      "migration_guide": "https://vitest.dev/guide/migration.html"
+    },
+    "istanbul": {
+      "alternatives": ["nyc", "c8"],
+      "recommended": "c8",
+      "reason": "istanbul is deprecated, use nyc or c8",
+      "migration_guide": "https://github.com/bcoe/c8"
+    },
+    "grunt-contrib-uglify": {
+      "alternatives": ["terser", "esbuild"],
+      "recommended": "esbuild",
+      "reason": "grunt-contrib-uglify is deprecated",
+      "migration_guide": "https://esbuild.github.io/"
+    },
+    "uglify-js": {
+      "alternatives": ["terser", "esbuild"],
+      "recommended": "terser",
+      "reason": "uglify-js is no longer maintained",
+      "migration_guide": "https://terser.org/"
+    },
+    "node-fetch": {
+      "alternatives": ["native fetch", "undici"],
+      "recommended": "native",
+      "reason": "Node.js 18+ has native fetch",
+      "migration_guide": "https://nodejs.org/dist/latest-v18.x/docs/api/globals.html#fetch"
+    },
+    "isomorphic-fetch": {
+      "alternatives": ["native fetch", "cross-fetch"],
+      "recommended": "native",
+      "reason": "isomorphic-fetch is obsolete with native fetch",
+      "migration_guide": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API"
+    },
+    "cross-env": {
+      "alternatives": ["dotenv", "native support"],
+      "recommended": "dotenv",
+      "reason": "cross-env is less needed with modern Node.js",
+      "migration_guide": "https://github.com/motdotla/dotenv"
+    },
+    "nodemon": {
+      "alternatives": ["tsx", "node --watch"],
+      "recommended": "tsx",
+      "reason": "Node.js 18+ has native --watch flag",
+      "migration_guide": "https://nodejs.org/api/cli.html#--watch"
+    },
+    "body-parser": {
+      "alternatives": ["express.json() built-in"],
+      "recommended": "native",
+      "reason": "body-parser is built into Express 4.16+",
+      "migration_guide": "https://expressjs.com/en/api.html#express.json"
+    },
+    "morgan": {
+      "alternatives": ["pino-http", "winston"],
+      "recommended": "pino-http",
+      "reason": "morgan is basic, modern alternatives are better",
+      "migration_guide": "https://github.com/pinojs/pino-http"
+    },
+    "async": {
+      "alternatives": ["native async/await", "Promise"],
+      "recommended": "native",
+      "reason": "async library is obsolete with native async/await",
+      "migration_guide": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function"
+    },
+    "bluebird": {
+      "alternatives": ["native Promise"],
+      "recommended": "native",
+      "reason": "bluebird is mostly obsolete with native Promises",
+      "migration_guide": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise"
+    },
+    "jade": {
+      "alternatives": ["pug"],
+      "recommended": "pug",
+      "reason": "jade was renamed to pug",
+      "migration_guide": "https://pugjs.org/"
+    },
+    "ejs": {
+      "alternatives": ["handlebars", "pug", "react/vue"],
+      "recommended": "handlebars",
+      "reason": "ejs is functional but alternatives are more modern",
+      "migration_guide": "https://handlebarsjs.com/guide/"
+    },
+    "underscore": {
+      "alternatives": ["lodash", "native methods"],
+      "recommended": "lodash",
+      "reason": "underscore is less maintained than lodash",
+      "migration_guide": "https://lodash.com/docs/"
+    },
+    "harmony-reflect": {
+      "alternatives": ["native Reflect"],
+      "recommended": "native",
+      "reason": "harmony-reflect is obsolete with native Reflect",
+      "migration_guide": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Reflect"
+    },
+    "core-js": {
+      "alternatives": ["native features", "modern browsers"],
+      "recommended": "native",
+      "reason": "core-js is often unnecessary with modern browsers",
+      "migration_guide": "https://github.com/zloirock/core-js"
+    },
+    "left-pad": {
+      "alternatives": ["String.prototype.padStart"],
+      "recommended": "native",
+      "reason": "left-pad is obsolete with native padStart",
+      "migration_guide": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/padStart"
+    },
+    "cheerio": {
+      "alternatives": ["jsdom", "linkedom"],
+      "recommended": "linkedom",
+      "reason": "cheerio is slow, linkedom is faster and more modern",
+      "migration_guide": "https://github.com/WebReflection/linkedom"
+    },
+    "xml2js": {
+      "alternatives": ["fast-xml-parser", "xmldom"],
+      "recommended": "fast-xml-parser",
+      "reason": "xml2js is slower than modern alternatives",
+      "migration_guide": "https://github.com/NaturalIntelligence/fast-xml-parser"
+    },
+    "should": {
+      "alternatives": ["chai", "jest"],
+      "recommended": "jest",
+      "reason": "should is deprecated",
+      "migration_guide": "https://jestjs.io/docs/getting-started"
+    }
+  },
+  "stale_alternatives": {
+    "depcheck": {
+      "alternatives": ["npm-check", "knip"],
+      "recommended": "knip",
+      "reason": "depcheck hasn't been updated in 30+ months",
+      "migration_guide": "https://github.com/webpro/knip"
+    }
+  },
+  "migration_guides": {
+    "request_to_axios": "https://github.com/axios/axios#example",
+    "moment_to_dayjs": "https://day.js.org/docs/en/parse/string-format",
+    "tslint_to_eslint": "https://github.com/typescript-eslint/tslint-to-eslint-config",
+    "node-sass_to_sass": "https://sass-lang.com/install",
+    "babel_migration": "https://babeljs.io/docs/en/v7-migration",
+    "enzyme_to_rtl": "https://testing-library.com/docs/react-testing-library/migrate-from-enzyme"
+  }
+}

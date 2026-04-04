@@ -9,6 +9,7 @@ const FixReport = require('../utils/fix-report');
 const BackupManager = require('../utils/backup-manager');
 const SupplyChainFixer = require('../utils/supply-chain-fixer');
 const LicenseConflictFixer = require('../utils/license-conflict-fixer');
+const QualityFixer = require('../utils/quality-fixer');
 const { clearCache } = require('../cache/manager');
 
 async function fix(options = {}) {
@@ -29,23 +30,32 @@ async function fix(options = {}) {
     process.exit(1);
   }
 
-  // Initialize report, backup, supply chain fixer, and license conflict fixer
+  // Initialize report, backup, and fixers
   const report = new FixReport();
   const backupManager = new BackupManager(projectPath);
   const supplyChainFixer = new SupplyChainFixer();
   const licenseConflictFixer = new LicenseConflictFixer();
+  const qualityFixer = new QualityFixer();
 
   try {
     // Step 1: Analyze what needs fixing
     console.log(chalk.bold('Step 1: Analyzing issues...\n'));
     const spinner = ora('Scanning project...').start();
 
-    const { alerts, unused, outdated, security, supplyChain, licenseRisks } = await analyzeProject(projectPath);
+    const analysisData = await analyzeProject(projectPath);
 
     spinner.succeed('Analysis complete');
 
     // Calculate total fixes needed
-    const totalFixes = calculateTotalFixes(alerts, unused, outdated, security, supplyChain, licenseRisks);
+    const totalFixes = calculateTotalFixes(
+      analysisData.security,
+      analysisData.supplyChain,
+      analysisData.licenseData,
+      analysisData.qualityData,
+      analysisData.ecosystem,
+      analysisData.unused,
+      analysisData.outdated
+    );
 
     if (totalFixes === 0) {
       console.log(chalk.green('\n✨ No issues to fix! Your project is healthy.\n'));
@@ -54,7 +64,14 @@ async function fix(options = {}) {
 
     // Step 2: Show what will be fixed
     console.log(chalk.bold('\nStep 2: Planned fixes\n'));
-    displayPlannedFixes(alerts, unused, outdated, security, supplyChain, licenseRisks, dryRun);
+    displayPlannedFixes(analysisData, dryRun);
+
+    console.log(chalk.bold('\n' + '='.repeat(70)));
+    console.log(chalk.bold(`Total fixes to apply: ${chalk.cyan(totalFixes)}`));
+    
+    if (dryRun) {
+      console.log(chalk.yellow('(Dry run - no changes will be made)'));
+    }
 
     // Step 3: Get confirmation (unless auto-apply or dry-run)
     if (!dryRun && !autoApply) {
@@ -90,77 +107,309 @@ async function fix(options = {}) {
     // Step 5: Apply fixes with progress tracking
     console.log(chalk.bold('Step 5: Applying fixes...\n'));
     
-    const progress = new ProgressTracker(totalFixes);
-    progress.start('Starting fixes...');
+    const appliedFixes = [];
+    const skippedFixes = [];
+    const errors = [];
+    
+    let currentFix = 0;
+    const startTime = Date.now();
+    const fixSpinner = ora('Starting fixes...').start();
 
-    // Fix supply chain issues FIRST (critical security)
-    if (supplyChain.warnings && supplyChain.warnings.length > 0) {
-      const autoFixableSupplyChain = supplyChain.warnings.filter(w => w.autoFixable);
+    // Priority 1: Fix supply chain issues FIRST (critical security)
+    if (analysisData.supplyChain?.warnings?.length > 0) {
+      const autoFixableSupplyChain = analysisData.supplyChain.warnings.filter(w => w.autoFixable);
       
       for (const warning of autoFixableSupplyChain) {
-        progress.update(`Fixing supply chain issue: ${warning.package}...`);
-        await supplyChainFixer.fixWarning(warning, projectPath, report, progress, autoApply);
+        currentFix++;
+        const progress = Math.round((currentFix / totalFixes) * 100);
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        const eta = totalFixes > 0 ? (((Date.now() - startTime) / currentFix) * (totalFixes - currentFix) / 1000).toFixed(1) : '0.0';
+        
+        fixSpinner.text = `Fixing supply chain: ${warning.package}... [${currentFix}/${totalFixes}] ${progress}% • ${elapsed}s elapsed • ETA: ${eta}s`;
+        
+        try {
+          const result = await supplyChainFixer.fixWarning(warning, dryRun);
+          
+          if (result.success) {
+            appliedFixes.push({
+              type: 'supply-chain',
+              package: warning.package,
+              action: result.action,
+              metadata: result.metadata
+            });
+          } else {
+            skippedFixes.push({
+              type: 'supply-chain',
+              package: warning.package,
+              reason: result.reason
+            });
+          }
+        } catch (error) {
+          errors.push({
+            type: 'supply-chain',
+            package: warning.package,
+            error: error.message
+          });
+        }
       }
     }
 
-    // Fix license conflicts SECOND (after supply chain, before security)
-    if (licenseRisks.warnings && licenseRisks.warnings.length > 0) {
-      const autoFixableLicense = licenseRisks.warnings.filter(w => w.autoFixable);
+    // Priority 2: Fix license conflicts SECOND
+    if (analysisData.licenseData?.warnings?.length > 0) {
+      const autoFixableLicense = analysisData.licenseData.warnings.filter(w => w.autoFixable);
       
       for (const warning of autoFixableLicense) {
-        progress.update(`Fixing license conflict: ${warning.package}...`);
-        await licenseConflictFixer.fixWarning(warning, projectPath, report, progress, autoApply);
-      }
-    }
-
-    // Fix critical security issues
-    if (security.metadata.critical > 0 || security.metadata.high > 0) {
-      progress.update('Fixing security vulnerabilities...');
-      await fixSecurityIssues(projectPath, report, progress);
-    }
-
-    // Fix ecosystem alerts
-    if (alerts.length > 0) {
-      for (const alert of alerts) {
-        if (alert.severity === 'critical' || alert.severity === 'high') {
-          progress.update(`Fixing ${alert.package}...`);
-          await fixAlert(alert, projectPath, report, progress);
-        }
-      }
-    }
-
-    // Remove unused dependencies
-    if (unused.length > 0) {
-      for (const dep of unused) {
-        progress.update(`Removing ${dep}...`);
-        await removeUnusedDependency(dep, projectPath, report, progress);
-      }
-    }
-
-    // Update outdated packages (only patch/minor) - FIXED!
-    if (outdated.length > 0) {
-      for (const pkg of outdated) {
-        // Check if it's a major update - FIXED VERSION
-        const isMajorUpdate = isMajorVersionUpdate(pkg.versionsBehind);
+        currentFix++;
+        const progress = Math.round((currentFix / totalFixes) * 100);
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        const eta = totalFixes > 0 ? (((Date.now() - startTime) / currentFix) * (totalFixes - currentFix) / 1000).toFixed(1) : '0.0';
         
-        if (!isMajorUpdate) {
-          progress.update(`Updating ${pkg.name}...`);
-          await updatePackage(pkg, projectPath, report, progress);
+        fixSpinner.text = `Fixing license conflict: ${warning.package}... [${currentFix}/${totalFixes}] ${progress}% • ${elapsed}s elapsed • ETA: ${eta}s`;
+        
+        try {
+          const result = await licenseConflictFixer.fixWarning(warning, dryRun);
+          
+          if (result.success) {
+            appliedFixes.push({
+              type: 'license-conflict',
+              package: warning.package,
+              action: result.action,
+              metadata: result.metadata
+            });
+          } else {
+            skippedFixes.push({
+              type: 'license-conflict',
+              package: warning.package,
+              reason: result.reason
+            });
+          }
+        } catch (error) {
+          errors.push({
+            type: 'license-conflict',
+            package: warning.package,
+            error: error.message
+          });
         }
       }
     }
 
-    progress.succeed('All fixes applied!');
+    // Priority 3: Fix package quality issues THIRD
+    if (analysisData.qualityData?.packages?.length > 0) {
+      const qualityIssues = analysisData.qualityData.packages.filter(p => p.autoFixable);
+      
+      for (const pkg of qualityIssues) {
+        currentFix++;
+        const progress = Math.round((currentFix / totalFixes) * 100);
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        const eta = totalFixes > 0 ? (((Date.now() - startTime) / currentFix) * (totalFixes - currentFix) / 1000).toFixed(1) : '0.0';
 
-    // Display supply chain fix summary
-    if (supplyChain.warnings && supplyChain.warnings.length > 0) {
+        const alternative = qualityFixer.findAlternative(pkg.name);
+        const message = alternative ? `Replacing ${pkg.name} with ${alternative.recommended}` : `Reviewing ${pkg.name}`;
+
+        fixSpinner.text = `${message}... [${currentFix}/${totalFixes}] ${progress}% • ${elapsed}s elapsed • ETA: ${eta}s`;
+
+        try {
+          const result = await qualityFixer.fixWarning(pkg, dryRun);
+          
+          if (result.success && result.action === 'replaced') {
+            appliedFixes.push({
+              type: 'quality',
+              package: pkg.name,
+              action: `Replaced with ${alternative.recommended}`,
+              metadata: {
+                from: pkg.name,
+                to: alternative.recommended,
+                reason: alternative.reason,
+                status: pkg.status
+              }
+            });
+          } else if (result.action === 'review') {
+            skippedFixes.push({
+              type: 'quality',
+              package: pkg.name,
+              reason: 'Requires manual review'
+            });
+          } else {
+            skippedFixes.push({
+              type: 'quality',
+              package: pkg.name,
+              reason: result.reason || 'No alternative available'
+            });
+          }
+        } catch (error) {
+          errors.push({
+            type: 'quality',
+            package: pkg.name,
+            error: error.message
+          });
+        }
+      }
+    }
+
+    // Priority 4: Fix critical security vulnerabilities
+    if (analysisData.security?.metadata?.critical > 0 || analysisData.security?.metadata?.high > 0) {
+      currentFix++;
+      const progress = Math.round((currentFix / totalFixes) * 100);
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      const eta = totalFixes > 0 ? (((Date.now() - startTime) / currentFix) * (totalFixes - currentFix) / 1000).toFixed(1) : '0.0';
+      
+      fixSpinner.text = `Fixing security vulnerabilities... [${currentFix}/${totalFixes}] ${progress}% • ${elapsed}s elapsed • ETA: ${eta}s`;
+      
+      try {
+        execSync('npm audit fix', {
+          cwd: projectPath,
+          stdio: 'pipe'
+        });
+        
+        appliedFixes.push({
+          type: 'security',
+          package: 'npm audit',
+          action: 'Fixed security vulnerabilities'
+        });
+      } catch (error) {
+        errors.push({
+          type: 'security',
+          package: 'npm audit',
+          error: error.message
+        });
+      }
+    }
+
+    // Priority 5: Fix ecosystem alerts
+    if (analysisData.ecosystem?.length > 0) {
+      const criticalAlerts = analysisData.ecosystem.filter(a => a.severity === 'critical' || a.severity === 'high');
+      
+      for (const alert of criticalAlerts) {
+        currentFix++;
+        const progress = Math.round((currentFix / totalFixes) * 100);
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        const eta = totalFixes > 0 ? (((Date.now() - startTime) / currentFix) * (totalFixes - currentFix) / 1000).toFixed(1) : '0.0';
+        
+        fixSpinner.text = `Fixing ${alert.package}... [${currentFix}/${totalFixes}] ${progress}% • ${elapsed}s elapsed • ETA: ${eta}s`;
+        
+        try {
+          const pkg = alert.package.split('@')[0];
+          const version = alert.fix;
+
+          execSync(`npm install ${pkg}@${version}`, {
+            cwd: projectPath,
+            stdio: 'pipe'
+          });
+
+          appliedFixes.push({
+            type: 'ecosystem',
+            package: pkg,
+            action: `Updated to ${version}`,
+            metadata: {
+              from: alert.package.split('@')[1],
+              to: version
+            }
+          });
+        } catch (error) {
+          errors.push({
+            type: 'ecosystem',
+            package: alert.package,
+            error: error.message
+          });
+        }
+      }
+    }
+
+    // Priority 6: Remove unused dependencies
+    if (analysisData.unused?.length > 0) {
+      for (const dep of analysisData.unused) {
+        currentFix++;
+        const progress = Math.round((currentFix / totalFixes) * 100);
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        const eta = totalFixes > 0 ? (((Date.now() - startTime) / currentFix) * (totalFixes - currentFix) / 1000).toFixed(1) : '0.0';
+        
+        fixSpinner.text = `Removing ${dep.name}... [${currentFix}/${totalFixes}] ${progress}% • ${elapsed}s elapsed • ETA: ${eta}s`;
+        
+        try {
+          execSync(`npm uninstall ${dep.name}`, {
+            cwd: projectPath,
+            stdio: 'pipe'
+          });
+
+          appliedFixes.push({
+            type: 'unused',
+            package: dep.name,
+            action: 'Removed unused dependency'
+          });
+        } catch (error) {
+          errors.push({
+            type: 'unused',
+            package: dep.name,
+            error: error.message
+          });
+        }
+      }
+    }
+
+    // Priority 7: Update outdated packages (only patch/minor)
+    if (analysisData.outdated?.length > 0) {
+      const safeUpdates = analysisData.outdated.filter(pkg => !isMajorVersionUpdate(pkg.versionsBehind));
+      
+      for (const pkg of safeUpdates) {
+        currentFix++;
+        const progress = Math.round((currentFix / totalFixes) * 100);
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        const eta = totalFixes > 0 ? (((Date.now() - startTime) / currentFix) * (totalFixes - currentFix) / 1000).toFixed(1) : '0.0';
+        
+        fixSpinner.text = `Updating ${pkg.name}... [${currentFix}/${totalFixes}] ${progress}% • ${elapsed}s elapsed • ETA: ${eta}s`;
+        
+        try {
+          execSync(`npm install ${pkg.name}@${pkg.latest}`, {
+            cwd: projectPath,
+            stdio: 'pipe'
+          });
+
+          appliedFixes.push({
+            type: 'update',
+            package: pkg.name,
+            action: `Updated to ${pkg.latest}`,
+            metadata: {
+              from: pkg.current,
+              to: pkg.latest
+            }
+          });
+        } catch (error) {
+          errors.push({
+            type: 'update',
+            package: pkg.name,
+            error: error.message
+          });
+        }
+      }
+    }
+
+    fixSpinner.succeed('All fixes applied!');
+
+    // Display fix summaries
+    if (analysisData.supplyChain?.warnings?.length > 0) {
       supplyChainFixer.displaySummary();
     }
 
-    // Display license conflict fix summary
-    if (licenseRisks.warnings && licenseRisks.warnings.length > 0) {
+    if (analysisData.licenseData?.warnings?.length > 0) {
       licenseConflictFixer.displaySummary();
     }
+
+    if (analysisData.qualityData?.packages?.filter(p => p.autoFixable).length > 0) {
+      qualityFixer.displaySummary();
+    }
+
+    // Add fixes to report
+    appliedFixes.forEach(fix => {
+      report.addFix(fix.type, fix.package, fix.action, fix.metadata);
+    });
+
+    skippedFixes.forEach(skip => {
+      report.addSkipped(skip.package, skip.reason);
+    });
+
+    errors.forEach(err => {
+      report.addError(err.package, err);
+    });
 
     // Step 6: Clear cache
     console.log(chalk.bold('\nStep 6: Clearing cache...\n'));
@@ -197,7 +446,6 @@ async function fix(options = {}) {
 
 // Helper functions
 
-// NEW: Helper function to detect major updates
 function isMajorVersionUpdate(versionsBehind) {
   if (!versionsBehind) return false;
   
@@ -212,10 +460,11 @@ async function analyzeProject(projectPath) {
   const alerts = require('../alerts');
   const unusedDeps = require('../analyzers/unused-deps');
   const outdated = require('../analyzers/outdated');
-  const security = require('../analyzers/security');
+  const securityAnalyzer = require('../analyzers/security');
   const supplyChainAnalyzer = require('../analyzers/supply-chain');
   const licenses = require('../analyzers/licenses');
   const licenseRiskAnalyzer = require('../analyzers/license-risk');
+  const packageQuality = require('../analyzers/package-quality');
 
   const packageJson = JSON.parse(
     fs.readFileSync(path.join(projectPath, 'package.json'), 'utf8')
@@ -227,61 +476,75 @@ async function analyzeProject(projectPath) {
   };
 
   // Run analyses
-  const alertsList = await alerts.checkEcosystemAlerts(projectPath, dependencies);
-  const unusedList = await unusedDeps.findUnusedDeps(projectPath, dependencies);
+  const ecosystem = await alerts.checkEcosystemAlerts(projectPath, dependencies);
+  const unused = await unusedDeps.findUnusedDeps(projectPath, dependencies);
   const outdatedList = await outdated.findOutdatedDeps(projectPath, dependencies);
-  const securityData = await security.checkSecurity(projectPath);
-  const supplyChainData = await supplyChainAnalyzer.analyzeSupplyChain(projectPath, dependencies);
+  const securityData = await securityAnalyzer.checkSecurity(projectPath);
+  const supplyChain = await supplyChainAnalyzer.analyzeSupplyChain(projectPath, dependencies);
   const licenseData = await licenses.checkLicenses(projectPath, dependencies);
-  const licenseRisksData = await licenseRiskAnalyzer.analyzeLicenseRisks(projectPath, licenseData);
+  const licenseRisks = await licenseRiskAnalyzer.analyzeLicenseRisks(projectPath, licenseData);
+  const qualityData = await packageQuality.analyzePackageQuality(dependencies);
 
   return { 
-    alerts: alertsList, 
-    unused: unusedList, 
-    outdated: outdatedList, 
+    ecosystem,
+    unused,
+    outdated: outdatedList,
     security: securityData,
-    supplyChain: supplyChainData,
-    licenseRisks: licenseRisksData
+    supplyChain,
+    licenseData: licenseRisks,
+    qualityData
   };
 }
 
-function calculateTotalFixes(alerts, unused, outdated, security, supplyChain, licenseRisks) {
+function calculateTotalFixes(security, supplyChain, licenseData, qualityData, ecosystem, unused, outdated) {
   let total = 0;
 
   // Count supply chain auto-fixable issues
-  if (supplyChain && supplyChain.warnings) {
+  if (supplyChain?.warnings) {
     total += supplyChain.warnings.filter(w => w.autoFixable).length;
   }
 
   // Count license conflict auto-fixable issues
-  if (licenseRisks && licenseRisks.warnings) {
-    total += licenseRisks.warnings.filter(w => w.autoFixable).length;
+  if (licenseData?.warnings) {
+    total += licenseData.warnings.filter(w => w.autoFixable).length;
+  }
+
+  // Count quality fixes (abandoned, deprecated, stale packages with alternatives)
+  if (qualityData?.packages) {
+    total += qualityData.packages.filter(p => p.autoFixable).length;
   }
 
   // Count security fixes
-  if (security.metadata.critical > 0 || security.metadata.high > 0) {
+  if (security?.metadata?.critical > 0 || security?.metadata?.high > 0) {
     total += 1; // npm audit fix counts as one operation
   }
 
   // Count critical/high alerts
-  total += alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length;
+  if (ecosystem) {
+    total += ecosystem.filter(a => a.severity === 'critical' || a.severity === 'high').length;
+  }
 
   // Count unused deps
-  total += unused.length;
+  if (unused) {
+    total += unused.length;
+  }
 
-  // Count safe updates (patch/minor only) - FIXED!
-  const safeUpdates = outdated.filter(pkg => !isMajorVersionUpdate(pkg.versionsBehind));
-  total += safeUpdates.length;
+  // Count safe updates (patch/minor only)
+  if (outdated) {
+    const safeUpdates = outdated.filter(pkg => !isMajorVersionUpdate(pkg.versionsBehind));
+    total += safeUpdates.length;
+  }
 
   return total;
 }
 
-function displayPlannedFixes(alerts, unused, outdated, security, supplyChain, licenseRisks, dryRun) {
+function displayPlannedFixes(data, dryRun) {
+  const qualityFixer = new QualityFixer();
   let fixCount = 0;
 
-  // Supply chain fixes
-  if (supplyChain && supplyChain.warnings && supplyChain.warnings.length > 0) {
-    const autoFixable = supplyChain.warnings.filter(w => w.autoFixable);
+  // Priority 1: Supply chain fixes
+  if (data.supplyChain?.warnings?.length > 0) {
+    const autoFixable = data.supplyChain.warnings.filter(w => w.autoFixable);
     
     if (autoFixable.length > 0) {
       console.log(chalk.red.bold('🔴 SUPPLY CHAIN SECURITY FIXES'));
@@ -295,17 +558,12 @@ function displayPlannedFixes(alerts, unused, outdated, security, supplyChain, li
         }
         fixCount++;
       });
-      
-      const requiresReview = supplyChain.warnings.filter(w => w.requiresConfirmation);
-      if (requiresReview.length > 0) {
-        console.log(chalk.yellow('\n  ⚠️  Some supply chain issues require manual review'));
-      }
     }
   }
 
-  // License conflict fixes
-  if (licenseRisks && licenseRisks.warnings && licenseRisks.warnings.length > 0) {
-    const autoFixable = licenseRisks.warnings.filter(w => w.autoFixable);
+  // Priority 2: License conflict fixes
+  if (data.licenseData?.warnings?.length > 0) {
+    const autoFixable = data.licenseData.warnings.filter(w => w.autoFixable);
     
     if (autoFixable.length > 0) {
       console.log(chalk.yellow.bold('\n🟠 LICENSE CONFLICT FIXES'));
@@ -319,130 +577,100 @@ function displayPlannedFixes(alerts, unused, outdated, security, supplyChain, li
         console.log(`    ${chalk.gray('Action:')} ${warning.recommendation}`);
         fixCount++;
       });
-      
-      const requiresReview = licenseRisks.warnings.filter(w => !w.autoFixable);
-      if (requiresReview.length > 0) {
-        console.log(chalk.yellow('\n  ⚠️  Some license conflicts require manual review'));
-      }
     }
   }
 
-  // Security fixes
-  if (security.metadata.critical > 0 || security.metadata.high > 0) {
+  // Priority 3: Package quality fixes
+  if (data.qualityData?.packages?.length > 0) {
+    const qualityIssues = data.qualityData.packages.filter(p => p.autoFixable);
+    
+    if (qualityIssues.length > 0) {
+      console.log(chalk.blue.bold('\n🔵 PACKAGE QUALITY FIXES'));
+      
+      qualityIssues.forEach(pkg => {
+        const alternative = qualityFixer.findAlternative(pkg.name);
+        console.log(`  ${chalk.cyan(pkg.name)}`);
+        
+        if (pkg.status === 'ABANDONED' || pkg.status === 'DEPRECATED') {
+          console.log(`    ${chalk.gray('→')} Package is ${pkg.status.toLowerCase()}`);
+        } else if (pkg.status === 'STALE') {
+          console.log(`    ${chalk.gray('→')} Package is stale (${pkg.lastUpdate})`);
+        }
+        
+        if (alternative) {
+          console.log(`    ${chalk.gray('Replace with:')} ${alternative.recommended}`);
+          console.log(`    ${chalk.gray('Action:')} Replace with ${alternative.recommended}`);
+          
+          if (alternative.migration_guide) {
+            console.log(`    ${chalk.gray('Migration guide:')} ${alternative.migration_guide}`);
+          }
+        } else {
+          console.log(`    ${chalk.gray('Action:')} Review manually (no alternative available)`);
+        }
+        fixCount++;
+      });
+    }
+  }
+
+  // Priority 4: Security fixes
+  if (data.security?.metadata?.critical > 0 || data.security?.metadata?.high > 0) {
     console.log(chalk.red.bold('\n🔴 CRITICAL SECURITY FIXES'));
-    console.log(`  ${chalk.cyan('→')} Run npm audit fix to resolve ${security.metadata.critical + security.metadata.high} vulnerabilities`);
+    console.log(`  ${chalk.cyan('→')} Run npm audit fix to resolve ${data.security.metadata.critical + data.security.metadata.high} vulnerabilities`);
     fixCount++;
   }
 
-  // Ecosystem alerts
-  const criticalAlerts = alerts.filter(a => a.severity === 'critical' || a.severity === 'high');
-  if (criticalAlerts.length > 0) {
-    console.log(chalk.red.bold('\n🔴 CRITICAL PACKAGE ISSUES'));
-    criticalAlerts.forEach(alert => {
-      console.log(`  ${chalk.cyan(alert.package)}`);
-      console.log(`    ${chalk.gray('→')} ${alert.title}`);
-      console.log(`    ${chalk.gray('Fix:')} ${alert.fix}`);
-      fixCount++;
-    });
+  // Priority 5: Ecosystem alerts
+  if (data.ecosystem?.length > 0) {
+    const criticalAlerts = data.ecosystem.filter(a => a.severity === 'critical' || a.severity === 'high');
+    
+    if (criticalAlerts.length > 0) {
+      console.log(chalk.yellow.bold('\n🟠 ECOSYSTEM ALERTS'));
+      
+      criticalAlerts.forEach(alert => {
+        console.log(`  ${chalk.cyan(alert.package)}`);
+        console.log(`    ${chalk.gray('→')} ${alert.title}`);
+        console.log(`    ${chalk.gray('Fix:')} ${alert.fix}`);
+        fixCount++;
+      });
+    }
   }
 
-  // Unused dependencies
-  if (unused.length > 0) {
+  // Priority 6: Unused dependencies
+  if (data.unused?.length > 0) {
     console.log(chalk.yellow.bold('\n🟡 UNUSED DEPENDENCIES'));
-    unused.forEach(dep => {
+    
+    data.unused.forEach(dep => {
       console.log(`  ${chalk.cyan(dep.name)}`);
       console.log(`    ${chalk.gray('→')} Will be removed`);
       fixCount++;
     });
   }
 
-  // Safe updates - FIXED!
-  const safeUpdates = outdated.filter(pkg => !isMajorVersionUpdate(pkg.versionsBehind));
-  if (safeUpdates.length > 0) {
-    console.log(chalk.cyan.bold('\n🔵 SAFE UPDATES (patch/minor)'));
-    safeUpdates.forEach(pkg => {
-      console.log(`  ${chalk.cyan(pkg.name)}`);
-      console.log(`    ${chalk.gray('→')} ${pkg.current} → ${pkg.latest}`);
-      fixCount++;
-    });
-  }
+  // Priority 7: Safe updates
+  if (data.outdated?.length > 0) {
+    const safeUpdates = data.outdated.filter(pkg => !isMajorVersionUpdate(pkg.versionsBehind));
+    
+    if (safeUpdates.length > 0) {
+      console.log(chalk.cyan.bold('\n🔵 SAFE UPDATES (patch/minor)'));
+      
+      safeUpdates.forEach(pkg => {
+        console.log(`  ${chalk.cyan(pkg.name)}`);
+        console.log(`    ${chalk.gray('→')} ${pkg.current} → ${pkg.latest}`);
+        fixCount++;
+      });
+    }
 
-  // Major updates (will be skipped) - FIXED!
-  const majorUpdates = outdated.filter(pkg => isMajorVersionUpdate(pkg.versionsBehind));
-  if (majorUpdates.length > 0) {
-    console.log(chalk.gray.bold('\n⚪ SKIPPED (major updates - manual review required)'));
-    majorUpdates.forEach(pkg => {
-      console.log(`  ${chalk.gray(pkg.name)}`);
-      console.log(`    ${chalk.gray('→')} ${pkg.current} → ${pkg.latest} (breaking changes possible)`);
-    });
-  }
-
-  console.log(chalk.bold('\n' + '='.repeat(70)));
-  console.log(chalk.bold(`Total fixes to apply: ${chalk.cyan(fixCount)}`));
-  
-  if (dryRun) {
-    console.log(chalk.yellow('(Dry run - no changes will be made)'));
-  }
-}
-
-async function fixSecurityIssues(projectPath, report, progress) {
-  try {
-    execSync('npm audit fix', {
-      cwd: projectPath,
-      stdio: 'pipe'
-    });
-    report.addFix('security', 'npm audit', 'Fixed security vulnerabilities');
-  } catch (error) {
-    report.addError('npm audit', error);
-    progress.warn('Some security issues could not be auto-fixed');
-  }
-}
-
-async function fixAlert(alert, projectPath, report, progress) {
-  try {
-    const pkg = alert.package.split('@')[0];
-    const version = alert.fix;
-
-    execSync(`npm install ${pkg}@${version}`, {
-      cwd: projectPath,
-      stdio: 'pipe'
-    });
-
-    report.addFix('alert', pkg, `Updated to ${version}`, {
-      from: alert.package.split('@')[1],
-      to: version
-    });
-  } catch (error) {
-    report.addError(alert.package, error);
-  }
-}
-
-async function removeUnusedDependency(dep, projectPath, report, progress) {
-  try {
-    execSync(`npm uninstall ${dep.name}`, {
-      cwd: projectPath,
-      stdio: 'pipe'
-    });
-
-    report.addFix('unused', dep.name, 'Removed unused dependency');
-  } catch (error) {
-    report.addError(dep.name, error);
-  }
-}
-
-async function updatePackage(pkg, projectPath, report, progress) {
-  try {
-    execSync(`npm install ${pkg.name}@${pkg.latest}`, {
-      cwd: projectPath,
-      stdio: 'pipe'
-    });
-
-    report.addFix('update', pkg.name, `Updated to ${pkg.latest}`, {
-      from: pkg.current,
-      to: pkg.latest
-    });
-  } catch (error) {
-    report.addError(pkg.name, error);
+    // Major updates (will be skipped)
+    const majorUpdates = data.outdated.filter(pkg => isMajorVersionUpdate(pkg.versionsBehind));
+    
+    if (majorUpdates.length > 0) {
+      console.log(chalk.gray.bold('\n⚪ SKIPPED (major updates - manual review required)'));
+      
+      majorUpdates.forEach(pkg => {
+        console.log(`  ${chalk.gray(pkg.name)}`);
+        console.log(`    ${chalk.gray('→')} ${pkg.current} → ${pkg.latest} (breaking changes possible)`);
+      });
+    }
   }
 }
 

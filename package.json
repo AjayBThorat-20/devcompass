@@ -1,7 +1,7 @@
 {
   "name": "devcompass",
-  "version": "2.8.2",
-  "description": "Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, supply chain security with auto-fix, license conflict resolution, parallel processing, advanced license risk detection, and enhanced fix command with dry-run, progress tracking, and automatic backups.",
+  "version": "2.8.3",
+  "description": "Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, parallel processing, advanced license risk detection, and enhanced fix command with dry-run, progress tracking, and automatic backups.",
   "main": "src/index.js",
   "bin": {
     "devcompass": "./bin/devcompass.js"
@@ -55,8 +55,14 @@
     "license-compliance",
     "license-risk",
     "license-conflict",
-    "license-auto-fix",
+    "license-conflict-auto-fix",
     "package-quality",
+    "package-quality-auto-fix",
+    "abandoned-packages",
+    "deprecated-packages",
+    "stale-packages",
+    "modern-alternatives",
+    "dependency-migration",
     "security-recommendations",
     "dependency-quality",
     "auto-fix",

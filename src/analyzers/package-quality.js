@@ -148,35 +148,35 @@ function calculateHealthScore(packageData, githubData = null) {
 function getPackageStatus(score, daysSince) {
   if (score === 0) {
     return {
-      status: 'deprecated',
+      status: 'DEPRECATED',
       color: 'red',
       severity: 'critical',
       label: 'DEPRECATED'
     };
   } else if (score < 3 || daysSince > 365 * 3) {
     return {
-      status: 'abandoned',
+      status: 'ABANDONED',
       color: 'red',
       severity: 'critical',
       label: 'ABANDONED'
     };
   } else if (score < 5 || daysSince > 365 * 2) {
     return {
-      status: 'stale',
+      status: 'STALE',
       color: 'yellow',
       severity: 'high',
       label: 'STALE'
     };
   } else if (score < 7) {
     return {
-      status: 'needs_attention',
+      status: 'NEEDS_ATTENTION',
       color: 'yellow',
       severity: 'medium',
       label: 'NEEDS ATTENTION'
     };
   } else {
     return {
-      status: 'healthy',
+      status: 'HEALTHY',
       color: 'green',
       severity: 'low',
       label: 'HEALTHY'
@@ -210,9 +210,28 @@ function getMaintainerStatus(packageData) {
 }
 
 /**
+ * Format last update time in human-readable format
+ */
+function formatLastUpdate(daysSince) {
+  if (daysSince < 30) {
+    return `${daysSince} days ago`;
+  } else if (daysSince < 365) {
+    const months = Math.floor(daysSince / 30);
+    return `${months} month${months > 1 ? 's' : ''} ago`;
+  } else {
+    const years = Math.floor(daysSince / 365);
+    return `${years} year${years > 1 ? 's' : ''} ago`;
+  }
+}
+
+/**
  * Analyze package quality for all dependencies
  */
 async function analyzePackageQuality(dependencies, githubData = []) {
+  // Load quality fixer for alternative suggestions
+  const QualityFixer = require('../utils/quality-fixer');
+  const qualityFixer = new QualityFixer();
+
   const results = [];
   const stats = {
     total: 0,
@@ -249,19 +268,19 @@ async function analyzePackageQuality(dependencies, githubData = []) {
       const daysSince = time ? daysSincePublish(time) : 0;
       
       // Determine status
-      const status = getPackageStatus(healthScore, daysSince);
+      const statusInfo = getPackageStatus(healthScore, daysSince);
       const maintainerStatus = getMaintainerStatus(packageData);
       
       // Count by status
-      if (status.status === 'healthy') {
+      if (statusInfo.status === 'HEALTHY') {
         stats.healthy++;
-      } else if (status.status === 'needs_attention') {
+      } else if (statusInfo.status === 'NEEDS_ATTENTION') {
         stats.needsAttention++;
-      } else if (status.status === 'stale') {
+      } else if (statusInfo.status === 'STALE') {
         stats.stale++;
-      } else if (status.status === 'abandoned') {
+      } else if (statusInfo.status === 'ABANDONED') {
         stats.abandoned++;
-      } else if (status.status === 'deprecated') {
+      } else if (statusInfo.status === 'DEPRECATED') {
         stats.deprecated++;
       }
       
@@ -269,22 +288,41 @@ async function analyzePackageQuality(dependencies, githubData = []) {
       const repository = packageData.repository?.url || '';
       const hasGithub = repository.includes('github.com');
       
+      // Check for alternative packages
+      const alternative = qualityFixer.findAlternative(packageName);
+      
+      // Determine if package is auto-fixable
+      const isAutoFixable = (
+        (statusInfo.status === 'ABANDONED' || statusInfo.status === 'DEPRECATED' || statusInfo.status === 'STALE') &&
+        alternative !== null
+      );
+      
       // Build result
       const result = {
+        name: packageName,
         package: packageName,
         version: dependencies[packageName],
         healthScore: Number(healthScore.toFixed(1)),
-        status: status.status,
-        severity: status.severity,
-        label: status.label,
+        status: statusInfo.status,
+        severity: statusInfo.severity,
+        label: statusInfo.label,
         lastPublish: time ? new Date(time).toISOString().split('T')[0] : 'unknown',
+        lastUpdate: formatLastUpdate(daysSince),
         daysSincePublish: daysSince,
         maintainerStatus: maintainerStatus,
         hasRepository: !!packageData.repository,
         hasGithub: hasGithub,
         totalVersions: Object.keys(packageData.versions || {}).length,
         description: packageData.description || '',
-        deprecated: packageData.versions?.[latestVersion]?.deprecated || false
+        deprecated: packageData.versions?.[latestVersion]?.deprecated || false,
+        // Auto-fix metadata
+        autoFixable: isAutoFixable,
+        autoFixAction: isAutoFixable ? 'replace' : null,
+        suggestedAlternative: alternative ? alternative.recommended : null,
+        allAlternatives: alternative ? alternative.alternatives : null,
+        migrationGuide: alternative ? alternative.migration_guide : null,
+        requiresConfirmation: true,
+        reason: alternative ? alternative.reason : getQualityRecommendation({ status: statusInfo.status, healthScore, daysSincePublish: daysSince }).recommendation
       };
       
       // Add GitHub metrics if available
@@ -308,8 +346,13 @@ async function analyzePackageQuality(dependencies, githubData = []) {
   }
   
   return {
-    results,
-    stats
+    total: results.length,
+    healthy: stats.healthy,
+    needsAttention: stats.needsAttention,
+    stale: stats.stale,
+    abandoned: stats.abandoned,
+    deprecated: stats.deprecated,
+    packages: results
   };
 }
 
@@ -319,7 +362,7 @@ async function analyzePackageQuality(dependencies, githubData = []) {
 function getQualityRecommendation(packageResult) {
   const { status, healthScore, daysSincePublish, maintainerStatus } = packageResult;
   
-  if (status === 'deprecated') {
+  if (status === 'DEPRECATED') {
     return {
       action: 'critical',
       message: 'Package is deprecated',
@@ -327,7 +370,7 @@ function getQualityRecommendation(packageResult) {
     };
   }
   
-  if (status === 'abandoned') {
+  if (status === 'ABANDONED') {
     return {
       action: 'high',
       message: `Last updated ${Math.floor(daysSincePublish / 365)} years ago`,
@@ -335,7 +378,7 @@ function getQualityRecommendation(packageResult) {
     };
   }
   
-  if (status === 'stale') {
+  if (status === 'STALE') {
     return {
       action: 'medium',
       message: `Not updated in ${Math.floor(daysSincePublish / 30)} months`,
@@ -343,7 +386,7 @@ function getQualityRecommendation(packageResult) {
     };
   }
   
-  if (status === 'needs_attention') {
+  if (status === 'NEEDS_ATTENTION') {
     return {
       action: 'low',
       message: `Health score: ${healthScore}/10`,
