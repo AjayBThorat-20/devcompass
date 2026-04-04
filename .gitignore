@@ -1,4 +1,3 @@
-
 node_modules/
 dist/
 build/
@@ -15,3 +14,5 @@ coverage/
 .cache/.npmrc
 .npmrc
 .devcompass-cache.json
+.devcompass-backups/
+devcompass-fix-report.json

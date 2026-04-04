@@ -1,6 +1,6 @@
 # 🧭 DevCompass
 
-**Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, parallel processing, supply chain security analysis, and advanced license risk detection.**
+**Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, parallel processing, supply chain security analysis, advanced license risk detection, and enhanced fix command with dry-run mode.**
 
 [![npm version](https://img.shields.io/npm/v/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
@@ -8,13 +8,104 @@
 
 Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 500+ packages**, **check bundle sizes**, **verify licenses**, **detect supply chain attacks**, **analyze package quality**, and **automatically fix issues** with a single command. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
-> **LATEST v2.7.1:** Bugfix - Fixed false positive typosquatting warnings! 🐛  
+> **LATEST v2.8.0:** Enhanced fix command - Dry-run, progress tracking, backups & reports! 🔧  
+> **PREVIOUS v2.7.1:** Bugfix - Fixed false positive typosquatting warnings! 🐛  
 > **NEW in v2.7.0:** Advanced security features - Supply chain analysis, license risk detection, package quality metrics! 🔐  
 > **NEW in v2.6.0:** 80% faster with parallel processing! ⚡  
-> **NEW in v2.5.0:** Expanded to 502 packages across 33 categories! 🎯  
-> **NEW in v2.4.0:** Real-time GitHub issue tracking & predictive warnings! 🔮
+> **NEW in v2.5.0:** Expanded to 502 packages across 33 categories! 🎯
 
-## 🎉 Latest Update: v2.7.1
+## 🎉 Latest Update: v2.8.0 - Enhanced Fix Command
+
+**Major improvements to the fix command!** DevCompass now includes dry-run mode, progress tracking, automatic backups, and detailed fix reports.
+
+### What's New in v2.8.0:
+- 🔍 **Dry-Run Mode** - Preview fixes without making changes (`--dry-run` or `--dry`)
+- 📊 **Progress Tracking** - Real-time progress with ETA and percentage completion
+- 💾 **Automatic Backups** - Creates backup before applying any fixes
+- 📄 **Fix Reports** - Detailed JSON reports saved to `devcompass-fix-report.json`
+- ⚡ **Enhanced Error Handling** - Graceful failure recovery with detailed error messages
+- 🎯 **6-Step Workflow** - Clear step-by-step process from analysis to completion
+
+**Example workflow:**
+```bash
+# Preview what will be fixed (no changes)
+devcompass fix --dry-run
+
+# Apply fixes with confirmation
+devcompass fix
+
+# Auto-apply without confirmation (CI/CD)
+devcompass fix --yes
+```
+
+**Enhanced output:**
+```
+🔧 DevCompass Fix
+
+Step 1: Analyzing issues...
+✔ Analysis complete
+
+Step 2: Planned fixes
+
+🔴 CRITICAL SECURITY FIXES
+  → Run npm audit fix to resolve 5 vulnerabilities
+
+🟡 UNUSED DEPENDENCIES
+  lodash
+    → Will be removed
+
+🔵 SAFE UPDATES (patch/minor)
+  axios
+    → 1.6.0 → 1.6.2
+
+Total fixes to apply: 7
+
+Step 3: Confirm
+⚠️  Apply these fixes? (y/N): y
+
+Step 4: Creating backup...
+✓ Backup created: backup-2026-04-04T10-30-00-000Z
+
+Step 5: Applying fixes...
+⠹ Removing lodash... [3/7] 43% • 2.1s elapsed • ETA: 2.8s
+
+Step 6: Clearing cache...
+✓ Cache cleared
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 FIX REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Summary:
+  ✓ Fixes Applied: 7
+  ⏱  Duration: 5.32s
+
+Fixes Applied:
+  1. npm audit
+     → Fixed security vulnerabilities
+  2. axios
+     → Updated to 1.6.2
+     Version: 1.6.0 → 1.6.2
+  3. lodash
+     → Removed unused dependency
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Successfully applied 7 fix(es)!
+
+💡 TIP: Run devcompass analyze to verify improvements
+
+📄 Full report saved to: devcompass-fix-report.json
+```
+
+**Upgrade now:**
+```bash
+npm install -g devcompass@2.8.0
+```
+
+---
+
+## 🎉 v2.7.1 Update
 
 **Quick bugfix release!** Fixed false positive typosquatting warnings in v2.7.0.
 
@@ -22,11 +113,6 @@ Analyze your JavaScript projects to find unused dependencies, outdated packages,
 - ✅ **No more chalk vs chai warnings** - Enhanced whitelist prevents legitimate packages from being flagged
 - ✅ **Improved typosquatting detection** - Skip comparison when both packages are legitimate
 - ✅ **Better object iteration** - Fixed handling of typosquat_patterns structure
-
-**Upgrade now:**
-```bash
-npm install -g devcompass@2.7.1
-```
 
 ---
 
@@ -67,6 +153,7 @@ npm install -g devcompass@2.7.1
 
 ## ✨ Features
 
+- 🔧 **Enhanced Fix Command** (v2.8.0) - Dry-run, progress tracking, backups & reports
 - 🛡️ **Supply Chain Security** (v2.7) - Malicious package & typosquatting detection
 - ⚖️ **License Risk Analysis** (v2.7) - Enhanced license compliance checking
 - 📊 **Package Quality Metrics** (v2.7) - Health scoring for dependencies
@@ -81,7 +168,6 @@ npm install -g devcompass@2.7.1
 - 🚀 **CI/CD Integration** (v2.2) - JSON output, exit codes, and silent mode
 - ⚡ **Smart Caching** (v2.2) - 93% faster on repeated runs
 - 🎛️ **Advanced Filtering** (v2.2) - Control alerts by severity level
-- 🔧 **Auto-Fix Command** (v2.1) - Fix issues automatically with one command
 - 🚨 **Ecosystem Intelligence** (v2.0) - Detect known issues before they break production
 - 🔍 **Detect unused dependencies** - Find packages you're not actually using
 - 📊 **Project health score** - Get a 0-10 rating for your dependencies
@@ -115,6 +201,12 @@ devcompass analyze
 # Auto-fix issues
 devcompass fix
 
+# Preview fixes without making changes (NEW in v2.8.0!)
+devcompass fix --dry-run
+
+# Auto-fix without confirmation (CI/CD)
+devcompass fix --yes
+
 # JSON output (for CI/CD)
 devcompass analyze --json
 
@@ -123,6 +215,273 @@ devcompass analyze --ci
 
 # Silent mode (no output)
 devcompass analyze --silent
+```
+
+## 🔧 Auto-Fix Command (Enhanced in v2.8.0!)
+
+DevCompass can **automatically fix issues** in your project with advanced features!
+
+### What it does:
+- 🔴 **Fixes critical security issues** - Upgrades packages with known vulnerabilities
+- 🧹 **Removes unused dependencies** - Cleans up packages you're not using
+- ⬆️ **Safe updates** - Applies patch and minor updates automatically
+- ⚠️ **Skips breaking changes** - Major updates require manual review
+- 🔄 **Clears cache** - Ensures fresh analysis after fixes (v2.4+)
+- 🔍 **Dry-run mode** - Preview changes without applying (v2.8.0)
+- 📊 **Progress tracking** - Real-time updates with ETA (v2.8.0)
+- 💾 **Automatic backups** - Creates backup before fixes (v2.8.0)
+- 📄 **Fix reports** - Detailed JSON reports (v2.8.0)
+
+### Usage
+```bash
+# Preview fixes without making changes (NEW in v2.8.0!)
+devcompass fix --dry-run
+devcompass fix --dry  # Shorthand
+
+# Interactive mode (asks for confirmation)
+devcompass fix
+
+# Auto-apply without confirmation (for CI/CD)
+devcompass fix --yes
+devcompass fix -y
+
+# Fix specific directory
+devcompass fix --path /path/to/project
+
+# Combine options
+devcompass fix --path ./my-project --yes
+```
+
+### New Features (v2.8.0)
+
+#### 1. Dry-Run Mode 🔍
+Test fixes safely before applying:
+```bash
+devcompass fix --dry-run
+```
+- Shows complete fix plan
+- Zero risk testing
+- Perfect for validation in CI/CD
+- No changes made to your project
+
+#### 2. Progress Tracking 📊
+Real-time feedback during fixes:
+- Shows current step (X/Y) with percentage
+- Displays elapsed time
+- Shows estimated time remaining (ETA)
+- Live package-by-package updates
+
+**Example:**
+```
+⠹ Updating axios... [3/7] 43% • 2.1s elapsed • ETA: 2.8s
+```
+
+#### 3. Automatic Backups 💾
+Safety net before any changes:
+- Backs up `package.json` and `package-lock.json`
+- Stored in `.devcompass-backups/`
+- Keeps last 5 backups (auto-cleanup)
+- Timestamped for easy identification
+
+**Backup location:**
+```
+.devcompass-backups/
+  ├── backup-2026-04-04T10-30-00-000Z/
+  │   ├── package.json
+  │   ├── package-lock.json
+  │   └── metadata.json
+  └── ...
+```
+
+#### 4. Fix Reports 📄
+Comprehensive documentation of all changes:
+- Saved to `devcompass-fix-report.json`
+- Lists all fixes applied with timestamps
+- Tracks errors and skipped items
+- Duration tracking for performance analysis
+- Terminal display with color-coded output
+
+**Report structure:**
+```json
+{
+  "summary": {
+    "totalFixes": 7,
+    "totalErrors": 0,
+    "totalSkipped": 2,
+    "duration": "5.32s",
+    "timestamp": "2026-04-04T10:30:00.000Z"
+  },
+  "fixes": [...],
+  "errors": [...],
+  "skipped": [...]
+}
+```
+
+#### 5. Enhanced Error Handling ⚡
+Robust failure recovery:
+- Continues on partial errors
+- Detailed error reporting
+- Clear error messages
+- Non-blocking execution
+- Backup reminder on failure
+
+#### 6. 6-Step Workflow 🎯
+Clear, organized process:
+1. **Analyze issues** - Scan project for fixable problems
+2. **Show plan** - Display categorized fix plan
+3. **Confirm** - Get user confirmation (unless `--yes` or `--dry-run`)
+4. **Backup** - Create automatic backup
+5. **Apply fixes** - Execute fixes with progress tracking
+6. **Report** - Generate and display comprehensive report
+
+### Safety Features
+- ✅ Shows what will be changed before applying
+- ✅ Requires confirmation (unless `--yes` flag used)
+- ✅ Skips major updates (may have breaking changes)
+- ✅ Groups actions by priority (critical → cleanup → updates)
+- ✅ Clears cache after fixes (v2.4+)
+- ✅ Provides clear summary of changes
+- ✅ Creates automatic backup before any changes (v2.8.0)
+- ✅ Dry-run mode for safe testing (v2.8.0)
+- ✅ Detailed error messages and recovery (v2.8.0)
+
+### Workflow Examples
+
+#### Local Development
+```bash
+# 1. Preview what will be fixed
+devcompass fix --dry-run
+
+# 2. Review the plan, then apply
+devcompass fix
+
+# 3. Verify improvements
+devcompass analyze
+```
+
+#### CI/CD Pipeline
+```bash
+# Dry-run in PR checks (no changes)
+devcompass fix --dry-run
+
+# Auto-apply in deployment pipeline
+devcompass fix --yes
+```
+
+#### Emergency Security Fix
+```bash
+# Quick fix for critical vulnerabilities
+devcompass fix --yes
+
+# Check the fix report
+cat devcompass-fix-report.json
+```
+
+### What Gets Fixed
+
+**Priority 1: Critical Security** 🔴
+- Critical and high severity vulnerabilities
+- Runs `npm audit fix`
+- Upgrades to secure versions
+
+**Priority 2: Ecosystem Alerts** 🟠
+- Critical and high severity known issues
+- Upgrades to recommended versions
+- Fixes package-specific problems
+
+**Priority 3: Unused Dependencies** 🟡
+- Removes packages not used in code
+- Cleans up `node_modules`
+- Reduces security surface
+
+**Priority 4: Safe Updates** 🔵
+- Patch and minor version updates
+- No breaking changes
+- Gets bug fixes and improvements
+
+**Skipped: Major Updates** ⚪
+- Shown but not auto-applied
+- May have breaking changes
+- Requires manual review
+
+### Use Cases
+
+**Perfect for:**
+- 🏢 **Development Teams** - Safe, automated dependency maintenance
+- 🔄 **CI/CD Pipelines** - Automated fixes with `--yes` flag
+- 🛡️ **Security Teams** - Quick vulnerability resolution
+- 📦 **Package Maintainers** - Keeping dependencies up-to-date
+- 📊 **Auditing** - Detailed fix reports for compliance
+- 🧪 **Testing** - Dry-run mode for validation
+
+### Performance
+
+**v2.8.0 Improvements:**
+- **Progress visibility** - Know exactly what's happening
+- **Faster execution** - Parallel npm operations where possible
+- **Better error recovery** - Continues despite partial failures
+- **Comprehensive logging** - Full audit trail in fix reports
+
+**Typical execution time:**
+- Small project (5 fixes): ~5-10 seconds
+- Medium project (15 fixes): ~15-25 seconds
+- Large project (30 fixes): ~30-45 seconds
+
+### Backup Management
+
+**Automatic cleanup:**
+- Keeps last 5 backups
+- Automatically removes older backups
+- Minimal disk space usage
+
+**Manual backup restoration:**
+```bash
+# List available backups
+ls .devcompass-backups/
+
+# Restore from specific backup
+cp .devcompass-backups/backup-TIMESTAMP/package.json package.json
+cp .devcompass-backups/backup-TIMESTAMP/package-lock.json package-lock.json
+
+# Then reinstall
+npm install
+```
+
+### Troubleshooting
+
+**If fix fails:**
+1. Check the error message in terminal
+2. Review `devcompass-fix-report.json` for details
+3. Your backup is available in `.devcompass-backups/`
+4. Restore from backup if needed
+5. Report issue on GitHub
+
+**Common issues:**
+- **Network errors:** Check internet connection, retry
+- **Permission errors:** Use `sudo` (not recommended) or fix npm permissions
+- **Lock file conflicts:** Commit or stash changes first
+- **Disk space:** Ensure sufficient space for backups
+
+### Workflow Example (Complete)
+```bash
+# 1. Check current health
+devcompass analyze
+# Output: Health Score: 6.2/10
+
+# 2. Preview fixes (no changes)
+devcompass fix --dry-run
+# Shows: 7 fixes will be applied
+
+# 3. Apply fixes
+devcompass fix
+# Creates backup, applies fixes, generates report
+
+# 4. Verify improvements
+devcompass analyze
+# Output: Health Score: 8.7/10
+
+# 5. Check the report
+cat devcompass-fix-report.json
 ```
 
 ## 🛡️ Supply Chain Security (v2.7.0)
@@ -520,9 +879,9 @@ Detect restrictive licenses that may require legal review!
 
 ### Combined Analysis Example
 
-**Full Output (v2.7.1):**
+**Full Output (v2.8.0):**
 ```
-🔍 DevCompass v2.7.1 - Analyzing your project...
+🔍 DevCompass v2.8.0 - Analyzing your project...
 ✔ Scanned 25 dependencies in project
 ⚡ GitHub check completed in 1.23s (parallel processing)
 
@@ -621,10 +980,10 @@ Perfect for parsing in CI/CD pipelines:
 devcompass analyze --json
 ```
 
-**Output (v2.7.1):**
+**Output (v2.8.0):**
 ```json
 {
-  "version": "2.7.1",
+  "version": "2.8.0",
   "timestamp": "2026-04-04T10:30:00.000Z",
   "summary": {
     "healthScore": 8.5,
@@ -703,7 +1062,7 @@ DevCompass caches results to improve performance:
 - **Cache duration:** 1 hour
 - **Cache file:** `.devcompass-cache.json` (auto-gitignored)
 
-**What gets cached (v2.7.1):**
+**What gets cached (v2.8.0):**
 - Supply chain analysis
 - License risk data
 - Package quality metrics
@@ -780,50 +1139,6 @@ Create `devcompass.config.json` in your project root:
 }
 ```
 
-## 🔧 Auto-Fix Command
-
-DevCompass can **automatically fix issues** in your project!
-
-### What it does:
-- 🔴 **Fixes critical security issues** - Upgrades packages with known vulnerabilities
-- 🧹 **Removes unused dependencies** - Cleans up packages you're not using
-- ⬆️ **Safe updates** - Applies patch and minor updates automatically
-- ⚠️ **Skips breaking changes** - Major updates require manual review
-- 🔄 **Clears cache** - Ensures fresh analysis after fixes (v2.4+)
-
-### Usage
-```bash
-# Interactive mode (asks for confirmation)
-devcompass fix
-
-# Auto-apply without confirmation (for CI/CD)
-devcompass fix --yes
-devcompass fix -y
-
-# Fix specific directory
-devcompass fix --path /path/to/project
-```
-
-### Safety Features
-- ✅ Shows what will be changed before applying
-- ✅ Requires confirmation (unless `--yes` flag used)
-- ✅ Skips major updates (may have breaking changes)
-- ✅ Groups actions by priority (critical → cleanup → updates)
-- ✅ Clears cache after fixes (v2.4+)
-- ✅ Provides clear summary of changes
-
-### Workflow Example
-```bash
-# 1. Analyze your project
-devcompass analyze
-
-# 2. If issues found, auto-fix them
-devcompass fix
-
-# 3. Verify the improvements
-devcompass analyze
-```
-
 ## 🚨 Ecosystem Intelligence
 
 DevCompass tracks **real-world issues** in 500+ popular packages and warns you before they break production!
@@ -889,6 +1204,9 @@ devcompass analyze
 # Auto-fix issues
 devcompass fix
 
+# Preview fixes without changes (NEW in v2.8.0!)
+devcompass fix --dry-run
+
 # Show version
 devcompass --version
 devcompass -v
@@ -918,12 +1236,19 @@ devcompass analyze --path ./my-project --json
 
 ### Fix Options
 ```bash
+# Preview fixes without making changes (NEW!)
+devcompass fix --dry-run
+devcompass fix --dry  # Shorthand
+
 # Fix specific directory
 devcompass fix --path /path/to/project
 
 # Auto-apply without confirmation
 devcompass fix --yes
 devcompass fix -y
+
+# Combine options
+devcompass fix --path ./my-project --yes
 ```
 
 ## 🔄 Complete Workflows
@@ -933,7 +1258,10 @@ devcompass fix -y
 # Check project health
 devcompass analyze
 
-# Fix issues automatically
+# Preview fixes first (NEW in v2.8.0!)
+devcompass fix --dry-run
+
+# Apply fixes
 devcompass fix
 
 # Verify improvements
@@ -944,6 +1272,9 @@ devcompass analyze
 ```bash
 # Analyze and export JSON
 devcompass analyze --json > health-report.json
+
+# Dry-run in PR checks (no changes)
+devcompass fix --dry-run
 
 # Fail build if score too low
 devcompass analyze --ci
@@ -974,10 +1305,13 @@ devcompass analyze --json | jq '.security.critical'
 # 3. Check supply chain risks
 devcompass analyze --json | jq '.supplyChain.warnings'
 
-# 4. Auto-fix if possible
-npm audit fix
+# 4. Preview fixes (NEW!)
+devcompass fix --dry-run
 
-# 5. Verify fixes
+# 5. Auto-fix if safe
+devcompass fix --yes
+
+# 6. Verify fixes
 devcompass analyze
 ```
 
@@ -1004,6 +1338,11 @@ If you encounter a false positive, please [report it](https://github.com/AjayBTh
 - Cache expires after 1 hour
 - Delete cache file manually if needed: `rm .devcompass-cache.json`
 
+### Backup Management (v2.8.0)
+- Backup files (`.devcompass-backups/`) are automatically gitignored
+- Last 5 backups kept automatically
+- Restore manually if needed from `.devcompass-backups/`
+
 ## 🛠️ Requirements
 
 - Node.js >= 14.0.0
@@ -1013,20 +1352,22 @@ If you encounter a false positive, please [report it](https://github.com/AjayBTh
 
 1. **Run regularly** - Add to your CI/CD pipeline or git hooks
 2. **Use fix command** - Let DevCompass handle routine maintenance
-3. **Check security first** - Prioritize fixing critical vulnerabilities
-4. **Monitor bundle size** - Keep an eye on heavy packages
-5. **Review licenses** - Ensure compliance with your legal requirements
-6. **Configure severity levels** - Filter out noise with `minSeverity`
-7. **Enable CI mode** - Catch issues before they reach production
-8. **Use JSON output** - Integrate with your monitoring tools
-9. **Review major updates** - Always check changelogs before major version bumps
-10. **Verify before uninstalling** - DevCompass helps identify candidates, but always verify
-11. **Watch predictive warnings** - Monitor packages with increasing issue activity
-12. **Leverage parallel processing** - First run takes ~2s with v2.6.0 (was ~8s)
-13. **Monitor supply chain** - Check for typosquatting regularly (v2.7.0)
-14. **Review license risks** - Ensure GPL/AGPL compliance (v2.7.0)
-15. **Track package quality** - Replace abandoned packages proactively (v2.7.0)
-16. **Update regularly** - Stay on latest version for bug fixes (v2.7.1 fixed false positives!)
+3. **Use dry-run first** - Test fixes safely with `--dry-run` before applying (v2.8.0)
+4. **Check security first** - Prioritize fixing critical vulnerabilities
+5. **Monitor bundle size** - Keep an eye on heavy packages
+6. **Review licenses** - Ensure compliance with your legal requirements
+7. **Configure severity levels** - Filter out noise with `minSeverity`
+8. **Enable CI mode** - Catch issues before they reach production
+9. **Use JSON output** - Integrate with your monitoring tools
+10. **Review major updates** - Always check changelogs before major version bumps
+11. **Keep backups** - DevCompass auto-creates them, but you can keep your own too (v2.8.0)
+12. **Review fix reports** - Check `devcompass-fix-report.json` for audit trail (v2.8.0)
+13. **Watch predictive warnings** - Monitor packages with increasing issue activity
+14. **Leverage parallel processing** - First run takes ~2s with v2.6.0 (was ~8s)
+15. **Monitor supply chain** - Check for typosquatting regularly (v2.7.0)
+16. **Review license risks** - Ensure GPL/AGPL compliance (v2.7.0)
+17. **Track package quality** - Replace abandoned packages proactively (v2.7.0)
+18. **Update regularly** - Stay on latest version for bug fixes and new features!
 
 ## 🤝 Contributing
 
@@ -1078,6 +1419,7 @@ npm install
 # Test locally
 node bin/devcompass.js analyze
 node bin/devcompass.js fix
+node bin/devcompass.js fix --dry-run  # NEW in v2.8.0!
 
 # Run on test projects
 cd /tmp
@@ -1085,6 +1427,7 @@ mkdir test-project && cd test-project
 npm init -y
 npm install axios@1.6.0 lodash@4.17.19
 node ~/devcompass/bin/devcompass.js analyze
+node ~/devcompass/bin/devcompass.js fix --dry-run
 node ~/devcompass/bin/devcompass.js fix
 ```
 
@@ -1136,7 +1479,17 @@ Check out DevCompass stats:
   - [x] Package quality metrics
   - [x] Security recommendations engine
 - [x] ~~Fix false positive typosquatting warnings~~ ✅ **Fixed in v2.7.1!**
-- [ ] Enhanced fix command improvements (v2.8.0)
+- [x] ~~Enhanced fix command improvements~~ ✅ **Added in v2.8.0!**
+  - [x] Dry-run mode
+  - [x] Progress tracking with ETA
+  - [x] Automatic backups
+  - [x] Fix reports
+  - [x] Enhanced error handling
+- [ ] Supply chain auto-fix (v2.8.1)
+- [ ] License conflict resolution (v2.8.2)
+- [ ] Package quality auto-fix (v2.8.3)
+- [ ] Backup & rollback command (v2.8.4)
+- [ ] Batch fix modes (v2.8.5)
 - [ ] Dependency graph visualization (v3.0.0)
 - [ ] Web dashboard for team health monitoring (v3.0.0)
 - [ ] Team collaboration features (v3.1.0)

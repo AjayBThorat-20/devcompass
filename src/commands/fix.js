@@ -1,253 +1,335 @@
 // src/commands/fix.js
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 const chalk = require('chalk');
 const ora = require('ora');
-const { execSync } = require('child_process');
-const readline = require('readline');
-const path = require('path');
-
-const { findUnusedDeps } = require('../analyzers/unused-deps');
-const { findOutdatedDeps } = require('../analyzers/outdated');
-const { checkEcosystemAlerts } = require('../alerts');
-const { getSeverityDisplay } = require('../alerts/formatter');
+const ProgressTracker = require('../utils/progress-tracker');
+const FixReport = require('../utils/fix-report');
+const BackupManager = require('../utils/backup-manager');
 const { clearCache } = require('../cache/manager');
 
-async function fix(options) {
+async function fix(options = {}) {
   const projectPath = options.path || process.cwd();
-  
-  console.log('\n');
-  console.log(chalk.cyan.bold('🔧 DevCompass Fix') + ' - Analyzing and fixing your project...\n');
-  
-  const spinner = ora({
-    text: 'Analyzing project...',
-    color: 'cyan'
-  }).start();
-  
-  try {
-    const fs = require('fs');
-    const packageJsonPath = path.join(projectPath, 'package.json');
-    
-    if (!fs.existsSync(packageJsonPath)) {
-      spinner.fail(chalk.red('No package.json found'));
-      process.exit(1);
-    }
-    
-    const projectPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    const dependencies = {
-      ...(projectPackageJson.dependencies || {}),
-      ...(projectPackageJson.devDependencies || {})
-    };
-    
-    // Check for critical alerts first
-    spinner.text = 'Checking for critical issues...';
-    const alerts = await checkEcosystemAlerts(projectPath, dependencies);
-    const criticalAlerts = alerts.filter(a => a.severity === 'critical' || a.severity === 'high');
-    
-    // Find unused dependencies
-    spinner.text = 'Finding unused dependencies...';
-    const unusedDeps = await findUnusedDeps(projectPath, dependencies);
-    
-    // Find outdated packages
-    spinner.text = 'Checking for updates...';
-    const outdatedDeps = await findOutdatedDeps(projectPath, dependencies);
-    
-    spinner.succeed(chalk.green('Analysis complete!\n'));
-    
-    // Show what will be fixed
-    await showFixPlan(criticalAlerts, unusedDeps, outdatedDeps, options, projectPath);
-    
-  } catch (error) {
-    spinner.fail(chalk.red('Analysis failed'));
-    console.log(chalk.red(`\n❌ Error: ${error.message}\n`));
+  const autoApply = options.yes || options.y || false;
+  const dryRun = options.dryRun || options.dry || false;
+
+  console.log(chalk.bold.cyan('\n🔧 DevCompass Fix\n'));
+
+  if (dryRun) {
+    console.log(chalk.yellow('📋 DRY RUN MODE - No changes will be made\n'));
+  }
+
+  // Check if package.json exists
+  const packageJsonPath = path.join(projectPath, 'package.json');
+  if (!fs.existsSync(packageJsonPath)) {
+    console.error(chalk.red('❌ No package.json found in this directory'));
     process.exit(1);
   }
-}
 
-async function showFixPlan(criticalAlerts, unusedDeps, outdatedDeps, options, projectPath) {
-  const actions = [];
-  
-  // Critical alerts
-  if (criticalAlerts.length > 0) {
-    console.log(chalk.red.bold('🔴 CRITICAL ISSUES TO FIX:\n'));
-    
-    criticalAlerts.forEach(alert => {
-      const display = getSeverityDisplay(alert.severity);
-      console.log(`${display.emoji} ${chalk.bold(alert.package)}@${alert.version}`);
-      console.log(`   ${chalk.gray('Issue:')} ${alert.title}`);
-      
-      if (alert.fix && /^\d+\.\d+/.test(alert.fix)) {
-        console.log(`   ${chalk.green('Fix:')} Upgrade to ${alert.fix}\n`);
-        actions.push({
-          type: 'upgrade',
-          package: alert.package,
-          version: alert.fix,
-          reason: 'Critical security/stability issue'
-        });
-      } else {
-        console.log(`   ${chalk.yellow('Fix:')} ${alert.fix}\n`);
-      }
-    });
-    
-    console.log('━'.repeat(70) + '\n');
-  }
-  
-  // Unused dependencies
-  if (unusedDeps.length > 0) {
-    console.log(chalk.yellow.bold('🧹 UNUSED DEPENDENCIES TO REMOVE:\n'));
-    
-    unusedDeps.forEach(dep => {
-      console.log(`  ${chalk.red('●')} ${dep.name}`);
-      actions.push({
-        type: 'uninstall',
-        package: dep.name,
-        reason: 'Not used in project'
-      });
-    });
-    
-    console.log('\n' + '━'.repeat(70) + '\n');
-  }
-  
-  // Safe updates (patch/minor only)
-  const safeUpdates = outdatedDeps.filter(dep => 
-    dep.versionsBehind === 'patch update' || dep.versionsBehind === 'minor update'
-  );
-  
-  if (safeUpdates.length > 0) {
-    console.log(chalk.cyan.bold('⬆️  SAFE UPDATES (patch/minor):\n'));
-    
-    safeUpdates.forEach(dep => {
-      console.log(`  ${dep.name}: ${chalk.yellow(dep.current)} → ${chalk.green(dep.latest)} ${chalk.gray(`(${dep.versionsBehind})`)}`);
-      actions.push({
-        type: 'update',
-        package: dep.name,
-        version: dep.latest,
-        reason: dep.versionsBehind
-      });
-    });
-    
-    console.log('\n' + '━'.repeat(70) + '\n');
-  }
-  
-  // Major updates (show but don't auto-apply)
-  const majorUpdates = outdatedDeps.filter(dep => dep.versionsBehind === 'major update');
-  
-  if (majorUpdates.length > 0) {
-    console.log(chalk.gray.bold('⚠️  MAJOR UPDATES (skipped - may have breaking changes):\n'));
-    
-    majorUpdates.forEach(dep => {
-      console.log(`  ${chalk.gray(dep.name)}: ${dep.current} → ${dep.latest}`);
-    });
-    
-    console.log(chalk.gray('\n  Run these manually after reviewing changelog:\n'));
-    majorUpdates.forEach(dep => {
-      console.log(chalk.gray(`  npm install ${dep.name}@${dep.latest}`));
-    });
-    
-    console.log('\n' + '━'.repeat(70) + '\n');
-  }
-  
-  if (actions.length === 0) {
-    console.log(chalk.green('✨ Everything looks good! No fixes needed.\n'));
-    return;
-  }
-  
-  // Summary
-  console.log(chalk.bold('📊 FIX SUMMARY:\n'));
-  console.log(`  Critical fixes:  ${criticalAlerts.length}`);
-  console.log(`  Remove unused:   ${unusedDeps.length}`);
-  console.log(`  Safe updates:    ${safeUpdates.length}`);
-  console.log(`  Skipped major:   ${majorUpdates.length}\n`);
-  
-  console.log('━'.repeat(70) + '\n');
-  
-  // Confirm
-  if (options.yes) {
-    await applyFixes(actions, projectPath);
-  } else {
-    const confirmed = await askConfirmation('\n❓ Apply these fixes?');
-    
-    if (confirmed) {
-      await applyFixes(actions, projectPath);
-    } else {
-      console.log(chalk.yellow('\n⚠️  Fix cancelled. No changes made.\n'));
-    }
-  }
-}
+  // Initialize report and backup
+  const report = new FixReport();
+  const backupManager = new BackupManager(projectPath);
 
-async function applyFixes(actions, projectPath) {
-  console.log(chalk.cyan.bold('\n🔧 Applying fixes...\n'));
-  
-  const spinner = ora('Processing...').start();
-  
   try {
-    // Group by type
-    const toUninstall = actions.filter(a => a.type === 'uninstall').map(a => a.package);
-    const toUpgrade = actions.filter(a => a.type === 'upgrade');
-    const toUpdate = actions.filter(a => a.type === 'update');
-    
-    // Uninstall unused
-    if (toUninstall.length > 0) {
-      spinner.text = `Removing ${toUninstall.length} unused packages...`;
-      
-      const cmd = `npm uninstall ${toUninstall.join(' ')}`;
-      execSync(cmd, { stdio: 'pipe' });
-      
-      spinner.succeed(chalk.green(`✅ Removed ${toUninstall.length} unused packages`));
-      spinner.start();
+    // Step 1: Analyze what needs fixing
+    console.log(chalk.bold('Step 1: Analyzing issues...\n'));
+    const spinner = ora('Scanning project...').start();
+
+    const { alerts, unused, outdated, security } = await analyzeProject(projectPath);
+
+    spinner.succeed('Analysis complete');
+
+    // Calculate total fixes needed
+    const totalFixes = calculateTotalFixes(alerts, unused, outdated, security);
+
+    if (totalFixes === 0) {
+      console.log(chalk.green('\n✨ No issues to fix! Your project is healthy.\n'));
+      return;
     }
-    
-    // Upgrade critical packages
-    for (const action of toUpgrade) {
-      spinner.text = `Fixing ${action.package}@${action.version}...`;
-      
-      const cmd = `npm install ${action.package}@${action.version}`;
-      execSync(cmd, { stdio: 'pipe' });
-      
-      spinner.succeed(chalk.green(`✅ Fixed ${action.package}@${action.version}`));
-      spinner.start();
-    }
-    
-    // Update safe packages
-    if (toUpdate.length > 0) {
-      spinner.text = `Updating ${toUpdate.length} packages...`;
-      
-      for (const action of toUpdate) {
-        const cmd = `npm install ${action.package}@${action.version}`;
-        execSync(cmd, { stdio: 'pipe' });
+
+    // Step 2: Show what will be fixed
+    console.log(chalk.bold('\nStep 2: Planned fixes\n'));
+    displayPlannedFixes(alerts, unused, outdated, security, dryRun);
+
+    // Step 3: Get confirmation (unless auto-apply or dry-run)
+    if (!dryRun && !autoApply) {
+      console.log(chalk.bold('\n' + '='.repeat(70)));
+      const readline = require('readline').createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+
+      const answer = await new Promise(resolve => {
+        readline.question(chalk.yellow('⚠️  Apply these fixes? (y/N): '), resolve);
+      });
+      readline.close();
+
+      if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
+        console.log(chalk.gray('\nFix cancelled by user.\n'));
+        return;
       }
-      
-      spinner.succeed(chalk.green(`✅ Updated ${toUpdate.length} packages`));
-    } else {
-      spinner.stop();
     }
+
+    if (dryRun) {
+      console.log(chalk.cyan('\n✓ Dry run complete. No changes were made.\n'));
+      return;
+    }
+
+    // Step 4: Create backup
+    console.log(chalk.bold('\nStep 4: Creating backup...\n'));
+    const backupPath = await backupManager.createBackup();
+    if (backupPath) {
+      console.log(chalk.green(`✓ Backup created: ${path.basename(backupPath)}\n`));
+    }
+
+    // Step 5: Apply fixes with progress tracking
+    console.log(chalk.bold('Step 5: Applying fixes...\n'));
     
-    console.log(chalk.green.bold('\n✨ All fixes applied successfully!\n'));
-    console.log(chalk.cyan('💡 Run') + chalk.bold(' devcompass analyze ') + chalk.cyan('to see the new health score.\n'));
-    
-    // Clear cache after fixes - ADDED
-    spinner.text = 'Clearing cache...';
+    const progress = new ProgressTracker(totalFixes);
+    progress.start('Starting fixes...');
+
+    // Fix critical security issues first
+    if (security.metadata.critical > 0 || security.metadata.high > 0) {
+      progress.update('Fixing security vulnerabilities...');
+      await fixSecurityIssues(projectPath, report, progress);
+    }
+
+    // Fix ecosystem alerts
+    if (alerts.length > 0) {
+      for (const alert of alerts) {
+        if (alert.severity === 'critical' || alert.severity === 'high') {
+          progress.update(`Fixing ${alert.package}...`);
+          await fixAlert(alert, projectPath, report, progress);
+        }
+      }
+    }
+
+    // Remove unused dependencies
+    if (unused.length > 0) {
+      for (const dep of unused) {
+        progress.update(`Removing ${dep}...`);
+        await removeUnusedDependency(dep, projectPath, report, progress);
+      }
+    }
+
+    // Update outdated packages (only patch/minor)
+    if (outdated.length > 0) {
+      for (const pkg of outdated) {
+        if (pkg.versionsBehind !== 'major') {
+          progress.update(`Updating ${pkg.name}...`);
+          await updatePackage(pkg, projectPath, report, progress);
+        }
+      }
+    }
+
+    progress.succeed('All fixes applied!');
+
+    // Step 6: Clear cache
+    console.log(chalk.bold('\nStep 6: Clearing cache...\n'));
     clearCache(projectPath);
-    spinner.succeed(chalk.gray('Cache cleared'));
-    
+    console.log(chalk.green('✓ Cache cleared\n'));
+
+    // Step 7: Generate and display report
+    report.finalize();
+    report.display();
+
+    // Save report to file
+    const reportPath = await report.save(projectPath);
+    if (reportPath) {
+      console.log(chalk.cyan(`📄 Full report saved to: ${path.basename(reportPath)}\n`));
+    }
+
+    // Final summary
+    const summary = report.getSummary();
+    if (summary.totalFixes > 0) {
+      console.log(chalk.green.bold(`✓ Successfully applied ${summary.totalFixes} fix(es)!\n`));
+      console.log(chalk.gray('💡 TIP: Run'), chalk.cyan('devcompass analyze'), chalk.gray('to verify improvements\n'));
+    }
+
+    if (summary.totalErrors > 0) {
+      console.log(chalk.yellow(`⚠️  ${summary.totalErrors} error(s) occurred during fix\n`));
+    }
+
   } catch (error) {
-    spinner.fail(chalk.red('Fix failed'));
-    console.log(chalk.red(`\n❌ Error: ${error.message}\n`));
-    console.log(chalk.yellow('💡 You may need to fix this manually.\n'));
+    console.error(chalk.red('\n❌ Fix failed:'), error.message);
+    console.log(chalk.yellow('\n💡 TIP: Your backup is available in .devcompass-backups/\n'));
     process.exit(1);
   }
 }
 
-function askConfirmation(question) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-  
-  return new Promise(resolve => {
-    rl.question(chalk.cyan(question) + chalk.gray(' (y/N): '), answer => {
-      rl.close();
-      resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
-    });
-  });
+// Helper functions
+
+async function analyzeProject(projectPath) {
+  // Load existing analyzers
+  const alerts = require('../alerts');
+  const unusedDeps = require('../analyzers/unused-deps');
+  const outdated = require('../analyzers/outdated');
+  const security = require('../analyzers/security');
+
+  const packageJson = JSON.parse(
+    fs.readFileSync(path.join(projectPath, 'package.json'), 'utf8')
+  );
+
+  const dependencies = {
+    ...packageJson.dependencies,
+    ...packageJson.devDependencies
+  };
+
+  // Run analyses
+  const alertsList = await alerts.checkEcosystemAlerts(projectPath, dependencies);
+  const unusedList = await unusedDeps.findUnusedDeps(projectPath, dependencies);
+  const outdatedList = await outdated.findOutdatedDeps(projectPath, dependencies);
+  const securityData = await security.checkSecurity(projectPath);
+
+  return { 
+    alerts: alertsList, 
+    unused: unusedList, 
+    outdated: outdatedList, 
+    security: securityData 
+  };
 }
 
-module.exports = { fix };
+function calculateTotalFixes(alerts, unused, outdated, security) {
+  let total = 0;
+
+  // Count security fixes
+  if (security.metadata.critical > 0 || security.metadata.high > 0) {
+    total += 1; // npm audit fix counts as one operation
+  }
+
+  // Count critical/high alerts
+  total += alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length;
+
+  // Count unused deps
+  total += unused.length;
+
+  // Count safe updates (patch/minor only)
+  total += outdated.filter(pkg => pkg.versionsBehind !== 'major').length;
+
+  return total;
+}
+
+function displayPlannedFixes(alerts, unused, outdated, security, dryRun) {
+  let fixCount = 0;
+
+  // Security fixes
+  if (security.metadata.critical > 0 || security.metadata.high > 0) {
+    console.log(chalk.red.bold('🔴 CRITICAL SECURITY FIXES'));
+    console.log(`  ${chalk.cyan('→')} Run npm audit fix to resolve ${security.metadata.critical + security.metadata.high} vulnerabilities`);
+    fixCount++;
+  }
+
+  // Ecosystem alerts
+  const criticalAlerts = alerts.filter(a => a.severity === 'critical' || a.severity === 'high');
+  if (criticalAlerts.length > 0) {
+    console.log(chalk.red.bold('\n🔴 CRITICAL PACKAGE ISSUES'));
+    criticalAlerts.forEach(alert => {
+      console.log(`  ${chalk.cyan(alert.package)}`);
+      console.log(`    ${chalk.gray('→')} ${alert.title}`);
+      console.log(`    ${chalk.gray('Fix:')} ${alert.fix}`);
+      fixCount++;
+    });
+  }
+
+  // Unused dependencies
+  if (unused.length > 0) {
+    console.log(chalk.yellow.bold('\n🟡 UNUSED DEPENDENCIES'));
+    unused.forEach(dep => {
+      console.log(`  ${chalk.cyan(dep.name)}`);
+      console.log(`    ${chalk.gray('→')} Will be removed`);
+      fixCount++;
+    });
+  }
+
+  // Safe updates
+  const safeUpdates = outdated.filter(pkg => pkg.versionsBehind !== 'major');
+  if (safeUpdates.length > 0) {
+    console.log(chalk.cyan.bold('\n🔵 SAFE UPDATES (patch/minor)'));
+    safeUpdates.forEach(pkg => {
+      console.log(`  ${chalk.cyan(pkg.name)}`);
+      console.log(`    ${chalk.gray('→')} ${pkg.current} → ${pkg.latest}`);
+      fixCount++;
+    });
+  }
+
+  // Major updates (will be skipped)
+  const majorUpdates = outdated.filter(pkg => pkg.versionsBehind === 'major');
+  if (majorUpdates.length > 0) {
+    console.log(chalk.gray.bold('\n⚪ SKIPPED (major updates - manual review required)'));
+    majorUpdates.forEach(pkg => {
+      console.log(`  ${chalk.gray(pkg.name)}`);
+      console.log(`    ${chalk.gray('→')} ${pkg.current} → ${pkg.latest} (breaking changes possible)`);
+    });
+  }
+
+  console.log(chalk.bold('\n' + '='.repeat(70)));
+  console.log(chalk.bold(`Total fixes to apply: ${chalk.cyan(fixCount)}`));
+  
+  if (dryRun) {
+    console.log(chalk.yellow('(Dry run - no changes will be made)'));
+  }
+}
+
+async function fixSecurityIssues(projectPath, report, progress) {
+  try {
+    execSync('npm audit fix', {
+      cwd: projectPath,
+      stdio: 'pipe'
+    });
+    report.addFix('security', 'npm audit', 'Fixed security vulnerabilities');
+  } catch (error) {
+    report.addError('npm audit', error);
+    progress.warn('Some security issues could not be auto-fixed');
+  }
+}
+
+async function fixAlert(alert, projectPath, report, progress) {
+  try {
+    const pkg = alert.package.split('@')[0];
+    const version = alert.fix;
+
+    execSync(`npm install ${pkg}@${version}`, {
+      cwd: projectPath,
+      stdio: 'pipe'
+    });
+
+    report.addFix('alert', pkg, `Updated to ${version}`, {
+      from: alert.package.split('@')[1],
+      to: version
+    });
+  } catch (error) {
+    report.addError(alert.package, error);
+  }
+}
+
+async function removeUnusedDependency(dep, projectPath, report, progress) {
+  try {
+    execSync(`npm uninstall ${dep.name}`, {
+      cwd: projectPath,
+      stdio: 'pipe'
+    });
+
+    report.addFix('unused', dep.name, 'Removed unused dependency');
+  } catch (error) {
+    report.addError(dep.name, error);
+  }
+}
+
+async function updatePackage(pkg, projectPath, report, progress) {
+  try {
+    execSync(`npm install ${pkg.name}@${pkg.latest}`, {
+      cwd: projectPath,
+      stdio: 'pipe'
+    });
+
+    report.addFix('update', pkg.name, `Updated to ${pkg.latest}`, {
+      from: pkg.current,
+      to: pkg.latest
+    });
+  } catch (error) {
+    report.addError(pkg.name, error);
+  }
+}
+
+module.exports = fix;

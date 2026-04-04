@@ -4,7 +4,7 @@ const { Command } = require('commander');
 const chalk = require('chalk');
 const path = require('path');
 const { analyze } = require('../src/commands/analyze');
-const { fix } = require('../src/commands/fix');
+const fix = require('../src/commands/fix');
 const packageJson = require('../package.json');
 
 // Check if running from local node_modules
@@ -40,6 +40,8 @@ program
   .description('Fix issues automatically (remove unused, update safe packages)')
   .option('-p, --path <path>', 'Project path', process.cwd())
   .option('-y, --yes', 'Skip confirmation prompt', false)
+  .option('--dry-run', 'Show what would be fixed without making changes')
+  .option('--dry', 'Alias for --dry-run')
   .action(fix);
 
 program.parse();
