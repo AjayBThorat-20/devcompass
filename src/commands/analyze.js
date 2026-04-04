@@ -26,6 +26,17 @@ const { loadConfig, filterAlerts } = require('../config/loader');
 const { getCached, setCache } = require('../cache/manager');
 const { formatAsJson } = require('../utils/json-formatter');
 const { handleCiMode } = require('../utils/ci-handler');
+
+// NEW v2.7.0 imports
+const { analyzeSupplyChain, getSupplyChainStats } = require('../analyzers/supply-chain');
+const { analyzeLicenseRisks, getLicenseRiskScore } = require('../analyzers/license-risk');
+const { analyzePackageQuality } = require('../analyzers/package-quality');
+const { 
+  generateSecurityRecommendations, 
+  groupByPriority, 
+  calculateExpectedImpact 
+} = require('../analyzers/security-recommendations');
+
 const packageJson = require('../../package.json');
 
 async function analyze(options) {
@@ -184,7 +195,7 @@ async function analyze(options) {
       }
     }
     
-    // Check for predictive warnings (GitHub Issues) - ENHANCED v2.6.0
+    // Check for predictive warnings (GitHub Issues) - v2.6.0
     const { getTrackedPackageCount, TRACKED_REPOS } = require('../alerts/github-tracker');
     const totalTracked = getTrackedPackageCount();
     
@@ -199,6 +210,7 @@ async function analyze(options) {
     
     let predictiveWarnings = [];
     let githubCheckTime = 0;
+    let githubData = [];
     
     if (config.cache) {
       predictiveWarnings = getCached(projectPath, 'predictive');
@@ -207,11 +219,22 @@ async function analyze(options) {
     if (!predictiveWarnings) {
       try {
         const { generatePredictiveWarnings } = require('../alerts/predictive');
+        const { checkGitHubIssues } = require('../alerts/github-tracker');
         
-        // Track performance - NEW in v2.6.0
+        // Track performance
         const startTime = Date.now();
         
-        // Pass progress callback - NEW in v2.6.0
+        // Get raw GitHub data for quality analysis
+        githubData = await checkGitHubIssues(dependencies, {
+          concurrency: 5,
+          onProgress: (current, total, packageName) => {
+            if (outputMode === 'normal') {
+              spinner.text = `Checking GitHub activity (${current}/${total} packages) - ${packageName}`;
+            }
+          }
+        });
+        
+        // Generate predictive warnings
         predictiveWarnings = await generatePredictiveWarnings(dependencies, {
           onProgress: (current, total, packageName) => {
             if (outputMode === 'normal') {
@@ -274,6 +297,75 @@ async function analyze(options) {
       }
     }
     
+    // NEW v2.7.0 - Supply Chain Analysis
+    spinner.text = 'Analyzing supply chain security...';
+    let supplyChainWarnings = [];
+    
+    if (config.cache) {
+      supplyChainWarnings = getCached(projectPath, 'supplyChain');
+    }
+    
+    if (!supplyChainWarnings || supplyChainWarnings.length === 0) {
+      try {
+        supplyChainWarnings = await analyzeSupplyChain(projectPath, dependencies);
+        if (config.cache) {
+          setCache(projectPath, 'supplyChain', supplyChainWarnings);
+        }
+      } catch (error) {
+        if (outputMode !== 'silent') {
+          console.log(chalk.yellow('\n⚠️  Could not analyze supply chain'));
+          console.log(chalk.gray(`   Error: ${error.message}\n`));
+        }
+        supplyChainWarnings = [];
+      }
+    }
+    
+    // NEW v2.7.0 - Enhanced License Risk Analysis
+    spinner.text = 'Analyzing license risks...';
+    let licenseRiskData = { warnings: [], stats: {}, projectLicense: 'MIT' };
+    
+    if (config.cache) {
+      const cached = getCached(projectPath, 'licenseRisk');
+      if (cached) licenseRiskData = cached;
+    }
+    
+    if (!licenseRiskData.warnings || licenseRiskData.warnings.length === 0) {
+      try {
+        licenseRiskData = await analyzeLicenseRisks(projectPath, licenses);
+        if (config.cache) {
+          setCache(projectPath, 'licenseRisk', licenseRiskData);
+        }
+      } catch (error) {
+        if (outputMode !== 'silent') {
+          console.log(chalk.yellow('\n⚠️  Could not analyze license risks'));
+          console.log(chalk.gray(`   Error: ${error.message}\n`));
+        }
+      }
+    }
+    
+    // NEW v2.7.0 - Package Quality Analysis
+    spinner.text = 'Analyzing package quality...';
+    let qualityData = { results: [], stats: {} };
+    
+    if (config.cache) {
+      const cached = getCached(projectPath, 'quality');
+      if (cached) qualityData = cached;
+    }
+    
+    if (!qualityData.results || qualityData.results.length === 0) {
+      try {
+        qualityData = await analyzePackageQuality(dependencies, githubData);
+        if (config.cache) {
+          setCache(projectPath, 'quality', qualityData);
+        }
+      } catch (error) {
+        if (outputMode !== 'silent') {
+          console.log(chalk.yellow('\n⚠️  Could not analyze package quality'));
+          console.log(chalk.gray(`   Error: ${error.message}\n`));
+        }
+      }
+    }
+    
     // Calculate score
     const alertPenalty = calculateAlertPenalty(alerts);
     const securityPenalty = calculateSecurityPenalty(securityData.metadata);
@@ -289,23 +381,76 @@ async function analyze(options) {
     
     spinner.succeed(chalk.green(`Scanned ${totalDeps} dependencies in project`));
     
-    // Show performance info if GitHub check was performed - NEW in v2.6.0
+    // Show performance info if GitHub check was performed
     if (githubCheckTime > 0 && outputMode === 'normal' && installedTrackedCount > 0) {
       const timeInSeconds = (githubCheckTime / 1000).toFixed(2);
       console.log(chalk.gray(`⚡ GitHub check completed in ${timeInSeconds}s (parallel processing)`));
     }
     
+    // NEW v2.7.0 - Generate Security Recommendations
+    const recommendations = generateSecurityRecommendations({
+      supplyChainWarnings,
+      licenseWarnings: licenseRiskData.warnings,
+      qualityResults: qualityData.results,
+      securityVulnerabilities: securityData.metadata,
+      ecosystemAlerts: alerts,
+      unusedDeps,
+      outdatedPackages: outdatedDeps
+    });
+    
     // Handle different output modes
     if (outputMode === 'json') {
-      const jsonOutput = formatAsJson(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses, predictiveWarnings);
+      const jsonOutput = formatAsJson(
+        alerts, 
+        unusedDeps, 
+        outdatedDeps, 
+        score, 
+        totalDeps, 
+        securityData, 
+        bundleSizes, 
+        licenses, 
+        predictiveWarnings,
+        supplyChainWarnings,
+        licenseRiskData,
+        qualityData,
+        recommendations
+      );
       console.log(jsonOutput);
     } else if (outputMode === 'ci') {
-      displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses, predictiveWarnings);
+      displayResults(
+        alerts, 
+        unusedDeps, 
+        outdatedDeps, 
+        score, 
+        totalDeps, 
+        securityData, 
+        bundleSizes, 
+        licenses, 
+        predictiveWarnings,
+        supplyChainWarnings,
+        licenseRiskData,
+        qualityData,
+        recommendations
+      );
       handleCiMode(score, config, alerts, unusedDeps);
     } else if (outputMode === 'silent') {
       // Silent mode - no output
     } else {
-      displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses, predictiveWarnings);
+      displayResults(
+        alerts, 
+        unusedDeps, 
+        outdatedDeps, 
+        score, 
+        totalDeps, 
+        securityData, 
+        bundleSizes, 
+        licenses, 
+        predictiveWarnings,
+        supplyChainWarnings,
+        licenseRiskData,
+        qualityData,
+        recommendations
+      );
     }
     
   } catch (error) {
@@ -318,7 +463,21 @@ async function analyze(options) {
   }
 }
 
-function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData, bundleSizes, licenses, predictiveWarnings) {
+function displayResults(
+  alerts, 
+  unusedDeps, 
+  outdatedDeps, 
+  score, 
+  totalDeps, 
+  securityData, 
+  bundleSizes, 
+  licenses, 
+  predictiveWarnings,
+  supplyChainWarnings = [],
+  licenseRiskData = {},
+  qualityData = {},
+  recommendations = []
+) {
   logDivider();
   
   // SECURITY VULNERABILITIES
@@ -347,6 +506,59 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, secu
   } else {
     logSection('✅ SECURITY VULNERABILITIES');
     log(chalk.green('  No vulnerabilities detected!\n'));
+  }
+  
+  logDivider();
+  
+  // NEW v2.7.0 - SUPPLY CHAIN SECURITY
+  if (supplyChainWarnings.length > 0) {
+    const stats = getSupplyChainStats(supplyChainWarnings);
+    
+    logSection('🛡️  SUPPLY CHAIN SECURITY', supplyChainWarnings.length);
+    
+    // Group by type
+    const malicious = supplyChainWarnings.filter(w => w.type === 'malicious');
+    const typosquat = supplyChainWarnings.filter(w => w.type === 'typosquatting' || w.type === 'typosquatting_suspected');
+    const scripts = supplyChainWarnings.filter(w => w.type === 'install_script');
+    
+    // Malicious packages (CRITICAL)
+    if (malicious.length > 0) {
+      log(chalk.red.bold('\n🔴 MALICIOUS PACKAGES DETECTED\n'));
+      malicious.forEach(w => {
+        log(`  ${chalk.red.bold(w.package)}`);
+        log(`    ${chalk.red(w.message)}`);
+        log(`    ${chalk.yellow('→')} ${w.recommendation}\n`);
+      });
+    }
+    
+    // Typosquatting (HIGH)
+    if (typosquat.length > 0) {
+      log(chalk.red('\n🟠 TYPOSQUATTING RISK\n'));
+      typosquat.forEach(w => {
+        const display = getSeverityDisplay(w.severity);
+        log(`  ${display.emoji} ${chalk.bold(w.package)}`);
+        log(`    Similar to: ${chalk.green(w.official)} (official package)`);
+        log(`    ${chalk.yellow('→')} ${w.recommendation}\n`);
+      });
+    }
+    
+    // Install scripts (MEDIUM/HIGH)
+    if (scripts.length > 0) {
+      log(chalk.yellow('\n🟡 INSTALL SCRIPT WARNINGS\n'));
+      scripts.slice(0, 3).forEach(w => {
+        log(`  ${chalk.bold(w.package)}`);
+        log(`    Script: ${chalk.gray(w.script)}`);
+        log(`    Patterns: ${chalk.yellow(w.patterns.join(', '))}`);
+        log(`    ${chalk.yellow('→')} ${w.recommendation}\n`);
+      });
+      
+      if (scripts.length > 3) {
+        log(chalk.gray(`  ... and ${scripts.length - 3} more install script warnings\n`));
+      }
+    }
+  } else {
+    logSection('✅ SUPPLY CHAIN SECURITY');
+    log(chalk.green('  No supply chain risks detected!\n'));
   }
   
   logDivider();
@@ -391,7 +603,7 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, secu
   
   logDivider();
   
-  // PREDICTIVE WARNINGS (v2.5.0+)
+  // PREDICTIVE WARNINGS
   if (predictiveWarnings.length > 0) {
     const { getTrackedPackageCount } = require('../alerts/github-tracker');
     const totalTracked = getTrackedPackageCount();
@@ -420,6 +632,124 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, secu
     
     logSection('✅ PREDICTIVE ANALYSIS');
     log(chalk.green(`  No unusual activity detected (${totalTracked}+ packages monitored)!\n`));
+  }
+  
+  logDivider();
+  
+  // NEW v2.7.0 - LICENSE RISK ANALYSIS
+  if (licenseRiskData.warnings && licenseRiskData.warnings.length > 0) {
+    logSection('⚖️  LICENSE RISK ANALYSIS', licenseRiskData.warnings.length);
+    
+    const { warnings, projectLicense } = licenseRiskData;
+    
+    log(chalk.gray(`  Project License: ${projectLicense}\n`));
+    
+    // Group by severity
+    const critical = warnings.filter(w => w.severity === 'critical');
+    const high = warnings.filter(w => w.severity === 'high');
+    const medium = warnings.filter(w => w.severity === 'medium');
+    
+    if (critical.length > 0) {
+      log(chalk.red.bold('🔴 CRITICAL LICENSE RISKS\n'));
+      critical.forEach(w => {
+        log(`  ${chalk.red.bold(w.package)}`);
+        log(`    License: ${chalk.red(w.license)}`);
+        log(`    ${chalk.yellow(w.message)}`);
+        log(`    ${chalk.cyan('→')} ${w.recommendation}\n`);
+      });
+    }
+    
+    if (high.length > 0) {
+      log(chalk.red('\n🟠 HIGH RISK LICENSES\n'));
+      high.slice(0, 3).forEach(w => {
+        log(`  ${chalk.bold(w.package)}`);
+        log(`    License: ${chalk.yellow(w.license)}`);
+        log(`    ${chalk.gray(w.message)}`);
+        log(`    ${chalk.cyan('→')} ${w.recommendation}\n`);
+      });
+      
+      if (high.length > 3) {
+        log(chalk.gray(`  ... and ${high.length - 3} more high-risk licenses\n`));
+      }
+    }
+    
+    if (medium.length > 0) {
+      log(chalk.gray(`\n  ${medium.length} medium-risk licenses detected\n`));
+    }
+  } else {
+    logSection('✅ LICENSE COMPLIANCE');
+    log(chalk.green('  All licenses are compliant!\n'));
+  }
+  
+  logDivider();
+  
+  // NEW v2.7.0 - PACKAGE QUALITY METRICS
+  if (qualityData.results && qualityData.results.length > 0) {
+    const { results, stats } = qualityData;
+    
+    logSection('📊 PACKAGE QUALITY METRICS', results.length);
+    
+    // Healthy packages
+    if (stats.healthy > 0) {
+      log(chalk.green(`\n✅ HEALTHY PACKAGES (${stats.healthy})\n`));
+      const healthy = results.filter(r => r.status === 'healthy');
+      const display = healthy.slice(0, 10).map(r => r.package).join(', ');
+      log(chalk.gray(`  ${display}${healthy.length > 10 ? '...' : ''}\n`));
+    }
+    
+    // Needs attention
+    if (stats.needsAttention > 0) {
+      log(chalk.yellow(`\n🟡 NEEDS ATTENTION (${stats.needsAttention})\n`));
+      const attention = results.filter(r => r.status === 'needs_attention');
+      attention.slice(0, 3).forEach(r => {
+        log(`  ${chalk.bold(r.package)}`);
+        log(`    Health Score: ${chalk.yellow(r.healthScore + '/10')}`);
+        log(`    Last Update: ${chalk.gray(r.daysSincePublish)} days ago`);
+        if (r.githubMetrics) {
+          log(`    Open Issues: ${chalk.gray(r.githubMetrics.totalIssues)}`);
+        }
+        log('');
+      });
+    }
+    
+    // Stale packages
+    if (stats.stale > 0) {
+      log(chalk.red(`\n🟠 STALE PACKAGES (${stats.stale})\n`));
+      const stale = results.filter(r => r.status === 'stale');
+      stale.slice(0, 3).forEach(r => {
+        log(`  ${chalk.bold(r.package)}`);
+        log(`    Health Score: ${chalk.red(r.healthScore + '/10')}`);
+        log(`    Last Update: ${chalk.red(Math.floor(r.daysSincePublish / 30))} months ago`);
+        log(`    ${chalk.cyan('→')} Consider finding actively maintained alternative\n`);
+      });
+    }
+    
+    // Abandoned packages
+    if (stats.abandoned > 0) {
+      log(chalk.red.bold(`\n🔴 ABANDONED PACKAGES (${stats.abandoned})\n`));
+      const abandoned = results.filter(r => r.status === 'abandoned');
+      abandoned.forEach(r => {
+        log(`  ${chalk.red.bold(r.package)}`);
+        log(`    Health Score: ${chalk.red(r.healthScore + '/10')}`);
+        log(`    Last Update: ${chalk.red(Math.floor(r.daysSincePublish / 365))} years ago`);
+        log(`    Maintainer: ${chalk.red('Inactive')}`);
+        log(`    ${chalk.cyan('→')} Migrate to actively maintained alternative\n`);
+      });
+    }
+    
+    // Deprecated packages
+    if (stats.deprecated > 0) {
+      log(chalk.red.bold(`\n🔴 DEPRECATED PACKAGES (${stats.deprecated})\n`));
+      const deprecated = results.filter(r => r.status === 'deprecated');
+      deprecated.forEach(r => {
+        log(`  ${chalk.red.bold(r.package)}`);
+        log(`    ${chalk.red('Package is officially deprecated')}`);
+        log(`    ${chalk.cyan('→')} Find alternative immediately\n`);
+      });
+    }
+  } else {
+    logSection('📊 PACKAGE QUALITY');
+    log(chalk.green('  Quality analysis in progress...\n'));
   }
   
   logDivider();
@@ -485,9 +815,9 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, secu
     logDivider();
   }
   
-  // LICENSE WARNINGS
+  // LICENSE WARNINGS (legacy - for packages not caught by license risk)
   const problematicLicenses = findProblematicLicenses(licenses);
-  if (problematicLicenses.length > 0) {
+  if (problematicLicenses.length > 0 && (!licenseRiskData.warnings || licenseRiskData.warnings.length === 0)) {
     logSection('⚖️  LICENSE WARNINGS', problematicLicenses.length);
     
     problematicLicenses.forEach(pkg => {
@@ -498,12 +828,8 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, secu
     });
     
     log(chalk.gray('\n  Note: Restrictive licenses may require legal review\n'));
-  } else {
-    logSection('✅ LICENSE COMPLIANCE');
-    log(chalk.green('  All licenses are permissive!\n'));
+    logDivider();
   }
-  
-  logDivider();
   
   // PROJECT HEALTH
   logSection('📊 PROJECT HEALTH');
@@ -516,6 +842,10 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, secu
     log(`  Security Vulnerabilities:   ${chalk.red(securityData.metadata.total)}`);
   }
   
+  if (supplyChainWarnings.length > 0) {
+    log(`  Supply Chain Warnings:      ${chalk.red(supplyChainWarnings.length)}`);
+  }
+  
   if (alerts.length > 0) {
     log(`  Ecosystem Alerts:           ${chalk.red(alerts.length)}`);
   }
@@ -524,15 +854,114 @@ function displayResults(alerts, unusedDeps, outdatedDeps, score, totalDeps, secu
     log(`  Predictive Warnings:        ${chalk.yellow(predictiveWarnings.length)}`);
   }
   
+  if (licenseRiskData.warnings && licenseRiskData.warnings.length > 0) {
+    log(`  License Risks:              ${chalk.yellow(licenseRiskData.warnings.length)}`);
+  }
+  
+  if (qualityData.stats) {
+    const { abandoned, deprecated, stale } = qualityData.stats;
+    const total = (abandoned || 0) + (deprecated || 0) + (stale || 0);
+    if (total > 0) {
+      log(`  Quality Issues:             ${chalk.yellow(total)}`);
+    }
+  }
+  
   log(`  Unused:                     ${chalk.red(unusedDeps.length)}`);
   log(`  Outdated:                   ${chalk.yellow(outdatedDeps.length)}\n`);
   
   logDivider();
   
-  // QUICK WINS
-  displayQuickWins(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData);
+  // NEW v2.7.0 - SECURITY RECOMMENDATIONS
+  if (recommendations.length > 0) {
+    displaySecurityRecommendations(recommendations, score.total);
+  } else {
+    displayQuickWins(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData);
+  }
 }
 
+// NEW v2.7.0 - Display Security Recommendations
+function displaySecurityRecommendations(recommendations, currentScore) {
+  const grouped = groupByPriority(recommendations);
+  const impact = calculateExpectedImpact(recommendations, currentScore);
+  
+  logSection('💡 SECURITY RECOMMENDATIONS (Prioritized)');
+  
+  // CRITICAL
+  if (grouped.critical.length > 0) {
+    log(chalk.red.bold('\n🔴 CRITICAL (Fix Immediately)\n'));
+    grouped.critical.forEach((rec, index) => {
+      log(`  ${index + 1}. ${chalk.bold(rec.issue)}`);
+      if (rec.package) {
+        log(`     Package: ${chalk.red(rec.package)}`);
+      }
+      log(`     ${chalk.cyan('Action:')} ${rec.action}`);
+      if (rec.command) {
+        log(chalk.gray(`     $ ${rec.command}`));
+      }
+      if (rec.alternative) {
+        log(chalk.gray(`     ${rec.alternative}`));
+      }
+      log('');
+    });
+  }
+  
+  // HIGH
+  if (grouped.high.length > 0) {
+    log(chalk.red('\n🟠 HIGH (Fix Soon)\n'));
+    grouped.high.slice(0, 5).forEach((rec, index) => {
+      log(`  ${index + 1}. ${rec.issue}`);
+      if (rec.package) {
+        log(`     Package: ${chalk.yellow(rec.package)}`);
+      }
+      log(`     ${chalk.cyan('Action:')} ${rec.action}`);
+      if (rec.command) {
+        log(chalk.gray(`     $ ${rec.command}`));
+      }
+      log('');
+    });
+    
+    if (grouped.high.length > 5) {
+      log(chalk.gray(`  ... and ${grouped.high.length - 5} more high-priority items\n`));
+    }
+  }
+  
+  // MEDIUM
+  if (grouped.medium.length > 0) {
+    log(chalk.yellow('\n🟡 MEDIUM (Plan to Fix)\n'));
+    grouped.medium.slice(0, 3).forEach((rec, index) => {
+      log(`  ${index + 1}. ${rec.issue}`);
+      if (rec.package) {
+        log(`     Package: ${chalk.gray(rec.package)}`);
+      }
+      log(`     ${chalk.cyan('Action:')} ${rec.action}`);
+      log('');
+    });
+    
+    if (grouped.medium.length > 3) {
+      log(chalk.gray(`  ... and ${grouped.medium.length - 3} more medium-priority items\n`));
+    }
+  }
+  
+  // Expected Impact
+  log(chalk.cyan.bold('\n📈 Expected Impact:\n'));
+  log(`  ${chalk.green('✓')} Current Health Score: ${chalk.yellow(impact.currentScore + '/10')}`);
+  log(`  ${chalk.green('✓')} Expected Score: ${chalk.green(impact.expectedScore + '/10')}`);
+  log(`  ${chalk.green('✓')} Improvement: ${chalk.cyan('+' + impact.improvement)} points (${impact.percentageIncrease}% increase)`);
+  log(`  ${chalk.green('✓')} Issues Resolved: ${impact.critical + impact.high + impact.medium} critical/high/medium`);
+  
+  if (grouped.critical.length > 0) {
+    log(`  ${chalk.green('✓')} Eliminate ${impact.critical} critical security risks`);
+  }
+  if (grouped.high.length > 0) {
+    log(`  ${chalk.green('✓')} Resolve ${impact.high} high-priority issues`);
+  }
+  
+  log(chalk.cyan('\n💡 TIP: Run') + chalk.bold(' devcompass fix ') + chalk.cyan('to apply automated fixes!\n'));
+  
+  logDivider();
+}
+
+// Original Quick Wins (fallback)
 function displayQuickWins(alerts, unusedDeps, outdatedDeps, score, totalDeps, securityData) {
   const hasCriticalAlerts = alerts.some(a => a.severity === 'critical' || a.severity === 'high');
   const hasCriticalSecurity = securityData.metadata.critical > 0 || securityData.metadata.high > 0;

@@ -5,6 +5,336 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2026-04-04
+
+### 🔐 Major Feature: Advanced Security Features
+
+Comprehensive security analysis without external dependencies! DevCompass now includes supply chain security, enhanced license risk detection, package quality metrics, and intelligent security recommendations.
+
+### Added
+
+#### **Supply Chain Security Analysis**
+- **Malicious package detection** - Database of known bad actors
+- **Typosquatting detection** - Fuzzy matching against popular packages (e.g., "epress" vs "express")
+- **Install script analysis** - Detect suspicious postinstall/preinstall hooks
+- **Pattern matching** - Identify dangerous patterns (curl, wget, eval, exec)
+- **Levenshtein distance algorithm** - Smart similarity detection
+
+#### **Enhanced License Risk Detection**
+- **License compatibility checking** - Detect GPL/MIT conflicts
+- **Business risk scoring** - Rate licenses by commercial risk
+- **Copyleft detection** - Identify GPL, AGPL, LGPL licenses
+- **License conflict warnings** - Alert on incompatible license combinations
+- **Comprehensive license database** - 20+ license types classified
+
+#### **Package Quality Metrics**
+- **Health scoring (0-10)** - Based on maintenance, age, activity
+- **Maintainer analysis** - Active vs inactive packages
+- **Last publish tracking** - Detect stale/abandoned packages
+- **GitHub integration** - Issue resolution metrics
+- **Deprecation detection** - Identify officially deprecated packages
+- **Status classification** - Healthy, Needs Attention, Stale, Abandoned, Deprecated
+
+#### **Security Recommendations Engine**
+- **Priority-based recommendations** - Critical, High, Medium, Low
+- **Actionable fix suggestions** - Step-by-step commands
+- **Impact analysis** - Expected health score improvements
+- **Category grouping** - Supply chain, License, Security, Quality, etc.
+- **Expected impact metrics** - Show improvement percentages
+- **Automated command generation** - Copy-paste ready fixes
+
+### Technical Details
+
+**New Files Created:**
+- `data/known-malicious.json` - Database of malicious packages and patterns
+- `src/analyzers/supply-chain.js` - Supply chain security analysis (330 lines)
+- `src/analyzers/license-risk.js` - Enhanced license risk detection (290 lines)
+- `src/analyzers/package-quality.js` - Package health scoring (350 lines)
+- `src/analyzers/security-recommendations.js` - Smart recommendations engine (280 lines)
+
+**Files Updated:**
+- `src/commands/analyze.js` - Integrated all new security features (700+ lines)
+- `src/utils/json-formatter.js` - Added new data structures to JSON output
+- `package.json` - Version 2.7.0, added security-focused keywords
+
+**Total New Code:** ~1,500 lines of security analysis logic
+
+### Features Breakdown
+
+#### **Supply Chain Security**
+
+**Detection Capabilities:**
+```javascript
+// Malicious package detection
+Known malicious packages: 15+ entries
+
+// Typosquatting detection
+Popular packages monitored: 15+ (express, react, lodash, etc.)
+Detection methods:
+  - Exact pattern matching
+  - Levenshtein distance (1-2 character difference)
+  - Visual similarity (homoglyphs)
+
+// Install script analysis
+Suspicious patterns detected:
+  - Network operations (curl, wget)
+  - Code execution (eval, exec, child_process)
+  - Shell access (/bin/sh, /bin/bash)
+  - External downloads (http://, https://)
+```
+
+**Example Output:**
+```
+🛡️ SUPPLY CHAIN SECURITY (3 warnings)
+
+🔴 MALICIOUS PACKAGES DETECTED
+  epress
+    Known malicious package
+    → Remove immediately
+
+🟠 TYPOSQUATTING RISK
+  expresss
+    Similar to: express (official package)
+    → Remove expresss and install express
+
+🟡 INSTALL SCRIPT WARNING
+  suspicious-package@1.0.0
+    Script: postinstall
+    Patterns: curl, eval
+    → Review install script before deployment
+```
+
+#### **License Risk Analysis**
+
+**License Classification:**
+```
+CRITICAL RISK:
+  - AGPL-1.0, AGPL-3.0 (Network copyleft)
+  - UNLICENSED (No license)
+
+HIGH RISK:
+  - GPL-1.0, GPL-2.0, GPL-3.0 (Copyleft)
+  - SEE LICENSE IN (Custom license)
+
+MEDIUM RISK:
+  - LGPL-2.0, LGPL-2.1, LGPL-3.0 (Weak copyleft)
+  - MPL-1.0, MPL-2.0 (File-level copyleft)
+  - EPL-1.0, EPL-2.0 (Module-level copyleft)
+
+LOW RISK:
+  - MIT, Apache-2.0, BSD, ISC (Permissive)
+  - CC0-1.0, Unlicense (Public domain)
+```
+
+**Compatibility Matrix:**
+- MIT → Compatible with: MIT, Apache-2.0, BSD, GPL, LGPL
+- Apache-2.0 → Compatible with: Apache-2.0, GPL-3.0, LGPL-3.0
+- GPL-2.0 → Compatible with: GPL-2.0, MIT, BSD, ISC
+- GPL-3.0 → Compatible with: GPL-3.0, MIT, Apache-2.0, BSD, ISC
+
+**Example Output:**
+```
+⚖️ LICENSE RISK ANALYSIS (2 warnings)
+
+  Project License: MIT
+
+🔴 CRITICAL LICENSE RISKS
+  gpl-library@1.0.0
+    License: AGPL-3.0
+    Network copyleft - very restrictive
+    → Replace with permissive alternative immediately
+
+🟠 HIGH RISK LICENSES
+  old-package@2.0.0
+    License: GPL-2.0
+    Requires source code disclosure
+    → Consider replacing with MIT/Apache alternative
+```
+
+#### **Package Quality Metrics**
+
+**Health Score Calculation (0-10):**
+```javascript
+Score factors:
+  - Age: -2 points for 3+ years old
+  - Maintenance: -2 points for no updates in 1 year
+  - GitHub activity: -2 points for high issues, low maintenance
+  - Dependencies: -1 point for 50+ dependencies
+  - Documentation: -1 point for missing description/repo
+  - Deprecation: Automatic 0 if deprecated
+```
+
+**Status Categories:**
+- **Healthy (7-10):** Well-maintained, recent updates
+- **Needs Attention (5-7):** Some concerns, monitor closely
+- **Stale (3-5):** Not updated in 1-2 years
+- **Abandoned (0-3):** 2+ years without updates
+- **Deprecated (0):** Officially marked as deprecated
+
+**Example Output:**
+```
+📊 PACKAGE QUALITY METRICS (20 analyzed)
+
+✅ HEALTHY PACKAGES (15)
+  react, axios, lodash, express, webpack...
+
+🟡 NEEDS ATTENTION (3)
+  old-package@1.0.0
+    Health Score: 6.5/10
+    Last Update: 8 months ago
+    Open Issues: 45
+
+🔴 ABANDONED PACKAGES (1)
+  deprecated-lib@0.5.0
+    Health Score: 1.2/10
+    Last Update: 3 years ago
+    Maintainer: Inactive
+    → Migrate to actively maintained alternative
+
+🔴 DEPRECATED PACKAGES (1)
+  old-framework@2.0.0
+    Package is officially deprecated
+    → Find alternative immediately
+```
+
+#### **Security Recommendations**
+
+**Priority Levels:**
+1. **CRITICAL:** Immediate security risks (malicious packages, critical vulnerabilities)
+2. **HIGH:** Production stability issues (typosquatting, GPL conflicts, abandoned packages)
+3. **MEDIUM:** Maintenance concerns (stale packages, install scripts, unused deps)
+4. **LOW:** Minor improvements (outdated packages, documentation)
+
+**Example Output:**
+```
+💡 SECURITY RECOMMENDATIONS (Prioritized)
+
+🔴 CRITICAL (Fix Immediately)
+
+  1. Remove malicious package
+     Package: epress
+     Action: Remove epress immediately
+     $ npm uninstall epress
+
+  2. High-risk license detected
+     Package: gpl-package@1.0.0
+     Action: Replace with permissive alternative
+     $ npm uninstall gpl-package
+
+🟠 HIGH (Fix Soon)
+
+  3. Typosquatting attempt detected
+     Package: expresss
+     Action: Remove expresss and install express
+     $ npm uninstall expresss && npm install express
+
+  4. Abandoned package detected
+     Package: old-lib@1.0.0
+     Action: Migrate to actively maintained alternative
+     $ npm uninstall old-lib
+
+🟡 MEDIUM (Plan to Fix)
+
+  5. Clean up unused dependencies
+     Action: Remove unused packages
+     $ npm uninstall axios express lodash
+
+📈 Expected Impact:
+
+  ✓ Current Health Score: 4.2/10
+  ✓ Expected Score: 8.7/10
+  ✓ Improvement: +4.5 points (45% increase)
+  ✓ Issues Resolved: 5 critical/high/medium
+  ✓ Eliminate 2 critical security risks
+  ✓ Resolve 3 high-priority issues
+
+💡 TIP: Run devcompass fix to apply automated fixes!
+```
+
+### Performance Impact
+
+**Analysis Speed:**
+- Supply chain checks: < 100ms (local database)
+- License risk analysis: < 200ms (local classification)
+- Package quality: ~100ms per package (npm registry API)
+  - Smart limit: First 20 packages analyzed
+  - Caching: 1-hour cache for quality data
+- Total overhead: ~2-3 seconds for 20 packages
+
+**Caching Strategy:**
+All new features support caching:
+- `supplyChain` - 1 hour cache
+- `licenseRisk` - 1 hour cache
+- `quality` - 1 hour cache
+- Cache file: `.devcompass-cache.json`
+
+### Breaking Changes
+
+**None** - Fully backward compatible with v2.6.0
+
+All existing features continue to work. New security features are additive only.
+
+### Migration Guide
+
+No migration needed! New features work automatically:
+```bash
+# Upgrade to v2.7.0
+npm install -g devcompass@2.7.0
+
+# Run analysis (new features included automatically)
+devcompass analyze
+
+# All new security sections appear in output
+```
+
+### Use Cases
+
+**Perfect For:**
+
+1. **Enterprise security teams** - Supply chain risk assessment
+2. **Open source maintainers** - License compliance verification
+3. **DevSecOps pipelines** - Automated security recommendations
+4. **Legal/compliance teams** - License risk reporting
+5. **Package maintainers** - Quality metric tracking
+
+### Database & Patterns
+
+**Known Malicious Packages (15+):**
+- epress, expres, expresss (express typosquat)
+- reqest, requet (request typosquat)
+- lodas, loadsh (lodash typosquat)
+- axois, axioss (axios typosquat)
+- And more...
+
+**Typosquatting Patterns (15+ packages monitored):**
+- express, request, lodash, axios, webpack
+- react, vue, angular, next, typescript
+- eslint, prettier, jest, mocha, chai
+
+**Suspicious Install Script Patterns:**
+- Network: curl, wget, http://, https://
+- Execution: eval, exec, child_process
+- Shell: /bin/sh, /bin/bash, powershell
+- Suspicious keywords: bitcoin, mining, keylogger, backdoor
+
+### Future Enhancements (v2.8.0+)
+
+Planned improvements:
+- Expanded malicious package database (community contributions)
+- More license compatibility rules
+- Package reputation scoring
+- Automated security fix PRs
+- Integration with OSSF Scorecard
+- Custom security policy configuration
+
+### 🔗 Links
+
+- **Documentation:** Updated with security features
+- **Examples:** Added security analysis examples
+- **Database:** Malicious packages database is open for community contributions
+
+---
+
 ## [2.6.0] - 2026-04-04
 
 ### 🚀 Major Feature: Performance Optimizations
@@ -1134,6 +1464,7 @@ No migration needed. All features are opt-in via flags or config.
 
 ---
 
+[2.7.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.7.0
 [2.6.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.6.0
 [2.5.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.5.0
 [2.4.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.4.0

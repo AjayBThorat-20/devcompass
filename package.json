@@ -1,7 +1,7 @@
 {
   "name": "devcompass",
-  "version": "2.6.0",
-  "description": "Dependency health checker with ecosystem intelligence and real-time GitHub issue tracking for 500+ popular npm packages. Features parallel processing for 80% faster analysis.",
+  "version": "2.7.0",
+  "description": "Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, parallel processing, supply chain security analysis, and advanced license risk detection.",
   "main": "src/index.js",
   "bin": {
     "devcompass": "./bin/devcompass.js"
@@ -45,7 +45,15 @@
     "package-health",
     "top-500-packages",
     "parallel-processing",
-    "performance-optimization"
+    "performance-optimization",
+    "supply-chain-security",
+    "typosquatting-detection",
+    "malicious-packages",
+    "license-compliance",
+    "license-risk",
+    "package-quality",
+    "security-recommendations",
+    "dependency-quality"
   ],
   "author": "Ajay Thorat <ajaythorat988@gmail.com>",
   "license": "MIT",
