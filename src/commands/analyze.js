@@ -28,7 +28,7 @@ const { formatAsJson } = require('../utils/json-formatter');
 const { handleCiMode } = require('../utils/ci-handler');
 
 // NEW v2.7.0 imports
-const { analyzeSupplyChain, getSupplyChainStats } = require('../analyzers/supply-chain');
+const { analyzeSupplyChain } = require('../analyzers/supply-chain');
 const { analyzeLicenseRisks, getLicenseRiskScore } = require('../analyzers/license-risk');
 const { analyzePackageQuality } = require('../analyzers/package-quality');
 const { 
@@ -297,26 +297,27 @@ async function analyze(options) {
       }
     }
     
-    // NEW v2.7.0 - Supply Chain Analysis
+    // v2.7.0 - Supply Chain Analysis
     spinner.text = 'Analyzing supply chain security...';
-    let supplyChainWarnings = [];
+    let supplyChainData = { warnings: [], total: 0, summary: {} };
     
     if (config.cache) {
-      supplyChainWarnings = getCached(projectPath, 'supplyChain');
+      const cached = getCached(projectPath, 'supplyChain');
+      if (cached) supplyChainData = cached;
     }
     
-    if (!supplyChainWarnings || supplyChainWarnings.length === 0) {
+    if (!supplyChainData.warnings || supplyChainData.warnings.length === 0) {
       try {
-        supplyChainWarnings = await analyzeSupplyChain(projectPath, dependencies);
+        supplyChainData = await analyzeSupplyChain(projectPath, dependencies);
         if (config.cache) {
-          setCache(projectPath, 'supplyChain', supplyChainWarnings);
+          setCache(projectPath, 'supplyChain', supplyChainData);
         }
       } catch (error) {
         if (outputMode !== 'silent') {
           console.log(chalk.yellow('\n⚠️  Could not analyze supply chain'));
           console.log(chalk.gray(`   Error: ${error.message}\n`));
         }
-        supplyChainWarnings = [];
+        supplyChainData = { warnings: [], total: 0, summary: {} };
       }
     }
     
@@ -389,7 +390,7 @@ async function analyze(options) {
     
     // NEW v2.7.0 - Generate Security Recommendations
     const recommendations = generateSecurityRecommendations({
-      supplyChainWarnings,
+      supplyChainWarnings: supplyChainData.warnings || [],
       licenseWarnings: licenseRiskData.warnings,
       qualityResults: qualityData.results,
       securityVulnerabilities: securityData.metadata,
@@ -410,7 +411,7 @@ async function analyze(options) {
         bundleSizes, 
         licenses, 
         predictiveWarnings,
-        supplyChainWarnings,
+        supplyChainData,
         licenseRiskData,
         qualityData,
         recommendations
@@ -427,7 +428,7 @@ async function analyze(options) {
         bundleSizes, 
         licenses, 
         predictiveWarnings,
-        supplyChainWarnings,
+        supplyChainData,
         licenseRiskData,
         qualityData,
         recommendations
@@ -446,7 +447,7 @@ async function analyze(options) {
         bundleSizes, 
         licenses, 
         predictiveWarnings,
-        supplyChainWarnings,
+        supplyChainData,
         licenseRiskData,
         qualityData,
         recommendations
@@ -473,7 +474,7 @@ function displayResults(
   bundleSizes, 
   licenses, 
   predictiveWarnings,
-  supplyChainWarnings = [],
+  supplyChainData = { warnings: [], total: 0 },
   licenseRiskData = {},
   qualityData = {},
   recommendations = []
@@ -510,52 +511,53 @@ function displayResults(
   
   logDivider();
   
-  // NEW v2.7.0 - SUPPLY CHAIN SECURITY
-  if (supplyChainWarnings.length > 0) {
-    const stats = getSupplyChainStats(supplyChainWarnings);
-    
-    logSection('🛡️  SUPPLY CHAIN SECURITY', supplyChainWarnings.length);
+  // NEW v2.7.0 / v2.8.1 - SUPPLY CHAIN SECURITY (FIXED)
+  if (supplyChainData.total > 0 && supplyChainData.warnings && Array.isArray(supplyChainData.warnings)) {
+    logSection('🛡️  SUPPLY CHAIN SECURITY', supplyChainData.total);
     
     // Group by type
-    const malicious = supplyChainWarnings.filter(w => w.type === 'malicious');
-    const typosquat = supplyChainWarnings.filter(w => w.type === 'typosquatting' || w.type === 'typosquatting_suspected');
-    const scripts = supplyChainWarnings.filter(w => w.type === 'install_script');
+    const malicious = supplyChainData.warnings.filter(w => w.type === 'malicious');
+    const typosquatting = supplyChainData.warnings.filter(w => w.type === 'typosquatting');
+    const suspiciousScripts = supplyChainData.warnings.filter(w => w.type === 'install_script');
     
     // Malicious packages (CRITICAL)
     if (malicious.length > 0) {
-      log(chalk.red.bold('\n🔴 MALICIOUS PACKAGES DETECTED\n'));
+      log(chalk.red.bold('\n  🔴 MALICIOUS PACKAGES DETECTED\n'));
       malicious.forEach(w => {
         log(`  ${chalk.red.bold(w.package)}`);
-        log(`    ${chalk.red(w.message)}`);
-        log(`    ${chalk.yellow('→')} ${w.recommendation}\n`);
+        log(`    ${chalk.red(w.description)}`);
+        log(`    ${chalk.yellow('→')} ${w.reason}\n`);
       });
     }
     
     // Typosquatting (HIGH)
-    if (typosquat.length > 0) {
-      log(chalk.red('\n🟠 TYPOSQUATTING RISK\n'));
-      typosquat.forEach(w => {
-        const display = getSeverityDisplay(w.severity);
-        log(`  ${display.emoji} ${chalk.bold(w.package)}`);
-        log(`    Similar to: ${chalk.green(w.official)} (official package)`);
-        log(`    ${chalk.yellow('→')} ${w.recommendation}\n`);
+    if (typosquatting.length > 0) {
+      log(chalk.yellow.bold('\n  🟠 TYPOSQUATTING RISK\n'));
+      typosquatting.forEach(w => {
+        log(`  ${chalk.yellow.bold(w.package)}`);
+        log(`    Similar to: ${chalk.green(w.correctPackage)} (official package)`);
+        log(`    Risk: ${w.risk} - ${w.reason}`);
+        log(`    ${chalk.yellow('→')} Remove ${w.package} and install ${w.correctPackage}\n`);
       });
     }
     
-    // Install scripts (MEDIUM/HIGH)
-    if (scripts.length > 0) {
-      log(chalk.yellow('\n🟡 INSTALL SCRIPT WARNINGS\n'));
-      scripts.slice(0, 3).forEach(w => {
+    // Suspicious install scripts (MEDIUM/HIGH)
+    if (suspiciousScripts.length > 0) {
+      log(chalk.cyan.bold('\n  🟡 INSTALL SCRIPT WARNINGS\n'));
+      suspiciousScripts.slice(0, 3).forEach(w => {
         log(`  ${chalk.bold(w.package)}`);
         log(`    Script: ${chalk.gray(w.script)}`);
         log(`    Patterns: ${chalk.yellow(w.patterns.join(', '))}`);
-        log(`    ${chalk.yellow('→')} ${w.recommendation}\n`);
+        log(`    Risk: ${w.risk} - Review install script before use`);
+        log(`    ${chalk.yellow('→')} Review the install script before deployment\n`);
       });
       
-      if (scripts.length > 3) {
-        log(chalk.gray(`  ... and ${scripts.length - 3} more install script warnings\n`));
+      if (suspiciousScripts.length > 3) {
+        log(chalk.gray(`  ... and ${suspiciousScripts.length - 3} more install script warnings\n`));
       }
     }
+    
+    log(chalk.cyan('  💡 Run') + chalk.bold(' devcompass fix ') + chalk.cyan('to automatically fix supply chain issues\n'));
   } else {
     logSection('✅ SUPPLY CHAIN SECURITY');
     log(chalk.green('  No supply chain risks detected!\n'));
@@ -842,8 +844,8 @@ function displayResults(
     log(`  Security Vulnerabilities:   ${chalk.red(securityData.metadata.total)}`);
   }
   
-  if (supplyChainWarnings.length > 0) {
-    log(`  Supply Chain Warnings:      ${chalk.red(supplyChainWarnings.length)}`);
+  if (supplyChainData.total > 0) {
+    log(`  Supply Chain Warnings:      ${chalk.red(supplyChainData.total)}`);
   }
   
   if (alerts.length > 0) {

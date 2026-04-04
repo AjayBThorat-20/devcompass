@@ -7,6 +7,7 @@ const ora = require('ora');
 const ProgressTracker = require('../utils/progress-tracker');
 const FixReport = require('../utils/fix-report');
 const BackupManager = require('../utils/backup-manager');
+const SupplyChainFixer = require('../utils/supply-chain-fixer');
 const { clearCache } = require('../cache/manager');
 
 async function fix(options = {}) {
@@ -27,21 +28,22 @@ async function fix(options = {}) {
     process.exit(1);
   }
 
-  // Initialize report and backup
+  // Initialize report, backup, and supply chain fixer
   const report = new FixReport();
   const backupManager = new BackupManager(projectPath);
+  const supplyChainFixer = new SupplyChainFixer();
 
   try {
     // Step 1: Analyze what needs fixing
     console.log(chalk.bold('Step 1: Analyzing issues...\n'));
     const spinner = ora('Scanning project...').start();
 
-    const { alerts, unused, outdated, security } = await analyzeProject(projectPath);
+    const { alerts, unused, outdated, security, supplyChain } = await analyzeProject(projectPath);
 
     spinner.succeed('Analysis complete');
 
     // Calculate total fixes needed
-    const totalFixes = calculateTotalFixes(alerts, unused, outdated, security);
+    const totalFixes = calculateTotalFixes(alerts, unused, outdated, security, supplyChain);
 
     if (totalFixes === 0) {
       console.log(chalk.green('\n✨ No issues to fix! Your project is healthy.\n'));
@@ -50,7 +52,7 @@ async function fix(options = {}) {
 
     // Step 2: Show what will be fixed
     console.log(chalk.bold('\nStep 2: Planned fixes\n'));
-    displayPlannedFixes(alerts, unused, outdated, security, dryRun);
+    displayPlannedFixes(alerts, unused, outdated, security, supplyChain, dryRun);
 
     // Step 3: Get confirmation (unless auto-apply or dry-run)
     if (!dryRun && !autoApply) {
@@ -89,7 +91,17 @@ async function fix(options = {}) {
     const progress = new ProgressTracker(totalFixes);
     progress.start('Starting fixes...');
 
-    // Fix critical security issues first
+    // Fix supply chain issues FIRST (critical security)
+    if (supplyChain.warnings.length > 0) {
+      const autoFixableSupplyChain = supplyChain.warnings.filter(w => w.autoFixable);
+      
+      for (const warning of autoFixableSupplyChain) {
+        progress.update(`Fixing supply chain issue: ${warning.package}...`);
+        await supplyChainFixer.fixWarning(warning, projectPath, report, progress, autoApply);
+      }
+    }
+
+    // Fix critical security issues
     if (security.metadata.critical > 0 || security.metadata.high > 0) {
       progress.update('Fixing security vulnerabilities...');
       await fixSecurityIssues(projectPath, report, progress);
@@ -124,6 +136,11 @@ async function fix(options = {}) {
     }
 
     progress.succeed('All fixes applied!');
+
+    // Display supply chain fix summary
+    if (supplyChain.warnings.length > 0) {
+      supplyChainFixer.displaySummary();
+    }
 
     // Step 6: Clear cache
     console.log(chalk.bold('\nStep 6: Clearing cache...\n'));
@@ -166,6 +183,7 @@ async function analyzeProject(projectPath) {
   const unusedDeps = require('../analyzers/unused-deps');
   const outdated = require('../analyzers/outdated');
   const security = require('../analyzers/security');
+  const supplyChainAnalyzer = require('../analyzers/supply-chain');
 
   const packageJson = JSON.parse(
     fs.readFileSync(path.join(projectPath, 'package.json'), 'utf8')
@@ -181,17 +199,24 @@ async function analyzeProject(projectPath) {
   const unusedList = await unusedDeps.findUnusedDeps(projectPath, dependencies);
   const outdatedList = await outdated.findOutdatedDeps(projectPath, dependencies);
   const securityData = await security.checkSecurity(projectPath);
+  const supplyChainData = await supplyChainAnalyzer.analyzeSupplyChain(projectPath, dependencies);
 
   return { 
     alerts: alertsList, 
     unused: unusedList, 
     outdated: outdatedList, 
-    security: securityData 
+    security: securityData,
+    supplyChain: supplyChainData
   };
 }
 
-function calculateTotalFixes(alerts, unused, outdated, security) {
+function calculateTotalFixes(alerts, unused, outdated, security, supplyChain) {
   let total = 0;
+
+  // Count supply chain auto-fixable issues
+  if (supplyChain && supplyChain.warnings) {
+    total += supplyChain.warnings.filter(w => w.autoFixable).length;
+  }
 
   // Count security fixes
   if (security.metadata.critical > 0 || security.metadata.high > 0) {
@@ -210,12 +235,36 @@ function calculateTotalFixes(alerts, unused, outdated, security) {
   return total;
 }
 
-function displayPlannedFixes(alerts, unused, outdated, security, dryRun) {
+function displayPlannedFixes(alerts, unused, outdated, security, supplyChain, dryRun) {
   let fixCount = 0;
+
+  // Supply chain fixes
+  if (supplyChain && supplyChain.warnings && supplyChain.warnings.length > 0) {
+    const autoFixable = supplyChain.warnings.filter(w => w.autoFixable);
+    
+    if (autoFixable.length > 0) {
+      console.log(chalk.red.bold('🔴 SUPPLY CHAIN SECURITY FIXES'));
+      
+      autoFixable.forEach(warning => {
+        console.log(`  ${chalk.cyan(warning.package)}`);
+        console.log(`    ${chalk.gray('→')} ${warning.description}`);
+        console.log(`    ${chalk.gray('Action:')} ${warning.action.replace(/_/g, ' ')}`);
+        if (warning.replacement) {
+          console.log(`    ${chalk.gray('Replace with:')} ${warning.replacement}`);
+        }
+        fixCount++;
+      });
+      
+      const requiresReview = supplyChain.warnings.filter(w => w.requiresConfirmation);
+      if (requiresReview.length > 0) {
+        console.log(chalk.yellow('\n  ⚠️  Some supply chain issues require manual review'));
+      }
+    }
+  }
 
   // Security fixes
   if (security.metadata.critical > 0 || security.metadata.high > 0) {
-    console.log(chalk.red.bold('🔴 CRITICAL SECURITY FIXES'));
+    console.log(chalk.red.bold('\n🔴 CRITICAL SECURITY FIXES'));
     console.log(`  ${chalk.cyan('→')} Run npm audit fix to resolve ${security.metadata.critical + security.metadata.high} vulnerabilities`);
     fixCount++;
   }

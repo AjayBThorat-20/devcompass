@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.1] - 2026-04-04
+
+### Added - Supply Chain Auto-Fix
+- **Automatic malicious package removal** - Detects and removes known malicious packages
+- **Typosquatting auto-fix** - Removes typosquats and installs correct packages automatically
+- **Suspicious script handling** - Offers removal of packages with suspicious install scripts
+- **SupplyChainFixer utility class** - New utility for handling supply chain fixes
+- **Enhanced supply chain analyzer** - Better detection with auto-fix capabilities
+- **Integrated with fix command** - Works with dry-run, backups, and reports
+
+### Enhanced
+- **fix.js** - Integrated supply chain auto-fix into existing fix workflow
+- **supply-chain.js** - Added auto-fix action metadata to all warnings
+- **Progress tracking** - Added supply chain fix progress indicators
+- **Fix reports** - Includes supply chain fixes in detailed reports
+
+### Features
+- Removes malicious packages automatically
+- Replaces typosquats with correct packages (e.g., `expresss` → `express`)
+- Handles suspicious install scripts with user confirmation
+- Full integration with v2.8.0 features (dry-run, backups, reports)
+- Prioritizes supply chain fixes (runs first in fix workflow)
+
+### Technical Details
+- New file: `src/utils/supply-chain-fixer.js` (~220 lines)
+- Enhanced: `src/analyzers/supply-chain.js` (added autoFixable flags)
+- Enhanced: `src/commands/fix.js` (integrated supply chain fixes)
+- Total new code: ~250 lines
+
+### Safety
+- Malicious packages removed immediately (no confirmation needed)
+- Typosquats require confirmation unless --yes flag
+- Suspicious scripts always require manual review
+- All fixes logged in fix report
+- Automatic backup before any changes
+
+### Example Usage
+```bash
+# Preview supply chain fixes
+devcompass fix --dry-run
+
+# Apply all fixes including supply chain
+devcompass fix
+
+# Auto-apply (CI/CD)
+devcompass fix --yes
+```
+
+### Breaking Changes
+None - Fully backward compatible
+
+---
+
 ## [2.8.0] - 2026-04-04
 
 ### 🔧 Major Feature: Enhanced Fix Command

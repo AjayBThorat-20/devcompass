@@ -1,7 +1,7 @@
 {
   "name": "devcompass",
-  "version": "2.8.0",
-  "description": "Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, parallel processing, supply chain security analysis, advanced license risk detection, and enhanced fix command with dry-run, progress tracking, and automatic backups.",
+  "version": "2.8.1",
+  "description": "Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, supply chain security with auto-fix, parallel processing, advanced license risk detection, and enhanced fix command with dry-run, progress tracking, and automatic backups.",
   "main": "src/index.js",
   "bin": {
     "devcompass": "./bin/devcompass.js"
@@ -47,27 +47,32 @@
     "parallel-processing",
     "performance-optimization",
     "supply-chain-security",
+    "supply-chain-auto-fix",
     "typosquatting-detection",
+    "typosquatting-fix",
     "malicious-packages",
+    "malicious-package-removal",
     "license-compliance",
     "license-risk",
     "package-quality",
     "security-recommendations",
     "dependency-quality",
     "auto-fix",
+    "automated-fixes",
     "dry-run",
     "backup-restore",
     "fix-report",
-    "progress-tracking"
+    "progress-tracking",
+    "safe-dependency-management"
   ],
   "author": "Ajay Thorat <ajaythorat988@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "chalk": "^4.1.2",
-    "commander": "^11.1.0",
+    "chalk": "4.1.2",
+    "commander": "11.1.0",
     "depcheck": "^1.4.7",
     "npm-check-updates": "^20.0.0",
-    "ora": "^5.4.1",
+    "ora": "5.4.1",
     "semver": "^7.6.0"
   },
   "engines": {
