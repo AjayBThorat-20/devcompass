@@ -5,6 +5,7 @@ const chalk = require('chalk');
 const path = require('path');
 const { analyze } = require('../src/commands/analyze');
 const fix = require('../src/commands/fix');
+const backup = require('../src/commands/backup');
 const packageJson = require('../package.json');
 
 // Check if running from local node_modules
@@ -44,5 +45,16 @@ program
   .option('--dry', 'Alias for --dry-run')
   .action(fix);
 
-program.parse();
+// ✅ FIXED: Backup command with proper options handling
+program
+  .command('backup <action>')
+  .description('Manage backups (list, restore, clean, info)')
+  .option('-p, --path <path>', 'Project path', process.cwd())
+  .option('-n, --name <name>', 'Backup name (for restore/info commands)')
+  .option('-f, --force', 'Skip confirmation prompts', false)
+  .option('--keep <number>', 'Number of backups to keep (for clean command)', parseInt, 5)
+  .action((action, options) => {
+    backup(action, options);
+  });
 
+program.parse();

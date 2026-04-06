@@ -11,6 +11,9 @@ const SupplyChainFixer = require('../utils/supply-chain-fixer');
 const LicenseConflictFixer = require('../utils/license-conflict-fixer');
 const QualityFixer = require('../utils/quality-fixer');
 const { clearCache } = require('../cache/manager');
+const { calculateAlertPenalty } = require('../alerts/formatter');
+const { calculateScore } = require('../analyzers/scoring');
+const { calculateSecurityPenalty } = require('../analyzers/security');
 
 async function fix(options = {}) {
   const projectPath = options.path || process.cwd();
@@ -92,16 +95,59 @@ async function fix(options = {}) {
       }
     }
 
-    if (dryRun) {
-      console.log(chalk.cyan('\n✓ Dry run complete. No changes were made.\n'));
-      return;
+    // ✅ STEP 4: Create backup BEFORE dry-run check (so it works in both modes)
+    console.log(chalk.bold('\nStep 4: Creating backup...\n'));
+
+    // Calculate total dependencies
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.join(projectPath, 'package.json'), 'utf8')
+    );
+    const totalDeps = Object.keys({
+      ...packageJson.dependencies,
+      ...packageJson.devDependencies
+    }).length;
+
+    // Calculate current score for metadata
+    let currentScore;
+    try {
+      currentScore = calculateScore(
+        totalDeps,
+        analysisData.unused.length,
+        analysisData.outdated.length,
+        analysisData.ecosystem.length,
+        calculateAlertPenalty(analysisData.ecosystem),
+        calculateSecurityPenalty(analysisData.security.metadata)
+      );
+    } catch (error) {
+      // If score calculation fails, use default
+      console.log(chalk.gray('  (Score calculation skipped)'));
+      currentScore = { total: 0 };
     }
 
-    // Step 4: Create backup
-    console.log(chalk.bold('\nStep 4: Creating backup...\n'));
-    const backupPath = await backupManager.createBackup();
+    const backupPath = await backupManager.createBackup(
+      dryRun ? 'Before dry-run analysis' : 'Before automated fixes',
+      {
+        fixesPending: totalFixes,
+        healthScore: currentScore.total || 0,
+        supplyChainWarnings: analysisData.supplyChain?.total || 0,
+        licenseWarnings: analysisData.licenseData?.warnings?.length || 0,
+        qualityWarnings: analysisData.qualityData?.packages?.filter(p => p.autoFixable).length || 0,
+        securityVulnerabilities: analysisData.security?.metadata?.total || 0,
+        ecosystemAlerts: analysisData.ecosystem?.length || 0,
+        unusedDependencies: analysisData.unused?.length || 0
+      }
+    );
+
     if (backupPath) {
       console.log(chalk.green(`✓ Backup created: ${path.basename(backupPath)}\n`));
+    } else {
+      console.log(chalk.yellow('⚠️  Warning: Backup creation failed (continuing anyway)\n'));
+    }
+
+    // ✅ Check dry-run AFTER backup is created
+    if (dryRun) {
+      console.log(chalk.cyan('✓ Dry run complete. No changes were made.\n'));
+      return;
     }
 
     // Step 5: Apply fixes with progress tracking

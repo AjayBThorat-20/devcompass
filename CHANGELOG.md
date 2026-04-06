@@ -5,6 +5,235 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.4] - 2026-04-06
+
+### ✨ Features
+
+#### Backup & Rollback Command
+- **Complete backup management system** for all fix operations
+- **List backups** - `devcompass backup list` to see all available backups
+- **Restore from backup** - `devcompass backup restore --name <name>` to rollback changes
+- **Clean old backups** - `devcompass backup clean` to remove old backups (keeps latest 5)
+- **Backup information** - `devcompass backup info --name <name>` for detailed backup metadata
+- **Enhanced metadata tracking** - Tracks fixes pending, health score, warnings breakdown
+- **Automatic backups** - Created during both dry-run and actual fix operations
+- **Safety-first restore** - Creates backup of current state before restoring
+
+### 📦 New Files
+- `src/commands/backup.js` - Main backup command handler (~350 lines)
+  - `listBackups()` - Display all available backups with metadata
+  - `restoreBackup()` - Restore from specific backup with safety checks
+  - `cleanBackups()` - Clean old backups (keeps latest N)
+  - `showBackupInfo()` - Display detailed backup information
+  - `showHelp()` - Show backup command help
+- `src/utils/backup-restorer.js` - Backup restoration logic (~100 lines)
+  - `backupExists()` - Check if backup exists
+  - `getBackupInfo()` - Get backup details and metadata
+  - `restore()` - Restore files from backup
+
+### 🔧 Enhanced Files
+- `bin/devcompass.js` - Added `backup` command to CLI with options
+  - Added `--name <name>` option for restore/info commands
+  - Added `--force` option to skip confirmations
+  - Added `--keep <n>` option for clean command
+  - Added `--path <dir>` option for custom project path
+- `src/commands/fix.js` - Enhanced backup creation with metadata
+  - Moved backup creation before dry-run check
+  - Added comprehensive metadata tracking
+  - Backup reason adapts to mode (dry-run vs actual fix)
+- `src/utils/backup-manager.js` - Enhanced metadata tracking
+  - Added validation for package.json existence
+  - Enhanced metadata with fixesPending, healthScore, and warning counts
+  - Improved error handling
+
+### 📊 Technical Details
+- **~480 lines of new code**
+- **Commands:** list, restore, clean, info
+- **Options:** --force, --keep, --name, --path
+- **Safety features:** 
+  - ✅ Creates backup of current state before restoring
+  - ✅ Confirmation prompts (unless `--force`)
+  - ✅ Detailed backup information display
+  - ✅ Time ago formatting for easy identification
+  - ✅ Auto-clean keeps last 5 backups
+  - ✅ Beautiful terminal output with colors
+  - ✅ Comprehensive error handling
+- **Metadata tracked:** 
+  - timestamp, reason, filesBackedUp
+  - projectVersion, devcompassVersion
+  - fixesPending, healthScore
+  - supplyChainWarnings, licenseWarnings, qualityWarnings
+  - securityVulnerabilities, ecosystemAlerts, unusedDependencies
+
+### 🎯 Example Usage
+```bash
+# List all available backups
+devcompass backup list
+
+# Show detailed backup information
+devcompass backup info --name backup-2026-04-06T08-43-33-521Z
+
+# Restore from a specific backup (with confirmation)
+devcompass backup restore --name backup-2026-04-06T08-43-33-521Z
+
+# Restore without confirmation
+devcompass backup restore --name backup-2026-04-06T08-43-33-521Z --force
+
+# Clean old backups (keeps latest 5)
+devcompass backup clean
+
+# Clean keeping only 3 backups
+devcompass backup clean --keep 3
+
+# Force clean without confirmation
+devcompass backup clean --keep 3 --force
+
+# Use with custom project path
+devcompass backup list --path /path/to/project
+```
+
+### 📈 Example Output
+
+**List backups:**
+
+💾 DevCompass Backups
+Found 3 backup(s):
+
+backup-2026-04-06T08-43-53-468Z
+Created: Apr 6, 2026 14:13:53 (just now)
+Files: package.json, package-lock.json
+Reason: Before dry-run analysis
+Fixes pending: 7
+Health score: 0/10
+backup-2026-04-06T08-43-36-998Z
+Created: Apr 6, 2026 14:13:37 (5 minutes ago)
+Files: package.json, package-lock.json
+Reason: Before restore
+backup-2026-04-06T08-43-33-521Z
+Created: Apr 6, 2026 14:13:33 (10 minutes ago)
+Files: package.json, package-lock.json
+Reason: Before automated fixes
+Fixes pending: 7
+Health score: 0/10
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡 COMMANDS:
+Restore: devcompass backup restore --name backup-2026-04-06T08-43-53-468Z
+Info: devcompass backup info --name backup-2026-04-06T08-43-53-468Z
+Clean: devcompass backup clean
+
+**Backup info:**
+📋 DevCompass Backup Info
+Backup Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Name:          backup-2026-04-06T08-43-33-521Z
+Created:       Apr 6, 2026 14:13:33
+Age:           just now
+Location:      /tmp/devcompass-v284-final-test/.devcompass-backups/backup-2026-04-06T08-43-33-521Z
+Files backed up:
+• package.json
+• package-lock.json
+Reason:        Before dry-run analysis
+Fixes pending: 7
+Health score:  0/10
+Project ver:   1.0.0
+DevCompass:    v2.8.4
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+File Details:
+package-lock.json    10.69 KB
+package.json         0.33 KB
+💡 RESTORE THIS BACKUP:
+devcompass backup restore --name backup-2026-04-06T08-43-33-521Z
+
+**Restore:**
+🔄 DevCompass Backup Restore
+Backup details:
+Name: backup-2026-04-06T08-43-33-521Z
+Created: Apr 6, 2026 14:13:33
+Files: package.json, package-lock.json
+⚠️  WARNING: This will overwrite your current package.json and package-lock.json
+Continue with restore? (y/N): y
+Step 1: Creating backup of current state...
+✓ Current state backed up: backup-2026-04-06T08-43-36-998Z
+Step 2: Restoring from backup...
+✓ Backup restored successfully!
+Files restored:
+✓ package.json
+✓ package-lock.json
+⚠️  IMPORTANT: Run npm install to sync node_modules
+
+**Clean backups:**
+🧹 DevCompass Backup Cleanup
+Found 5 backup(s)
+Will delete 2 oldest backup(s), keeping latest 3
+Backups to delete:
+
+backup-2026-04-06T08-43-43-554Z (Apr 6, 2026 14:13:43)
+backup-2026-04-06T08-43-40-208Z (Apr 6, 2026 14:13:40)
+
+Delete these backups? (y/N): y
+✓ Deleted: backup-2026-04-06T08-43-43-554Z
+✓ Deleted: backup-2026-04-06T08-43-40-208Z
+✓ Successfully deleted 2 backup(s)!
+
+### 🛡️ Safety Features
+- ✅ **Automatic current state backup** - Creates backup before restoring
+- ✅ **Confirmation prompts** - Can be skipped with `--force` for CI/CD
+- ✅ **Detailed backup info** - Know exactly what you're restoring
+- ✅ **Enhanced metadata** - Tracks health score, fixes pending, warnings breakdown
+- ✅ **Auto-clean** - Keeps latest 5 backups by default
+- ✅ **Non-destructive** - Original backups preserved during restore
+- ✅ **Comprehensive error handling** - Clear error messages and recovery suggestions
+- ✅ **Works in dry-run mode** - Test backup creation without making changes
+
+### 🎯 Use Cases
+- **Rollback Failed Fixes** - Restore if automated fix causes issues
+- **Testing Changes** - Try fixes with `--dry-run` and rollback if needed
+- **Auditing** - Track what changed over time with metadata
+- **Safety Net** - Always have a way back to previous state
+- **Debugging** - Compare before/after states
+- **CI/CD Integration** - Use `--force` to skip prompts in automated workflows
+
+### 🔄 Workflow Example
+```bash
+# 1. Check current backups
+devcompass backup list
+
+# 2. Run a fix (automatic backup created)
+devcompass fix
+
+# 3. If something goes wrong, list backups
+devcompass backup list
+
+# 4. Check backup details
+devcompass backup info --name backup-2026-04-06T08-43-33-521Z
+
+# 5. Restore to previous state
+devcompass backup restore --name backup-2026-04-06T08-43-33-521Z --force
+
+# 6. Reinstall dependencies
+npm install
+
+# 7. Clean up old backups
+devcompass backup clean --keep 3
+```
+
+### 🐛 Bug Fixes
+None
+
+### 💥 Breaking Changes
+None - Fully backward compatible with v2.8.3
+
+### 📝 Notes
+- Backup command is independent from fix command but integrates seamlessly
+- All backups created by `devcompass fix` can be managed via `devcompass backup`
+- Backups are stored in `.devcompass-backups/` directory (gitignored)
+- Default keep count is 5 backups (configurable with `--keep`)
+- Backups include both `package.json` and `package-lock.json`
+- Works in both dry-run mode and actual fix mode
+
+---
+
 ## [2.8.3] - 2026-04-05
 
 ### ✨ Features
@@ -1878,6 +2107,7 @@ No migration needed. All features are opt-in via flags or config.
 
 ---
 
+[2.8.4]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.8.4
 [2.8.3]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.8.3
 [2.8.2]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.8.2
 [2.8.1]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.8.1
