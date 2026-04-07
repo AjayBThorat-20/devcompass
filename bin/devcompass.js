@@ -27,6 +27,7 @@ ${chalk.gray('Author:')} Ajay Thorat
 ${chalk.gray('GitHub:')} ${chalk.cyan('https://github.com/AjayBThorat-20/devcompass')}
   `);
 
+// Analyze command
 program
   .command('analyze')
   .description('Analyze your project dependencies')
@@ -36,6 +37,7 @@ program
   .option('--silent', 'Silent mode - no output')
   .action(analyze);
 
+// Fix command with batch mode support
 program
   .command('fix')
   .description('Fix issues automatically (remove unused, update safe packages)')
@@ -43,9 +45,33 @@ program
   .option('-y, --yes', 'Skip confirmation prompt', false)
   .option('--dry-run', 'Show what would be fixed without making changes')
   .option('--dry', 'Alias for --dry-run')
+  .option('--batch', 'Interactive batch mode - select which categories to fix')
+  .option('--batch-mode <mode>', 'Preset batch mode: critical, high, all')
+  .option('--only <categories>', 'Fix only specific categories (comma-separated: supply-chain,license,quality,security,ecosystem,unused,updates)')
+  .option('--skip <categories>', 'Skip specific categories (comma-separated)')
+  .option('--verbose', 'Show detailed output')
+  .addHelpText('after', `
+
+${chalk.bold('Batch Mode Examples:')}
+  ${chalk.cyan('devcompass fix --batch')}                    Interactive batch selection
+  ${chalk.cyan('devcompass fix --batch-mode critical')}      Fix critical issues only
+  ${chalk.cyan('devcompass fix --batch-mode high')}          Fix high-priority issues
+  ${chalk.cyan('devcompass fix --batch-mode all')}           Fix all safe issues
+  ${chalk.cyan('devcompass fix --only supply-chain,license')} Fix specific categories
+  ${chalk.cyan('devcompass fix --skip updates')}             Skip updates category
+
+${chalk.bold('Available Categories:')}
+  ${chalk.red('supply-chain')} - Malicious packages, typosquatting
+  ${chalk.yellow('license')}      - GPL/AGPL/LGPL conflicts
+  ${chalk.blue('quality')}      - Abandoned/deprecated packages
+  ${chalk.red('security')}     - npm audit vulnerabilities
+  ${chalk.yellow('ecosystem')}    - Known package issues
+  ${chalk.cyan('unused')}       - Unused dependencies
+  ${chalk.green('updates')}      - Safe version updates
+  `)
   .action(fix);
 
-// ✅ FIXED: Backup command with proper options handling
+// Backup command
 program
   .command('backup <action>')
   .description('Manage backups (list, restore, clean, info)')
@@ -53,6 +79,15 @@ program
   .option('-n, --name <name>', 'Backup name (for restore/info commands)')
   .option('-f, --force', 'Skip confirmation prompts', false)
   .option('--keep <number>', 'Number of backups to keep (for clean command)', parseInt, 5)
+  .addHelpText('after', `
+
+${chalk.bold('Backup Examples:')}
+  ${chalk.cyan('devcompass backup list')}                          List all backups
+  ${chalk.cyan('devcompass backup restore --name <backup-name>')}  Restore from backup
+  ${chalk.cyan('devcompass backup info --name <backup-name>')}     Show backup details
+  ${chalk.cyan('devcompass backup clean')}                         Remove old backups (keeps 5)
+  ${chalk.cyan('devcompass backup clean --keep 3')}                Keep only 3 backups
+  `)
   .action((action, options) => {
     backup(action, options);
   });

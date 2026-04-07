@@ -1,21 +1,164 @@
 # 🧭 DevCompass
 
-**Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, backup & rollback, parallel processing, advanced license risk detection, and enhanced fix command with dry-run mode, progress tracking, and automatic backups.**
+**Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, batch fix modes with granular control, backup & rollback, parallel processing, advanced license risk detection, and enhanced fix command with dry-run mode, progress tracking, and automatic backups.**
 
 [![npm version](https://img.shields.io/npm/v/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 500+ packages**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
+Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 500+ packages**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
-> **🎉 NEW v2.8.4:** Backup & Rollback Command - Complete backup management for safe dependency fixes! 💾  
-> **LATEST v2.8.3:** Package quality auto-fix - Automatic replacement of abandoned/deprecated packages! 📦  
-> **PREVIOUS v2.8.2:** License conflict auto-fix - Automatic GPL/AGPL replacement with MIT alternatives! ⚖️  
-> **NEW in v2.8.1:** Supply chain auto-fix - Automatic malicious package removal & typosquatting fixes! 🛡️
+> **🎉 NEW v2.8.5:** Batch Fix Modes - Granular control over which categories to fix! 📦  
+> **PREVIOUS v2.8.4:** Backup & Rollback Command - Complete backup management for safe dependency fixes! 💾  
+> **LATEST v2.8.3:** Package quality auto-fix - Automatic replacement of abandoned/deprecated packages! 📦
 
-## 🎉 Latest Update: v2.8.4 - Backup & Rollback Command
+## 🎉 Latest Update: v2.8.5 - Batch Fix Modes
 
-**Complete backup management system for safe dependency fixes!** DevCompass now includes comprehensive backup and restore functionality.
+**Granular control over which fix categories to apply!** DevCompass now includes comprehensive batch mode with interactive selection, preset modes, and category filtering.
+
+### What's New in v2.8.5:
+- 📦 **Interactive Batch Selection** - Choose which categories to fix via beautiful menu
+- ⚡ **Preset Batch Modes** - Critical-only, high-priority, all-safe presets
+- 🎯 **Category-Specific Fixes** - Fix only selected categories (--only)
+- 🚫 **Skip Categories** - Exclude specific categories (--skip)
+- 📊 **Batch Reports** - Separate reporting per batch execution
+- 📈 **Batch Statistics** - See fix counts before execution
+- 🛡️ **Safe Execution** - 60-second timeouts prevent hanging
+- 💾 **Integrated Backups** - Works seamlessly with v2.8.4 backup system
+
+### Batch Fix Categories (7 Total):
+1. **🛡️ Supply Chain Security** - Malicious packages, typosquatting
+2. **⚖️ License Conflicts** - GPL/AGPL/LGPL replacements
+3. **📦 Package Quality** - Abandoned/deprecated packages
+4. **🔐 Critical Security** - npm audit vulnerabilities
+5. **🚨 Ecosystem Alerts** - Known package issues
+6. **🧹 Unused Dependencies** - Remove unused packages
+7. **⬆️ Safe Updates** - Patch and minor version updates
+
+### Batch Commands:
+```bash
+# Interactive batch mode
+devcompass fix --batch
+
+# Preview with dry-run
+devcompass fix --batch --dry-run
+
+# Preset modes
+devcompass fix --batch-mode critical      # Supply chain + License + Security
+devcompass fix --batch-mode high          # Critical + Quality + Ecosystem
+devcompass fix --batch-mode all           # All safe fixes
+
+# Category-specific fixes
+devcompass fix --only quality             # Fix only quality issues
+devcompass fix --only supply-chain,license --yes
+devcompass fix --skip updates             # Fix everything except updates
+
+# Combined options
+devcompass fix --batch-mode high --yes --verbose
+```
+
+### Interactive Batch Menu Example:
+
+```
+📦 BATCH FIX MODE
+══════════════════════════════════════════════════════════════════════
+
+Select which categories to fix:
+
+1. 🛡️ Supply Chain Security
+   Malicious packages, typosquatting, suspicious scripts
+   Fixes available: none
+
+2. ⚖️ License Conflicts
+   GPL/AGPL/LGPL package replacements
+   Fixes available: none
+
+3. 📦 Package Quality
+   Abandoned, deprecated, stale packages
+   Fixes available: 2 fix(es)
+
+4. 🔐 Critical Security
+   npm audit vulnerabilities
+   Fixes available: 5 fix(es)
+
+5. 🚨 Ecosystem Alerts
+   Known package issues
+   Fixes available: 1 fix(es)
+
+6. 🧹 Unused Dependencies
+   Remove unused packages
+   Fixes available: 4 fix(es)
+
+7. ⬆️ Safe Updates
+   Patch and minor version updates
+   Fixes available: none
+
+──────────────────────────────────────────────────────────────────────
+
+Preset Modes:
+c - Critical only (supply-chain + license + security)
+h - High priority (critical + quality + ecosystem)
+a - All safe fixes (everything except major updates)
+n - None (cancel)
+
+Enter your choice (1-7, c/h/a/n, or comma-separated): 3,6
+
+📦 SELECTED BATCHES:
+
+  📦 Package Quality: 2 fix(es)
+  🧹 Unused Dependencies: 4 fix(es)
+
+Step 1: Creating backup...
+✓ Backup created: backup-2026-04-06T15-08-57-742Z
+
+Step 2: Executing batches...
+
+📦 PACKAGE QUALITY
+──────────────────────────────────────────────────────────────────────
+✔ Replaced moment with dayjs
+✔ Replaced request with axios
+
+🧹 UNUSED DEPENDENCIES
+──────────────────────────────────────────────────────────────────────
+✔ Removed 4 unused package(s)
+
+📊 BATCH FIX SUMMARY
+══════════════════════════════════════════════════════════════════════
+
+📦 Package Quality
+  ✓ 2 fix(es) applied
+    • moment → dayjs (DEPRECATED)
+    • request → axios (DEPRECATED)
+
+🧹 Unused Dependencies
+  ✓ 4 fix(es) applied
+    • Removed: chalk, express, lodash, webpack
+
+──────────────────────────────────────────────────────────────────────
+
+📈 OVERALL RESULTS:
+
+  Total Batches: 2
+  Total Fixes: 6
+  Successful: 6
+  Failed: 0
+  Duration: 0.52s
+
+──────────────────────────────────────────────────────────────────────
+
+✓ Batch report saved: devcompass-batch-report.json
+```
+
+**Upgrade now:**
+```bash
+npm install -g devcompass@2.8.5
+```
+
+---
+
+## 🎉 v2.8.4 Features
+
+**Complete backup management system for safe dependency fixes!** DevCompass includes comprehensive backup and restore functionality.
 
 ### What's New in v2.8.4:
 - 💾 **Backup List Command** - View all available backups with metadata
@@ -27,83 +170,11 @@ Analyze your JavaScript projects to find unused dependencies, outdated packages,
 - ⚡ **Force Mode** - Skip confirmations for CI/CD
 - 📈 **Auto-Clean** - Keeps latest 5 backups automatically
 
-### Backup Commands:
-```bash
-# List all backups
-devcompass backup list
-
-# Restore from backup
-devcompass backup restore --name backup-2026-04-06T08-43-33-521Z
-
-# Show backup details
-devcompass backup info --name backup-2026-04-06T08-43-33-521Z
-
-# Clean old backups (keeps latest 5)
-devcompass backup clean
-
-# Clean keeping only 3 backups
-devcompass backup clean --keep 3
-
-# Force operations without confirmation
-devcompass backup restore --name <backup-name> --force
-devcompass backup clean --force
-```
-
-### How Backups Work:
-1. **Automatic Creation** - Backups created during `devcompass fix` (both dry-run and actual)
-2. **Safe Restore** - Current state backed up before restoring
-3. **Enhanced Metadata** - Tracks health score, fixes pending, warnings breakdown
-4. **Auto-Clean** - Keeps latest 5 backups, removes older ones
-5. **Beautiful Output** - Time-ago formatting, file sizes, restore commands
-
-**Example Output:**
-
-💾 DevCompass Backups
-
-Found 3 backup(s):
-
-backup-2026-04-06T08-43-53-468Z
-Created: Apr 6, 2026 14:13:53 (just now)
-Files: package.json, package-lock.json
-Reason: Before dry-run analysis
-Fixes pending: 7
-Health score: 0/10
-backup-2026-04-06T08-43-36-998Z
-Created: Apr 6, 2026 14:13:37 (5 minutes ago)
-Files: package.json, package-lock.json
-Reason: Before restore
-backup-2026-04-06T08-43-33-521Z
-Created: Apr 6, 2026 14:13:33 (10 minutes ago)
-Files: package.json, package-lock.json
-Reason: Before automated fixes
-Fixes pending: 7
-Health score: 0/10
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💡 COMMANDS:
-Restore: devcompass backup restore --name backup-2026-04-06T08-43-53-468Z
-Info: devcompass backup info --name backup-2026-04-06T08-43-53-468Z
-Clean: devcompass backup clean
-
-**Upgrade now:**
-```bash
-npm install -g devcompass@2.8.4
-```
-
 ---
 
 ## 🎉 v2.8.3 Features
 
 **Automatic replacement of abandoned, deprecated, and stale packages!** DevCompass automatically replaces unmaintained packages with modern alternatives.
-
-### What's New in v2.8.3:
-- 📦 **Abandoned Package Replacement** - Automatically replaces packages 2+ years old
-- 🔴 **Deprecated Package Replacement** - Replaces officially deprecated packages
-- 🟡 **Stale Package Replacement** - Replaces packages 1-2 years without updates
-- 📚 **Alternative Database** - Curated database of 50+ modern alternatives
-- 🔧 **Integrated Fix Workflow** - Works seamlessly with supply chain and license fixes
-- 📊 **Fix Summary Display** - Shows breakdown of quality fixes applied
-- 🛡️ **Priority Execution** - Quality fixes run THIRD (after supply chain and license)
 
 ---
 
@@ -127,6 +198,7 @@ npm install -g devcompass@2.8.4
 
 ## ✨ Features
 
+- 📦 **Batch Fix Modes** (v2.8.5) - Granular control over which categories to fix
 - 💾 **Backup & Rollback** (v2.8.4) - Complete backup management for safe dependency fixes
 - 📦 **Package Quality Auto-Fix** (v2.8.3) - Automatic replacement of abandoned/deprecated packages
 - ⚖️ **License Conflict Auto-Fix** (v2.8.2) - Automatic GPL/AGPL replacement with MIT alternatives
@@ -175,13 +247,23 @@ devcompass analyze
 # Auto-fix issues (includes supply chain + license + quality fixes!)
 devcompass fix
 
+# Batch fix modes (NEW in v2.8.5!)
+devcompass fix --batch                          # Interactive selection
+devcompass fix --batch-mode critical            # Preset: critical only
+devcompass fix --batch-mode high                # Preset: high priority
+devcompass fix --batch-mode all                 # Preset: all safe fixes
+devcompass fix --only quality                   # Fix only quality issues
+devcompass fix --skip updates                   # Skip updates category
+
 # Preview fixes without making changes
 devcompass fix --dry-run
+devcompass fix --batch --dry-run
 
 # Auto-fix without confirmation (CI/CD)
 devcompass fix --yes
+devcompass fix --batch-mode high --yes
 
-# Manage backups (NEW in v2.8.4!)
+# Manage backups
 devcompass backup list
 devcompass backup restore --name <backup-name>
 devcompass backup info --name <backup-name>
@@ -197,9 +279,297 @@ devcompass analyze --ci
 devcompass analyze --silent
 ```
 
-## 💾 Backup & Rollback (NEW in v2.8.4!)
+## 📦 Batch Fix Modes (NEW in v2.8.5!)
 
-DevCompass now includes **comprehensive backup management** for safe dependency fixes!
+DevCompass now includes **comprehensive batch mode** for granular control over which fix categories to apply!
+
+### Batch Fix Categories:
+
+DevCompass organizes fixes into **7 priority-ordered categories**:
+
+1. **🛡️ Supply Chain Security** (Priority 1)
+   - Malicious package removal
+   - Typosquatting fixes
+   - Suspicious script removal
+   
+2. **⚖️ License Conflicts** (Priority 2)
+   - GPL package replacement
+   - AGPL package replacement
+   - LGPL package replacement
+   
+3. **📦 Package Quality** (Priority 3)
+   - Abandoned package replacement
+   - Deprecated package replacement
+   - Stale package replacement
+   
+4. **🔐 Critical Security** (Priority 4)
+   - npm audit vulnerabilities
+   
+5. **🚨 Ecosystem Alerts** (Priority 5)
+   - Known package issues
+   
+6. **🧹 Unused Dependencies** (Priority 6)
+   - Remove unused packages
+   
+7. **⬆️ Safe Updates** (Priority 7)
+   - Patch and minor version updates
+
+### Batch Mode Commands:
+
+#### 1. Interactive Batch Mode
+Select categories interactively via beautiful menu:
+```bash
+# Interactive selection
+devcompass fix --batch
+
+# Preview with dry-run
+devcompass fix --batch --dry-run
+```
+
+**Example interaction:**
+```
+Enter your choice (1-7, c/h/a/n, or comma-separated): 3,4,6
+
+📦 SELECTED BATCHES:
+  📦 Package Quality: 2 fix(es)
+  🔐 Critical Security: 5 fix(es)
+  🧹 Unused Dependencies: 4 fix(es)
+```
+
+#### 2. Preset Batch Modes
+Use predefined modes for common scenarios:
+
+**Critical Only** - Fix critical issues only:
+```bash
+devcompass fix --batch-mode critical
+
+# Includes: Supply Chain + License + Security
+```
+
+**High Priority** - Fix high-priority issues:
+```bash
+devcompass fix --batch-mode high
+
+# Includes: Critical + Quality + Ecosystem
+```
+
+**All Safe Fixes** - Fix everything except major updates:
+```bash
+devcompass fix --batch-mode all
+
+# Includes: All categories except major updates
+```
+
+#### 3. Category-Specific Fixes
+Fix only specific categories:
+```bash
+# Fix only quality issues
+devcompass fix --only quality
+
+# Fix supply chain and license only
+devcompass fix --only supply-chain,license --yes
+
+# Fix security and quality
+devcompass fix --only security,quality
+```
+
+#### 4. Skip Categories
+Fix everything except specific categories:
+```bash
+# Fix everything except updates
+devcompass fix --skip updates
+
+# Skip ecosystem and updates
+devcompass fix --skip ecosystem,updates
+```
+
+#### 5. Combined Options
+Combine batch modes with other options:
+```bash
+# Batch mode with dry-run
+devcompass fix --batch --dry-run
+
+# Preset with auto-apply
+devcompass fix --batch-mode high --yes
+
+# Category filter with verbose output
+devcompass fix --only quality --verbose
+
+# Multiple categories with force apply
+devcompass fix --only supply-chain,license,security --yes
+```
+
+### Batch Execution Output:
+
+**Step 1: Creating Backup**
+```
+Step 1: Creating backup...
+✓ Backup created: backup-2026-04-06T15-08-57-742Z
+```
+
+**Step 2: Executing Batches**
+```
+Step 2: Executing batches...
+
+📦 PACKAGE QUALITY
+──────────────────────────────────────────────────────────────────────
+✔ Replaced moment with dayjs
+✔ Replaced request with axios
+
+🧹 UNUSED DEPENDENCIES
+──────────────────────────────────────────────────────────────────────
+✔ Removed 4 unused package(s)
+```
+
+**Step 3: Batch Summary**
+```
+📊 BATCH FIX SUMMARY
+══════════════════════════════════════════════════════════════════════
+
+📦 Package Quality
+  ✓ 2 fix(es) applied
+    • moment → dayjs (DEPRECATED)
+    • request → axios (DEPRECATED)
+
+🧹 Unused Dependencies
+  ✓ 4 fix(es) applied
+    • Removed: chalk, express, lodash, webpack
+
+──────────────────────────────────────────────────────────────────────
+
+📈 OVERALL RESULTS:
+
+  Total Batches: 2
+  Total Fixes: 6
+  Successful: 6
+  Failed: 0
+  Duration: 0.52s
+
+──────────────────────────────────────────────────────────────────────
+
+✓ Batch report saved: devcompass-batch-report.json
+```
+
+### Batch Features:
+
+#### Interactive Selection
+- ✅ Beautiful terminal menu with fix counts
+- ✅ Shows available fixes per category
+- ✅ Preset shortcuts (c/h/a/n)
+- ✅ Comma-separated multi-select (1,3,6)
+- ✅ Input validation with retry
+
+#### Safety Features
+- ✅ **Automatic backups** - Created before batch execution
+- ✅ **Dry-run support** - Preview without changes
+- ✅ **Confirmation prompts** - Can be skipped with --yes
+- ✅ **Category validation** - Invalid categories ignored
+- ✅ **Error isolation** - Failed batches don't stop execution
+- ✅ **Timeout protection** - 60-second timeouts prevent hanging
+- ✅ **Detailed reports** - Every fix documented in JSON
+
+#### Batch Reports
+Each batch execution generates a detailed report:
+```json
+{
+  "timestamp": "2026-04-06T15:08:58.266Z",
+  "mode": "batch",
+  "summary": {
+    "totalBatches": 2,
+    "totalFixes": 6,
+    "successful": 6,
+    "failed": 0,
+    "duration": "0.52s"
+  },
+  "batches": [
+    {
+      "batch": "quality",
+      "batchName": "Package Quality",
+      "fixes": [
+        {
+          "type": "quality",
+          "package": "moment",
+          "action": "Replaced with dayjs"
+        }
+      ],
+      "successful": 2,
+      "failed": 0,
+      "errors": []
+    }
+  ]
+}
+```
+
+### Use Cases:
+
+**Security Teams** - Fix only critical security:
+```bash
+devcompass fix --batch-mode critical --yes
+```
+
+**Development Teams** - Interactive selection for discussion:
+```bash
+devcompass fix --batch
+```
+
+**CI/CD Pipelines** - Automated category-specific fixes:
+```bash
+devcompass fix --only security --yes
+```
+
+**Maintenance** - Fix quality issues separately:
+```bash
+devcompass fix --only quality
+```
+
+**Compliance** - Fix license conflicts first:
+```bash
+devcompass fix --only license
+```
+
+**Performance** - Remove unused dependencies:
+```bash
+devcompass fix --only unused
+```
+
+**Incremental Updates** - Fix categories one at a time:
+```bash
+# Step 1: Critical security
+devcompass fix --batch-mode critical --yes
+
+# Step 2: Quality issues
+devcompass fix --only quality --yes
+
+# Step 3: Cleanup
+devcompass fix --only unused --yes
+```
+
+### Batch Workflow Example:
+```bash
+# 1. Analyze project
+devcompass analyze
+
+# 2. Preview batch fixes
+devcompass fix --batch --dry-run
+
+# 3. Select categories interactively
+devcompass fix --batch
+
+# 4. Review batch report
+cat devcompass-batch-report.json
+
+# 5. Verify improvements
+devcompass analyze
+
+# 6. View backups (if rollback needed)
+devcompass backup list
+```
+
+---
+
+## 💾 Backup & Rollback (v2.8.4)
+
+DevCompass includes **comprehensive backup management** for safe dependency fixes!
 
 ### Backup Commands:
 
@@ -210,21 +580,36 @@ devcompass backup list
 ```
 
 **Output:**
-
+```
 💾 DevCompass Backups
 
 Found 3 backup(s):
 
-backup-2026-04-06T08-43-53-468Z
-Created: Apr 6, 2026 14:13:53 (just now)
-Files: package.json, package-lock.json
-Reason: Before dry-run analysis
-Fixes pending: 7
-Health score: 0/10
-backup-2026-04-06T08-43-36-998Z
-Created: Apr 6, 2026 14:13:37 (5 minutes ago)
-Files: package.json, package-lock.json
-Reason: Before restore
+1. backup-2026-04-06T08-43-53-468Z
+   Created: Apr 6, 2026 14:13:53 (just now)
+   Files: package.json, package-lock.json
+   Reason: Before batch fixes
+   Fixes pending: 7
+   Health score: 0/10
+
+2. backup-2026-04-06T08-43-36-998Z
+   Created: Apr 6, 2026 14:13:37 (5 minutes ago)
+   Files: package.json, package-lock.json
+   Reason: Before restore
+
+3. backup-2026-04-06T08-43-33-521Z
+   Created: Apr 6, 2026 14:13:33 (10 minutes ago)
+   Files: package.json, package-lock.json
+   Reason: Before automated fixes
+   Fixes pending: 7
+   Health score: 0/10
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡 COMMANDS:
+   Restore: devcompass backup restore --name backup-2026-04-06T08-43-53-468Z
+   Info: devcompass backup info --name backup-2026-04-06T08-43-53-468Z
+   Clean: devcompass backup clean
+```
 
 #### 2. Restore Backup
 Rollback to a previous state:
@@ -237,22 +622,30 @@ devcompass backup restore --name backup-2026-04-06T08-43-33-521Z --force
 ```
 
 **Output:**
-
+```
 🔄 DevCompass Backup Restore
+
 Backup details:
-Name: backup-2026-04-06T08-43-33-521Z
-Created: Apr 6, 2026 14:13:33
-Files: package.json, package-lock.json
+  Name: backup-2026-04-06T08-43-33-521Z
+  Created: Apr 6, 2026 14:13:33
+  Files: package.json, package-lock.json
+
 ⚠️  WARNING: This will overwrite your current package.json and package-lock.json
+
 Continue with restore? (y/N): y
+
 Step 1: Creating backup of current state...
 ✓ Current state backed up: backup-2026-04-06T08-43-36-998Z
+
 Step 2: Restoring from backup...
 ✓ Backup restored successfully!
+
 Files restored:
-✓ package.json
-✓ package-lock.json
+  ✓ package.json
+  ✓ package-lock.json
+
 ⚠️  IMPORTANT: Run npm install to sync node_modules
+```
 
 #### 3. Show Backup Info
 View detailed information about a specific backup:
@@ -261,28 +654,36 @@ devcompass backup info --name backup-2026-04-06T08-43-33-521Z
 ```
 
 **Output:**
-
+```
 📋 DevCompass Backup Info
+
 Backup Details:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 Name:          backup-2026-04-06T08-43-33-521Z
 Created:       Apr 6, 2026 14:13:33
 Age:           just now
 Location:      /project/.devcompass-backups/backup-2026-04-06T08-43-33-521Z
+
 Files backed up:
-• package.json
-• package-lock.json
-Reason:        Before dry-run analysis
+  • package.json
+  • package-lock.json
+
+Reason:        Before batch fixes
 Fixes pending: 7
 Health score:  0/10
 Project ver:   1.0.0
-DevCompass:    v2.8.4
+DevCompass:    v2.8.5
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 File Details:
-package-lock.json    10.69 KB
-package.json         0.33 KB
+  package-lock.json    10.69 KB
+  package.json         0.33 KB
+
 💡 RESTORE THIS BACKUP:
-devcompass backup restore --name backup-2026-04-06T08-43-33-521Z
+   devcompass backup restore --name backup-2026-04-06T08-43-33-521Z
+```
 
 #### 4. Clean Old Backups
 Remove old backups to save disk space:
@@ -298,25 +699,30 @@ devcompass backup clean --keep 3 --force
 ```
 
 **Output:**
-
+```
 🧹 DevCompass Backup Cleanup
+
 Found 5 backup(s)
 Will delete 2 oldest backup(s), keeping latest 3
-Backups to delete:
 
-backup-2026-04-06T08-43-43-554Z (Apr 6, 2026 14:13:43)
-backup-2026-04-06T08-43-40-208Z (Apr 6, 2026 14:13:40)
+Backups to delete:
+  1. backup-2026-04-06T08-43-43-554Z (Apr 6, 2026 14:13:43)
+  2. backup-2026-04-06T08-43-40-208Z (Apr 6, 2026 14:13:40)
 
 Delete these backups? (y/N): y
+
 ✓ Deleted: backup-2026-04-06T08-43-43-554Z
 ✓ Deleted: backup-2026-04-06T08-43-40-208Z
+
 ✓ Successfully deleted 2 backup(s)!
+```
 
 ### Backup Features:
 
 #### Automatic Creation
 Backups are automatically created:
 - ✅ During `devcompass fix` (before applying changes)
+- ✅ During `devcompass fix --batch` (before batch execution)
 - ✅ During `devcompass fix --dry-run` (before dry-run analysis)
 - ✅ Before restoring (current state backed up first)
 
@@ -345,8 +751,8 @@ Each backup tracks:
 # 1. Check current backups
 devcompass backup list
 
-# 2. Run fix (automatic backup created)
-devcompass fix
+# 2. Run batch fix (automatic backup created)
+devcompass fix --batch
 
 # 3. If something goes wrong, list backups
 devcompass backup list
@@ -364,22 +770,6 @@ npm install
 devcompass backup clean --keep 3
 ```
 
-### Backup Storage:
-- **Location:** `.devcompass-backups/` directory
-- **Auto-Gitignored:** Added to `.gitignore` automatically
-- **Auto-Clean:** Keeps latest 5 backups by default
-- **Manual Access:** Can copy files manually from backup directory
-
-### Use Cases:
-
-**Perfect for:**
-- 🔄 **Rollback Failed Fixes** - Restore if automated fix causes issues
-- 🧪 **Testing Changes** - Try fixes with `--dry-run` and rollback if needed
-- 📊 **Auditing** - Track what changed over time with metadata
-- 🛡️ **Safety Net** - Always have a way back to previous state
-- 🔍 **Debugging** - Compare before/after states
-- 🚀 **CI/CD Integration** - Use `--force` to skip prompts in automated workflows
-
 ---
 
 ## 📦 Package Quality Auto-Fix (v2.8.3)
@@ -391,27 +781,41 @@ DevCompass can **automatically replace abandoned, deprecated, and stale packages
 - 🔴 **Deprecated packages** - Replaces officially deprecated packages
 - 🟡 **Stale packages** - Replaces packages 1-2 years without updates
 
-### Fix Priority Order (v2.8.4):
-1. **🔴 Supply Chain Security** (FIRST - Critical!)
-   - Malicious package removal
-   - Typosquatting fixes
-   - Suspicious script removal
-2. **🟠 License Conflicts** (SECOND - Legal Compliance!)
-   - GPL package replacement
-   - AGPL package replacement
-   - LGPL package replacement
-3. **🔵 Package Quality** (THIRD - Maintainability!)
-   - Abandoned package replacement
-   - Deprecated package replacement
-   - Stale package replacement
-4. **🔴 Critical Security** - npm audit vulnerabilities
-5. **🟠 Ecosystem Alerts** - Known package issues
-6. **🟡 Unused Dependencies** - Cleanup
-7. **🔵 Safe Updates** - Patch/minor updates
+### Alternative Database (50+ packages):
+```
+request → axios, got, ky
+moment → dayjs, date-fns, luxon
+tslint → eslint
+node-sass → sass (Dart Sass)
+colors → chalk
+enzyme → @testing-library/react
+faker → @faker-js/faker
+...and 40+ more!
+```
 
 ---
 
-*(Continue with rest of README.md content...)*
+## ⚖️ License Conflict Auto-Fix (v2.8.2)
+
+DevCompass **automatically replaces GPL/AGPL packages** with MIT/Apache alternatives!
+
+### What it fixes:
+- 🔴 **GPL conflicts** - Replaces GPL packages
+- 🔴 **AGPL conflicts** - Replaces AGPL packages
+- 🟡 **LGPL conflicts** - Replaces LGPL packages
+
+---
+
+## 🛡️ Supply Chain Auto-Fix (v2.8.1)
+
+DevCompass **automatically fixes supply chain security issues**!
+
+### What it fixes:
+- 🔴 **Malicious packages** - Removed immediately
+- 🟠 **Typosquatting** - Removes typosquats, installs correct packages
+- 🟡 **Suspicious scripts** - Offers removal with confirmation
+
+---
 
 ## ⚙️ Commands & Options
 
@@ -420,13 +824,20 @@ DevCompass can **automatically replace abandoned, deprecated, and stale packages
 # Analyze project dependencies
 devcompass analyze
 
-# Auto-fix issues (includes supply chain + license + quality fixes!)
+# Auto-fix issues
 devcompass fix
+
+# Batch fix modes (NEW in v2.8.5!)
+devcompass fix --batch                    # Interactive selection
+devcompass fix --batch-mode <mode>        # Preset modes
+devcompass fix --only <categories>        # Fix specific categories
+devcompass fix --skip <categories>        # Skip categories
 
 # Preview fixes without changes
 devcompass fix --dry-run
+devcompass fix --batch --dry-run
 
-# Manage backups (NEW in v2.8.4!)
+# Manage backups
 devcompass backup list
 devcompass backup restore --name <backup-name>
 devcompass backup info --name <backup-name>
@@ -441,7 +852,69 @@ devcompass --help
 devcompass -h
 ```
 
-### Backup Options (NEW in v2.8.4!)
+### Fix Options (Enhanced in v2.8.5!)
+```bash
+# Normal fix mode (all fixes)
+devcompass fix
+devcompass fix --yes                      # Auto-apply
+devcompass fix --dry-run                  # Preview only
+
+# Batch mode options (NEW!)
+devcompass fix --batch                    # Interactive selection
+devcompass fix --batch --dry-run          # Preview batch mode
+
+# Preset batch modes
+devcompass fix --batch-mode critical      # Supply chain + License + Security
+devcompass fix --batch-mode high          # Critical + Quality + Ecosystem
+devcompass fix --batch-mode all           # All safe fixes
+
+# Category filtering
+devcompass fix --only quality             # Fix only quality
+devcompass fix --only supply-chain,license,security
+devcompass fix --skip updates             # Skip updates
+
+# Combined options
+devcompass fix --batch-mode high --yes --verbose
+devcompass fix --only quality --dry-run
+devcompass fix --skip ecosystem,updates --yes
+```
+
+### Batch Options (NEW in v2.8.5!)
+```bash
+# Interactive batch mode
+--batch                     # Show interactive batch selection menu
+--batch --dry-run          # Preview batch fixes without changes
+
+# Preset batch modes
+--batch-mode critical      # Fix: supply-chain + license + security
+--batch-mode high          # Fix: critical + quality + ecosystem
+--batch-mode all           # Fix: all safe fixes
+
+# Category-specific fixes
+--only <categories>        # Fix only specific categories
+                          # Example: --only quality
+                          # Example: --only supply-chain,license
+
+# Skip categories
+--skip <categories>        # Skip specific categories
+                          # Example: --skip updates
+                          # Example: --skip ecosystem,updates
+
+# Available categories:
+  supply-chain            # Supply chain security
+  license                 # License conflicts
+  quality                 # Package quality
+  security                # Critical security
+  ecosystem               # Ecosystem alerts
+  unused                  # Unused dependencies
+  updates                 # Safe updates
+
+# Additional options
+--verbose                  # Show detailed output during batch execution
+--yes                      # Auto-apply without confirmation
+```
+
+### Backup Options
 ```bash
 # List all backups
 devcompass backup list
@@ -468,9 +941,140 @@ devcompass backup clean --force
 devcompass backup list --path /path/to/project
 ```
 
+### Analyze Options
+```bash
+# JSON output (for CI/CD)
+devcompass analyze --json
+
+# CI mode (exits with code 1 if score < threshold)
+devcompass analyze --ci
+
+# Silent mode (no terminal output)
+devcompass analyze --silent
+
+# Combined options
+devcompass analyze --json --ci
+```
+
 ---
 
-*(Continue with all other sections...)*
+## 📊 Example Output
+
+### Analyze Command:
+```
+🔍 DevCompass v2.8.5 - Analyzing your project...
+
+✔ Scanned 25 dependencies in project
+⚡ GitHub check completed in 1.23s (parallel processing)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔐 SECURITY VULNERABILITIES (5)
+
+  🔴 CRITICAL: 1
+  🟠 HIGH: 2
+  🟡 MODERATE: 2
+
+  Run npm audit fix to fix vulnerabilities
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ SUPPLY CHAIN SECURITY
+
+  No supply chain risks detected!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚨 ECOSYSTEM ALERTS (1)
+
+🟠 HIGH
+  axios@1.6.0
+    Issue: Memory leak in request interceptors
+    Fix: 1.6.2
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📦 HEAVY PACKAGES (2)
+
+  Packages larger than 1MB:
+
+  typescript                8.1 MB
+  webpack                   2.3 MB
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 PROJECT HEALTH
+
+  Overall Score:              6.2/10
+  Total Dependencies:         25
+  Security Vulnerabilities:   5
+  Ecosystem Alerts:           1
+  Unused:                     0
+  Outdated:                   3
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 QUICK WINS
+
+  🔐 Fix security vulnerabilities:
+
+  npm audit fix
+
+  🔴 Fix critical issues:
+
+  npm install axios@1.6.2
+
+  Expected impact:
+  ✓ Resolve security vulnerabilities
+  ✓ Resolve critical stability issues
+  ✓ Improve health score → 8.7/10
+
+💡 TIP: Run 'devcompass fix' to apply these fixes automatically!
+     Or use 'devcompass fix --batch' for granular control!
+```
+
+---
+
+## 🎯 Configuration
+
+Create `devcompass.config.json` in your project root:
+
+```json
+{
+  "ignore": ["package-name"],
+  "ignoreSeverity": ["low"],
+  "minSeverity": "medium",
+  "minScore": 7,
+  "cache": true
+}
+```
+
+### Configuration Options:
+- **ignore** - Array of package names to ignore
+- **ignoreSeverity** - Array of severity levels to ignore (low/medium/high/critical)
+- **minSeverity** - Minimum severity to display (low/medium/high/critical)
+- **minScore** - Minimum health score for CI mode (default: 7)
+- **cache** - Enable/disable caching (default: true)
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
+
+---
 
 ## 🌟 What's Next?
 
@@ -494,7 +1098,7 @@ devcompass backup list --path /path/to/project
 - [x] ~~License conflict resolution~~ ✅ **Added in v2.8.2!**
 - [x] ~~Package quality auto-fix~~ ✅ **Added in v2.8.3!**
 - [x] ~~Backup & rollback command~~ ✅ **Added in v2.8.4!**
-- [ ] Batch fix modes (v2.8.5)
+- [x] ~~Batch fix modes~~ ✅ **Added in v2.8.5!**
 - [ ] Dependency graph visualization (v3.0.0)
 - [ ] Web dashboard for team health monitoring (v3.0.0)
 - [ ] Team collaboration features (v3.1.0)
@@ -509,3 +1113,4 @@ Want to contribute? Pick an item and open an issue! 🚀
 *DevCompass - Keep your dependencies healthy!* 🧭
 
 **Like Lighthouse for your dependencies** ⚡
+```

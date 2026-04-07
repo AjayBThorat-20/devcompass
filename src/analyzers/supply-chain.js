@@ -29,12 +29,6 @@ const SUSPICIOUS_PATTERNS = [
   '/bin/sh', '/bin/bash', 'powershell', 'bitcoin', 'mining', 'keylogger', 'backdoor'
 ];
 
-/**
- * Analyze supply chain security
- * @param {string} projectPath - Path to project
- * @param {Object} dependencies - Package dependencies
- * @returns {Promise<Object>} - Supply chain analysis results
- */
 async function analyzeSupplyChain(projectPath, dependencies) {
   const warnings = [];
 

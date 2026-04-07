@@ -5,6 +5,319 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.5] - 2026-04-06
+
+### ✨ Features
+
+#### Batch Fix Modes
+- **Complete batch mode system** for granular fix control
+- **Interactive batch selection** - Choose which categories to fix
+- **Preset batch modes** - Critical-only, high-priority, all-safe
+- **Category-specific fixes** - Fix only selected categories (--only)
+- **Skip categories** - Exclude specific categories (--skip)
+- **Batch reports** - Separate reporting per batch
+- **Batch statistics** - See fix counts before execution
+
+### 📦 New Files
+- `src/utils/batch-selector.js` - Interactive batch selection (~200 lines)
+  - `getBatchStats()` - Calculate fixes per category
+  - `displayBatchMenu()` - Show interactive menu
+  - `promptBatchSelection()` - User selection interface
+  - `parseBatchSelection()` - Parse user choices
+- `src/utils/batch-executor.js` - Batch execution engine (~250 lines)
+  - `executeBatch()` - Execute single batch
+  - `executeSupplyChainBatch()` - Supply chain fixes
+  - `executeLicenseBatch()` - License conflict fixes
+  - `executeQualityBatch()` - Quality fixes
+  - `executeSecurityBatch()` - npm audit fixes
+  - `executeEcosystemBatch()` - Ecosystem alert fixes
+  - `executeUnusedBatch()` - Remove unused dependencies
+  - `executeUpdatesBatch()` - Safe version updates
+- `src/utils/batch-reporter.js` - Batch reporting system (~150 lines)
+  - `generateReport()` - Create batch report
+  - `displaySummary()` - Terminal output
+  - `formatFix()` - Format individual fix details
+
+### 🔧 Enhanced Files
+- `bin/devcompass.js` - Added batch mode CLI options
+  - Added `--batch` option for interactive mode
+  - Added `--batch-mode <mode>` for preset modes (critical/high/all)
+  - Added `--only <categories>` for specific categories
+  - Added `--skip <categories>` to exclude categories
+  - Added `--verbose` for detailed output
+  - Enhanced help text with batch examples
+- `src/commands/fix.js` - Integrated batch mode (~100 lines added)
+  - Added `executeBatchMode()` function
+  - Added `buildPlannedFixes()` helper
+  - Batch mode detection and routing
+  - Seamless integration with normal fix mode
+
+### 📊 Technical Details
+- **~600 lines of new code**
+- **7 fix categories:** supply-chain, license, quality, security, ecosystem, unused, updates
+- **3 preset modes:** critical, high, all
+- **Category filtering:** --only and --skip options
+- **Interactive menu:** Beautiful terminal selection interface
+- **Batch reports:** Saved to `devcompass-batch-report.json`
+- **60-second timeouts:** All operations have safety timeouts
+
+### 🎯 Batch Categories
+
+**Available Categories:**
+1. **🛡️ Supply Chain Security** (Priority 1)
+   - Malicious package removal
+   - Typosquatting fixes
+   - Suspicious script removal
+2. **⚖️ License Conflicts** (Priority 2)
+   - GPL package replacement
+   - AGPL package replacement
+   - LGPL package replacement
+3. **📦 Package Quality** (Priority 3)
+   - Abandoned package replacement
+   - Deprecated package replacement
+   - Stale package replacement
+4. **🔐 Critical Security** (Priority 4)
+   - npm audit vulnerabilities
+5. **🚨 Ecosystem Alerts** (Priority 5)
+   - Known package issues
+6. **🧹 Unused Dependencies** (Priority 6)
+   - Remove unused packages
+7. **⬆️ Safe Updates** (Priority 7)
+   - Patch and minor updates
+
+### 🎯 Preset Modes
+
+**Critical Only:**
+```bash
+devcompass fix --batch-mode critical
+```
+Fixes: Supply chain + License + Security
+
+**High Priority:**
+```bash
+devcompass fix --batch-mode high
+```
+Fixes: Critical + Quality + Ecosystem
+
+**All Safe Fixes:**
+```bash
+devcompass fix --batch-mode all
+```
+Fixes: Everything except major updates
+
+### 🎯 Example Usage
+
+**Interactive Batch Mode:**
+```bash
+# Select categories interactively
+devcompass fix --batch
+
+# Preview with dry-run
+devcompass fix --batch --dry-run
+```
+
+**Preset Modes:**
+```bash
+# Fix only critical issues
+devcompass fix --batch-mode critical
+
+# Fix high-priority issues
+devcompass fix --batch-mode high --yes
+
+# Fix all safe issues
+devcompass fix --batch-mode all --dry-run
+```
+
+**Category-Specific Fixes:**
+```bash
+# Fix only quality issues
+devcompass fix --only quality
+
+# Fix supply chain and license only
+devcompass fix --only supply-chain,license --yes
+
+# Fix everything except updates
+devcompass fix --skip updates
+
+# Fix security and quality, skip ecosystem
+devcompass fix --only security,quality --skip ecosystem
+```
+
+**Combined Options:**
+```bash
+# Batch mode with dry-run
+devcompass fix --batch --dry-run
+
+# Preset with force apply
+devcompass fix --batch-mode high --yes
+
+# Category filter with verbose
+devcompass fix --only quality --verbose
+
+# Custom project path
+devcompass fix --batch --path /path/to/project
+```
+
+### 📈 Example Output
+
+**Interactive Menu:**
+
+📦 BATCH FIX MODE
+══════════════════════════════════════════════════════════════════════
+Select which categories to fix:
+
+🛡️ Supply Chain Security
+Malicious packages, typosquatting, suspicious scripts
+Fixes available: none
+⚖️ License Conflicts
+GPL/AGPL/LGPL package replacements
+Fixes available: none
+📦 Package Quality
+Abandoned, deprecated, stale packages
+Fixes available: 2 fix(es)
+🔐 Critical Security
+npm audit vulnerabilities
+Fixes available: 5 fix(es)
+🚨 Ecosystem Alerts
+Known package issues
+Fixes available: 1 fix(es)
+🧹 Unused Dependencies
+Remove unused packages
+Fixes available: 4 fix(es)
+⬆️ Safe Updates
+Patch and minor version updates
+Fixes available: none
+
+──────────────────────────────────────────────────────────────────────
+Preset Modes:
+c - Critical only (supply-chain + license + security)
+h - High priority (critical + quality + ecosystem)
+a - All safe fixes (everything except major updates)
+n - None (cancel)
+Enter your choice (1-7, c/h/a/n, or comma-separated):
+
+**Batch Execution:**
+📦 SELECTED BATCHES:
+📦 Package Quality: 2 fix(es)
+🔐 Critical Security: 5 fix(es)
+Step 1: Creating backup...
+✓ Backup created: backup-2026-04-06T15-08-57-742Z
+Step 2: Executing batches...
+📦 PACKAGE QUALITY
+──────────────────────────────────────────────────────────────────────
+✔ Replaced moment with dayjs
+✔ Replaced request with axios
+🔐 CRITICAL SECURITY
+──────────────────────────────────────────────────────────────────────
+✔ Security vulnerabilities fixed
+
+**Batch Summary:**
+📊 BATCH FIX SUMMARY
+══════════════════════════════════════════════════════════════════════
+📦 Package Quality
+✓ 2 fix(es) applied
+• moment → dayjs (DEPRECATED)
+• request → axios (DEPRECATED)
+🔐 Critical Security
+✓ 1 fix(es) applied
+• npm audit fix
+──────────────────────────────────────────────────────────────────────
+📈 OVERALL RESULTS:
+Total Batches: 2
+Total Fixes: 3
+Successful: 3
+Failed: 0
+Duration: 0.52s
+──────────────────────────────────────────────────────────────────────
+✓ Batch report saved: devcompass-batch-report.json
+
+### 🛡️ Safety Features
+- ✅ **Automatic backups** - Created before batch execution
+- ✅ **Dry-run support** - Preview batch fixes without changes
+- ✅ **Confirmation prompts** - Can be skipped with `--yes`
+- ✅ **Category validation** - Invalid categories ignored
+- ✅ **Error isolation** - Failed batches don't stop execution
+- ✅ **Timeout protection** - 60-second timeouts prevent hanging
+- ✅ **Detailed reports** - Every fix documented in JSON
+- ✅ **Skip ecosystem issues** - Automatically skips invalid versions
+
+### 🎯 Use Cases
+- **Security Teams** - Fix only critical security issues (`--batch-mode critical`)
+- **Development Teams** - Interactive selection for team discussion (`--batch`)
+- **CI/CD Pipelines** - Automated category-specific fixes (`--only security --yes`)
+- **Maintenance** - Fix quality issues separately (`--only quality`)
+- **Compliance** - Fix license conflicts first (`--only license`)
+- **Performance** - Remove unused dependencies (`--only unused`)
+- **Incremental Updates** - Fix categories one at a time
+
+### 🔄 Workflow Examples
+
+**Security-First Workflow:**
+```bash
+# 1. Fix critical security first
+devcompass fix --batch-mode critical --yes
+
+# 2. Then fix quality issues
+devcompass fix --only quality --yes
+
+# 3. Clean up unused dependencies
+devcompass fix --only unused --yes
+
+# 4. Verify improvements
+devcompass analyze
+```
+
+**Interactive Team Workflow:**
+```bash
+# 1. Preview all available fixes
+devcompass fix --batch --dry-run
+
+# 2. Team decides which categories to fix
+devcompass fix --batch
+
+# 3. Review batch report
+cat devcompass-batch-report.json
+
+# 4. Verify changes
+devcompass backup list
+```
+
+**CI/CD Workflow:**
+```bash
+# Fix high-priority issues automatically
+devcompass fix --batch-mode high --yes
+
+# Or fix specific categories
+devcompass fix --only supply-chain,license,security --yes
+```
+
+### 🐛 Bug Fixes
+- Fixed `BatchExecutor` hanging on ecosystem alerts with invalid versions
+- Fixed ecosystem batch to skip migration-required packages
+- Added 60-second timeout to all `execSync` operations
+- Fixed proper error handling in batch execution
+- Fixed spinner updates during batch processing
+
+### 💥 Breaking Changes
+None - Fully backward compatible with v2.8.4
+
+### 📝 Notes
+- Batch mode is completely optional
+- Normal fix mode unchanged and still works
+- Batch reports are separate from regular fix reports
+- All batch operations support dry-run mode
+- Batch mode integrates with v2.8.4 backup system
+- Category names are case-sensitive in `--only` and `--skip`
+
+### 🔗 Integration
+- Works seamlessly with v2.8.4 backup & rollback
+- Works seamlessly with v2.8.3 quality fixes
+- Works seamlessly with v2.8.2 license fixes
+- Works seamlessly with v2.8.1 supply chain fixes
+- Works seamlessly with v2.8.0 enhanced fix command
+
+---
+
 ## [2.8.4] - 2026-04-06
 
 ### ✨ Features
@@ -2107,6 +2420,7 @@ No migration needed. All features are opt-in via flags or config.
 
 ---
 
+[2.8.5]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.8.5
 [2.8.4]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.8.4
 [2.8.3]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.8.3
 [2.8.2]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.8.2

@@ -32,12 +32,6 @@ class QualityFixer {
     }
   }
 
-  /**
-   * Fix a quality warning
-   * @param {Object} warning - Quality warning object
-   * @param {boolean} dryRun - Whether this is a dry run
-   * @returns {Promise<Object>} Fix result
-   */
   async fixWarning(warning, dryRun = false) {
     this.loadAlternatives();
 

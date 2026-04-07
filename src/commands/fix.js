@@ -4,12 +4,16 @@ const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const ora = require('ora');
+const readline = require('readline');
 const ProgressTracker = require('../utils/progress-tracker');
 const FixReport = require('../utils/fix-report');
 const BackupManager = require('../utils/backup-manager');
 const SupplyChainFixer = require('../utils/supply-chain-fixer');
 const LicenseConflictFixer = require('../utils/license-conflict-fixer');
 const QualityFixer = require('../utils/quality-fixer');
+const BatchSelector = require('../utils/batch-selector');
+const BatchExecutor = require('../utils/batch-executor');
+const BatchReporter = require('../utils/batch-reporter');
 const { clearCache } = require('../cache/manager');
 const { calculateAlertPenalty } = require('../alerts/formatter');
 const { calculateScore } = require('../analyzers/scoring');
@@ -19,11 +23,16 @@ async function fix(options = {}) {
   const projectPath = options.path || process.cwd();
   const autoApply = options.yes || options.y || false;
   const dryRun = options.dryRun || options.dry || false;
+  const batchMode = options.batch || options.batchMode || options.only || options.skip;
 
   console.log(chalk.bold.cyan('\n🔧 DevCompass Fix\n'));
 
   if (dryRun) {
     console.log(chalk.yellow('📋 DRY RUN MODE - No changes will be made\n'));
+  }
+
+  if (batchMode) {
+    console.log(chalk.cyan('📦 BATCH MODE ENABLED\n'));
   }
 
   // Check if package.json exists
@@ -49,6 +58,9 @@ async function fix(options = {}) {
 
     spinner.succeed('Analysis complete');
 
+    // Build planned fixes structure
+    const plannedFixes = buildPlannedFixes(analysisData);
+
     // Calculate total fixes needed
     const totalFixes = calculateTotalFixes(
       analysisData.security,
@@ -65,6 +77,12 @@ async function fix(options = {}) {
       return;
     }
 
+    // Check if batch mode is enabled
+    if (batchMode) {
+      return await executeBatchMode(options, plannedFixes, analysisData, projectPath, backupManager, dryRun, autoApply);
+    }
+
+    // Continue with normal fix mode...
     // Step 2: Show what will be fixed
     console.log(chalk.bold('\nStep 2: Planned fixes\n'));
     displayPlannedFixes(analysisData, dryRun);
@@ -79,15 +97,15 @@ async function fix(options = {}) {
     // Step 3: Get confirmation (unless auto-apply or dry-run)
     if (!dryRun && !autoApply) {
       console.log(chalk.bold('\n' + '='.repeat(70)));
-      const readline = require('readline').createInterface({
+      const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout
       });
 
       const answer = await new Promise(resolve => {
-        readline.question(chalk.yellow('⚠️  Apply these fixes? (y/N): '), resolve);
+        rl.question(chalk.yellow('⚠️  Apply these fixes? (y/N): '), resolve);
       });
-      readline.close();
+      rl.close();
 
       if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
         console.log(chalk.gray('\nFix cancelled by user.\n'));
@@ -95,10 +113,9 @@ async function fix(options = {}) {
       }
     }
 
-    // ✅ STEP 4: Create backup BEFORE dry-run check (so it works in both modes)
+    // Step 4: Create backup
     console.log(chalk.bold('\nStep 4: Creating backup...\n'));
 
-    // Calculate total dependencies
     const packageJson = JSON.parse(
       fs.readFileSync(path.join(projectPath, 'package.json'), 'utf8')
     );
@@ -107,7 +124,6 @@ async function fix(options = {}) {
       ...packageJson.devDependencies
     }).length;
 
-    // Calculate current score for metadata
     let currentScore;
     try {
       currentScore = calculateScore(
@@ -119,7 +135,6 @@ async function fix(options = {}) {
         calculateSecurityPenalty(analysisData.security.metadata)
       );
     } catch (error) {
-      // If score calculation fails, use default
       console.log(chalk.gray('  (Score calculation skipped)'));
       currentScore = { total: 0 };
     }
@@ -144,7 +159,6 @@ async function fix(options = {}) {
       console.log(chalk.yellow('⚠️  Warning: Backup creation failed (continuing anyway)\n'));
     }
 
-    // ✅ Check dry-run AFTER backup is created
     if (dryRun) {
       console.log(chalk.cyan('✓ Dry run complete. No changes were made.\n'));
       return;
@@ -161,7 +175,7 @@ async function fix(options = {}) {
     const startTime = Date.now();
     const fixSpinner = ora('Starting fixes...').start();
 
-    // Priority 1: Fix supply chain issues FIRST (critical security)
+    // Priority 1: Fix supply chain issues FIRST
     if (analysisData.supplyChain?.warnings?.length > 0) {
       const autoFixableSupplyChain = analysisData.supplyChain.warnings.filter(w => w.autoFixable);
       
@@ -200,7 +214,7 @@ async function fix(options = {}) {
       }
     }
 
-    // Priority 2: Fix license conflicts SECOND
+    // Priority 2: Fix license conflicts
     if (analysisData.licenseData?.warnings?.length > 0) {
       const autoFixableLicense = analysisData.licenseData.warnings.filter(w => w.autoFixable);
       
@@ -239,7 +253,7 @@ async function fix(options = {}) {
       }
     }
 
-    // Priority 3: Fix package quality issues THIRD
+    // Priority 3: Fix package quality issues
     if (analysisData.qualityData?.packages?.length > 0) {
       const qualityIssues = analysisData.qualityData.packages.filter(p => p.autoFixable);
       
@@ -392,7 +406,7 @@ async function fix(options = {}) {
       }
     }
 
-    // Priority 7: Update outdated packages (only patch/minor)
+    // Priority 7: Update outdated packages
     if (analysisData.outdated?.length > 0) {
       const safeUpdates = analysisData.outdated.filter(pkg => !isMajorVersionUpdate(pkg.versionsBehind));
       
@@ -466,13 +480,11 @@ async function fix(options = {}) {
     report.finalize();
     report.display();
 
-    // Save report to file
     const reportPath = await report.save(projectPath);
     if (reportPath) {
       console.log(chalk.cyan(`📄 Full report saved to: ${path.basename(reportPath)}\n`));
     }
 
-    // Final summary
     const summary = report.getSummary();
     if (summary.totalFixes > 0) {
       console.log(chalk.green.bold(`✓ Successfully applied ${summary.totalFixes} fix(es)!\n`));
@@ -490,6 +502,224 @@ async function fix(options = {}) {
   }
 }
 
+/**
+ * Execute batch fix mode
+ */
+async function executeBatchMode(options, plannedFixes, analysisData, projectPath, backupManager, dryRun, autoApply) {
+  const selector = new BatchSelector();
+  const executor = new BatchExecutor(projectPath);
+  const reporter = new BatchReporter(projectPath);
+
+  // Get batch statistics
+  const stats = selector.getBatchStats(plannedFixes);
+
+  let selectedBatches;
+
+  // Handle preset batch modes
+  if (options.batchMode) {
+    const presetMap = {
+      'critical': 'c',
+      'high': 'h',
+      'all': 'a'
+    };
+    const preset = presetMap[options.batchMode.toLowerCase()];
+    selectedBatches = selector.parseBatchSelection(preset, stats);
+    
+    if (!selectedBatches || selectedBatches.length === 0) {
+      console.log(chalk.yellow('\n⚠️  No fixes available for selected batch mode.\n'));
+      return;
+    }
+
+    console.log(chalk.cyan(`Batch mode: ${options.batchMode}`));
+    console.log(chalk.gray(`Selected ${selectedBatches.length} batch(es)\n`));
+  }
+  // Handle --only option
+  else if (options.only) {
+    const categories = options.only.split(',').map(c => c.trim());
+    selectedBatches = selector.batches.filter(b => 
+      categories.includes(b.id) && stats[b.id]?.count > 0
+    );
+
+    if (selectedBatches.length === 0) {
+      console.log(chalk.yellow('\n⚠️  No fixes available for selected categories.\n'));
+      return;
+    }
+  }
+  // Interactive selection
+  else {
+    selectedBatches = await selector.promptBatchSelection(stats);
+    
+    if (!selectedBatches) {
+      console.log(chalk.red('\n✗ Invalid selection. Please try again.\n'));
+      return;
+    }
+
+    if (selectedBatches.length === 0) {
+      console.log(chalk.yellow('\n⚠️  No batches selected. Exiting.\n'));
+      return;
+    }
+  }
+
+  // Show selected batches
+  console.log(chalk.bold.cyan('\n📦 SELECTED BATCHES:\n'));
+  selectedBatches.forEach(batch => {
+    const count = stats[batch.id]?.count || 0;
+    console.log(`  ${batch.icon} ${chalk.bold(batch.name)}: ${chalk.yellow(count + ' fix(es)')}`);
+  });
+
+  // Apply --skip option
+  if (options.skip) {
+    const skipCategories = options.skip.split(',').map(c => c.trim());
+    selectedBatches = selectedBatches.filter(b => !skipCategories.includes(b.id));
+    
+    if (selectedBatches.length === 0) {
+      console.log(chalk.yellow('\n⚠️  All batches skipped. Exiting.\n'));
+      return;
+    }
+
+    console.log(chalk.gray(`\nSkipped categories: ${skipCategories.join(', ')}`));
+  }
+
+  // Confirm execution
+  if (!autoApply && !dryRun) {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    const answer = await new Promise(resolve => {
+      rl.question(chalk.yellow('\n⚠️  Apply selected batch fixes? (y/N): '), resolve);
+    });
+    rl.close();
+
+    if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
+      console.log(chalk.gray('\nBatch fix cancelled by user.\n'));
+      return;
+    }
+  }
+
+  // Create backup
+  if (!dryRun) {
+    console.log(chalk.cyan('\nStep 1: Creating backup...\n'));
+    
+    const totalBatchFixes = selectedBatches.reduce((sum, b) => sum + (stats[b.id]?.count || 0), 0);
+    
+    const backupName = await backupManager.createBackup('Before batch fixes', {
+      fixesPending: totalBatchFixes,
+      healthScore: 0,
+      batchMode: true,
+      selectedBatches: selectedBatches.map(b => b.id)
+    });
+
+    console.log(chalk.green(`✓ Backup created: ${backupName}\n`));
+  }
+
+  // Execute batches
+  const startTime = Date.now();
+  const batchResults = [];
+  let totalSuccessful = 0;
+  let totalFailed = 0;
+
+  console.log(chalk.cyan('\nStep 2: Executing batches...\n'));
+
+  for (const batch of selectedBatches) {
+    const fixes = stats[batch.id]?.fixes || [];
+    
+    if (dryRun) {
+      console.log(chalk.gray(`\n[DRY RUN] Would execute ${batch.name}: ${fixes.length} fix(es)`));
+      continue;
+    }
+
+    const result = await executor.executeBatch(batch, fixes, {
+      verbose: options.verbose,
+      yes: autoApply
+    });
+
+    batchResults.push(result);
+    totalSuccessful += result.successful;
+    totalFailed += result.failed;
+  }
+
+  const duration = ((Date.now() - startTime) / 1000).toFixed(2) + 's';
+
+  if (dryRun) {
+    console.log(chalk.green('\n✓ Dry run complete. No changes were made.\n'));
+    return;
+  }
+
+  // Generate and display report
+  const summary = {
+    totalBatches: selectedBatches.length,
+    totalFixes: totalSuccessful + totalFailed,
+    successful: totalSuccessful,
+    failed: totalFailed,
+    skipped: 0,
+    duration
+  };
+
+  const batchReport = reporter.generateReport(batchResults, summary);
+  reporter.displaySummary(batchResults, summary);
+
+  return {
+    success: totalFailed === 0,
+    report: batchReport,
+    summary
+  };
+}
+
+/**
+ * Build planned fixes structure for batch mode
+ */
+function buildPlannedFixes(analysisData) {
+  const planned = {};
+
+  // Supply chain fixes
+  if (analysisData.supplyChain?.warnings) {
+    planned.supplyChain = analysisData.supplyChain.warnings.filter(w => w.autoFixable);
+  }
+
+  // License conflict fixes
+  if (analysisData.licenseData?.warnings) {
+    planned.licenseConflicts = analysisData.licenseData.warnings.filter(w => w.autoFixable);
+  }
+
+  // Quality fixes
+  if (analysisData.qualityData?.packages) {
+    planned.quality = analysisData.qualityData.packages.filter(p => p.autoFixable);
+  }
+
+  // Security fixes
+  if (analysisData.security?.metadata) {
+    const criticalCount = (analysisData.security.metadata.critical || 0) + 
+                         (analysisData.security.metadata.high || 0);
+    if (criticalCount > 0) {
+      planned.security = { criticalCount };
+    }
+  }
+
+  // Ecosystem fixes
+  if (analysisData.ecosystem) {
+    planned.ecosystem = analysisData.ecosystem.filter(a => 
+      a.severity === 'critical' || a.severity === 'high'
+    );
+  }
+
+  // Unused dependencies
+  if (analysisData.unused) {
+    planned.unused = analysisData.unused.map(dep => dep.name);
+  }
+
+  // Safe updates
+  if (analysisData.outdated) {
+    const safeUpdates = analysisData.outdated.filter(pkg => !isMajorVersionUpdate(pkg.versionsBehind));
+    if (safeUpdates.length > 0) {
+      planned.updates = { safe: safeUpdates };
+    }
+  }
+
+  return planned;
+}
+
 // Helper functions
 
 function isMajorVersionUpdate(versionsBehind) {
@@ -502,7 +732,6 @@ function isMajorVersionUpdate(versionsBehind) {
 }
 
 async function analyzeProject(projectPath) {
-  // Load existing analyzers
   const alerts = require('../alerts');
   const unusedDeps = require('../analyzers/unused-deps');
   const outdated = require('../analyzers/outdated');
@@ -521,7 +750,6 @@ async function analyzeProject(projectPath) {
     ...packageJson.devDependencies
   };
 
-  // Run analyses
   const ecosystem = await alerts.checkEcosystemAlerts(projectPath, dependencies);
   const unused = await unusedDeps.findUnusedDeps(projectPath, dependencies);
   const outdatedList = await outdated.findOutdatedDeps(projectPath, dependencies);
@@ -545,37 +773,30 @@ async function analyzeProject(projectPath) {
 function calculateTotalFixes(security, supplyChain, licenseData, qualityData, ecosystem, unused, outdated) {
   let total = 0;
 
-  // Count supply chain auto-fixable issues
   if (supplyChain?.warnings) {
     total += supplyChain.warnings.filter(w => w.autoFixable).length;
   }
 
-  // Count license conflict auto-fixable issues
   if (licenseData?.warnings) {
     total += licenseData.warnings.filter(w => w.autoFixable).length;
   }
 
-  // Count quality fixes (abandoned, deprecated, stale packages with alternatives)
   if (qualityData?.packages) {
     total += qualityData.packages.filter(p => p.autoFixable).length;
   }
 
-  // Count security fixes
   if (security?.metadata?.critical > 0 || security?.metadata?.high > 0) {
-    total += 1; // npm audit fix counts as one operation
+    total += 1;
   }
 
-  // Count critical/high alerts
   if (ecosystem) {
     total += ecosystem.filter(a => a.severity === 'critical' || a.severity === 'high').length;
   }
 
-  // Count unused deps
   if (unused) {
     total += unused.length;
   }
 
-  // Count safe updates (patch/minor only)
   if (outdated) {
     const safeUpdates = outdated.filter(pkg => !isMajorVersionUpdate(pkg.versionsBehind));
     total += safeUpdates.length;
@@ -586,7 +807,6 @@ function calculateTotalFixes(security, supplyChain, licenseData, qualityData, ec
 
 function displayPlannedFixes(data, dryRun) {
   const qualityFixer = new QualityFixer();
-  let fixCount = 0;
 
   // Priority 1: Supply chain fixes
   if (data.supplyChain?.warnings?.length > 0) {
@@ -602,7 +822,6 @@ function displayPlannedFixes(data, dryRun) {
         if (warning.replacement) {
           console.log(`    ${chalk.gray('Replace with:')} ${warning.replacement}`);
         }
-        fixCount++;
       });
     }
   }
@@ -621,7 +840,6 @@ function displayPlannedFixes(data, dryRun) {
           console.log(`    ${chalk.gray('Replace with:')} ${warning.suggestedAlternative.name} (${warning.suggestedAlternative.license})`);
         }
         console.log(`    ${chalk.gray('Action:')} ${warning.recommendation}`);
-        fixCount++;
       });
     }
   }
@@ -653,7 +871,6 @@ function displayPlannedFixes(data, dryRun) {
         } else {
           console.log(`    ${chalk.gray('Action:')} Review manually (no alternative available)`);
         }
-        fixCount++;
       });
     }
   }
@@ -662,7 +879,6 @@ function displayPlannedFixes(data, dryRun) {
   if (data.security?.metadata?.critical > 0 || data.security?.metadata?.high > 0) {
     console.log(chalk.red.bold('\n🔴 CRITICAL SECURITY FIXES'));
     console.log(`  ${chalk.cyan('→')} Run npm audit fix to resolve ${data.security.metadata.critical + data.security.metadata.high} vulnerabilities`);
-    fixCount++;
   }
 
   // Priority 5: Ecosystem alerts
@@ -676,7 +892,6 @@ function displayPlannedFixes(data, dryRun) {
         console.log(`  ${chalk.cyan(alert.package)}`);
         console.log(`    ${chalk.gray('→')} ${alert.title}`);
         console.log(`    ${chalk.gray('Fix:')} ${alert.fix}`);
-        fixCount++;
       });
     }
   }
@@ -688,7 +903,6 @@ function displayPlannedFixes(data, dryRun) {
     data.unused.forEach(dep => {
       console.log(`  ${chalk.cyan(dep.name)}`);
       console.log(`    ${chalk.gray('→')} Will be removed`);
-      fixCount++;
     });
   }
 
@@ -702,11 +916,9 @@ function displayPlannedFixes(data, dryRun) {
       safeUpdates.forEach(pkg => {
         console.log(`  ${chalk.cyan(pkg.name)}`);
         console.log(`    ${chalk.gray('→')} ${pkg.current} → ${pkg.latest}`);
-        fixCount++;
       });
     }
 
-    // Major updates (will be skipped)
     const majorUpdates = data.outdated.filter(pkg => isMajorVersionUpdate(pkg.versionsBehind));
     
     if (majorUpdates.length > 0) {
