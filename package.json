@@ -83,7 +83,6 @@
   "author": "Ajay Thorat <ajaythorat988@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "canvas": "^2.11.2",
     "chalk": "4.1.2",
     "commander": "11.1.0",
     "d3": "^7.9.0",
