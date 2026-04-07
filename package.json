@@ -1,6 +1,6 @@
 {
   "name": "devcompass",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, batch fix modes, backup & rollback, parallel processing, advanced license risk detection, and enhanced fix command.",
   "main": "src/index.js",
   "bin": {
@@ -85,7 +85,7 @@
   "dependencies": {
     "chalk": "4.1.2",
     "commander": "11.1.0",
-    "depcheck": "^1.4.7",
+    "knip": "^5.88.1",
     "npm-check-updates": "^20.0.0",
     "open": "^10.2.0",
     "ora": "5.4.1",
