@@ -5,6 +5,95 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2026-04-07
+
+### 🐛 Bug Fixes
+
+#### JSON Output Mode Fix
+- **CRITICAL FIX:** Fixed `supplyChainWarnings.filter is not a function` error in JSON mode
+- Fixed parameter type mismatch in `json-formatter.js` (was expecting array, received object)
+- Added safety checks for `supplyChainData.warnings` to ensure it's always an array
+
+#### Dependency Cleanup
+- **Removed unused dependencies:** canvas, d3, jsdom (detected by DevCompass)
+- **Replaced stale package:** depcheck → knip (2 years without updates)
+- **Security improvements:** Fixed 4 npm audit vulnerabilities
+
+### 📊 Health Improvements
+- Project health score: **3.5/10 → 7.9/10** ✅
+- Security vulnerabilities: **4 → 0** ✅
+- Unused dependencies: **3 → 0** ✅
+- Total dependencies: **10 → 7** (optimized)
+
+### 🔧 Technical Details
+
+**Files Changed:**
+- `src/commands/analyze.js` - Wrapped `supplyChainData` in safety object before passing to JSON formatter
+- `src/utils/json-formatter.js` - Changed parameter from `supplyChainWarnings` array to `supplyChainData` object
+- `package.json` - Removed canvas@^2.11.2, d3@^7.9.0, jsdom@^24.1.3, replaced depcheck with knip
+- `.gitignore` - Added test graph output exclusions (test1.html, test1.json, test1-shallow.html)
+
+**Root Cause:**
+The JSON formatter was expecting `supplyChainWarnings` as an array parameter, but `analyze.js` was passing the entire `supplyChainData` object. This caused `.filter()` to fail when called on a non-array.
+
+**Solution:**
+1. Updated `json-formatter.js` to accept `supplyChainData` object instead of array
+2. Added safety extraction: `const supplyChainWarnings = Array.isArray(supplyChainData.warnings) ? supplyChainData.warnings : [];`
+3. Updated `analyze.js` to pass entire `supplyChainData` object with warnings array guaranteed
+
+### ✅ Verification
+- All 28 tests passing (100%)
+- JSON mode fully functional
+- All v2.8.x and v3.0.0 features working
+- Backward compatible with v3.0.0
+
+### 🚀 What's Fixed
+
+**Before v3.0.1:**
+```bash
+devcompass analyze --json
+# Error: supplyChainWarnings.filter is not a function
+```
+
+**After v3.0.1:**
+```bash
+devcompass analyze --json
+# ✅ Valid JSON output with complete data
+```
+
+### 💥 Breaking Changes
+**NONE** - Fully backward compatible with v3.0.0
+
+### 📦 Dependencies Removed
+```json
+// Removed from package.json
+"canvas": "^2.11.2",    // Unused (graph uses D3.js from CDN)
+"d3": "^7.9.0",         // Unused (loaded via CDN in HTML)
+"jsdom": "^24.1.3"      // Unused (not needed for current implementation)
+```
+
+### 🔄 Dependencies Replaced
+```json
+// Replaced stale package
+"depcheck": "^1.4.7"  →  "knip": "latest"
+```
+
+### 📝 Notes
+This is a **critical patch** for v3.0.0 which had:
+- Broken JSON output mode
+- Unused dependencies bloating package size
+- 4 security vulnerabilities
+- Lower health score
+
+**Recommendation:** All v3.0.0 users should upgrade to v3.0.1 immediately.
+
+### 🔗 Related Issues
+- JSON mode was completely non-functional in v3.0.0
+- DevCompass detected its own issues (dogfooding works!)
+- Applied automated fixes via `devcompass fix`
+
+---
+
 ## [3.0.0] - 2026-04-07
 
 ### ✨ Features
@@ -2689,6 +2778,7 @@ No migration needed. All features are opt-in via flags or config.
 
 ---
 
+[3.0.1]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.0.1
 [3.0.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.0.0
 [2.8.5]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.8.5
 [2.8.4]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v2.8.4

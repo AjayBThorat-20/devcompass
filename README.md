@@ -8,15 +8,58 @@
 
 Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 500+ packages**, **visualize dependency graphs interactively**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
+> **🐛 CRITICAL UPDATE v3.0.1:** Fixed broken JSON output mode + removed unused dependencies + security fixes!  
 > **🎉 NEW v3.0.0:** Dependency Graph Visualization - Interactive D3.js graphs with health-based color coding! 📊  
 > **PREVIOUS v2.8.5:** Batch Fix Modes - Granular control over which categories to fix! 📦  
-> **PREVIOUS v2.8.4:** Backup & Rollback Command - Complete backup management for safe dependency fixes! 💾
 
-## 🎉 Latest Update: v3.0.0 - Dependency Graph Visualization
+## 🚨 Critical Update: v3.0.1 (2026-04-07)
+
+**If you're using v3.0.0, please upgrade immediately to v3.0.1!**
+
+### What's Fixed in v3.0.1:
+- 🐛 **CRITICAL:** Fixed broken JSON output mode (`supplyChainWarnings.filter is not a function`)
+- 📦 **Removed unused dependencies:** canvas, d3, jsdom (32% smaller package)
+- 🔐 **Security:** Fixed 4 npm audit vulnerabilities
+- ✨ **Replaced stale package:** depcheck → knip
+- 📊 **Health improvement:** 3.5/10 → 7.9/10
+
+### Upgrade Now:
+```bash
+npm install -g devcompass@3.0.1
+```
+
+**What was broken in v3.0.0:**
+```bash
+# v3.0.0 (BROKEN)
+devcompass analyze --json
+# ❌ Error: supplyChainWarnings.filter is not a function
+
+# v3.0.1 (FIXED)
+devcompass analyze --json
+# ✅ Valid JSON output
+```
+
+---
+
+## 🎉 Latest Updates
+
+### v3.0.1 (2026-04-07) - Critical Bug Fix
+
+**Bug fixes and improvements!** This patch release fixes the broken JSON output mode from v3.0.0 and removes unused dependencies.
+
+**What's Fixed:**
+- ✅ JSON output mode now works correctly
+- ✅ Removed 3 unused dependencies (canvas, d3, jsdom)
+- ✅ Fixed 4 security vulnerabilities
+- ✅ Replaced stale package (depcheck → knip)
+- ✅ Package size reduced by 32%
+- ✅ Health score improved to 7.9/10
+
+### v3.0.0 (2026-04-07) - Dependency Graph Visualization
 
 **Interactive dependency graph visualization with D3.js!** DevCompass now generates beautiful, interactive dependency graphs with health-based color coding, zoom/pan controls, and multiple export formats.
 
-### What's New in v3.0.0:
+**What's New in v3.0.0:**
 - 📊 **Interactive Dependency Graphs** - Beautiful D3.js tree visualizations
 - 🎨 **Health-Based Color Coding** - Visual indicators from excellent to critical
 - 🔍 **Interactive Controls** - Zoom, pan, reset, and tooltips
@@ -44,38 +87,23 @@ devcompass graph --open
 
 # Custom dimensions
 devcompass graph --width 1600 --height 1000
-
-# Preview with dry-run
-devcompass graph --output my-graph.html
 ```
 
 ### Graph Output Example:
-```
-📊 DevCompass - Dependency Graph
 
+📊 DevCompass - Dependency Graph
 ✔ Generated graph with 341 nodes
 ✔ Graph exported: dependency-graph.html
-
 ──────────────────────────────────────────────────────────────────────
-
 📈 GRAPH SUMMARY
-
-  Format:        HTML
-  Layout:        tree
-  Total Nodes:   341
-  Total Links:   465
-  Max Depth:     7
-  File Size:     67.59 KB
-
+Format:        HTML
+Layout:        tree
+Total Nodes:   341
+Total Links:   465
+Max Depth:     7
+File Size:     67.59 KB
 ──────────────────────────────────────────────────────────────────────
-
 ✓ Graph generation complete!
-```
-
-**Upgrade now:**
-```bash
-npm install -g devcompass@3.0.0
-```
 
 ---
 
@@ -109,6 +137,7 @@ npm install -g devcompass@3.0.0
 
 ## ✨ Features
 
+- 🐛 **Critical Bug Fixes** (v3.0.1) - Fixed broken JSON mode + removed unused deps
 - 📊 **Dependency Graph Visualization** (v3.0.0) - Interactive D3.js graphs with health-based color coding
 - 📦 **Batch Fix Modes** (v2.8.5) - Granular control over which categories to fix
 - 💾 **Backup & Rollback** (v2.8.4) - Complete backup management for safe dependency fixes
@@ -128,7 +157,7 @@ npm install -g devcompass@3.0.0
 - 📦 **Bundle Size Analysis** (v2.3) - Identify heavy packages (> 1MB)
 - ⚖️ **License Checker** (v2.3) - Detect restrictive licenses (GPL, AGPL)
 - 🚀 **CI/CD Integration** (v2.2) - JSON output, exit codes, and silent mode
-- ⚡ **Smart Caching** (v2.2) - 93% faster on repeated runs
+- ⚡ **Smart Caching** (v2.2) - 70% faster on repeated runs
 - 🎛️ **Advanced Filtering** (v2.2) - Control alerts by severity level
 - 🚨 **Ecosystem Intelligence** (v2.0) - Detect known issues before they break production
 
@@ -136,17 +165,22 @@ npm install -g devcompass@3.0.0
 
 **Global installation (recommended):**
 ```bash
-npm install -g devcompass
+npm install -g devcompass@3.0.1
 ```
 
 **Local installation:**
 ```bash
-npm install --save-dev devcompass
+npm install --save-dev devcompass@3.0.1
 ```
 
 **One-time use (no installation):**
 ```bash
-npx devcompass analyze
+npx devcompass@3.0.1 analyze
+```
+
+**Upgrade from v3.0.0:**
+```bash
+npm install -g devcompass@3.0.1
 ```
 
 ## 📖 Usage
@@ -187,7 +221,7 @@ devcompass backup restore --name <backup-name>
 devcompass backup info --name <backup-name>
 devcompass backup clean
 
-# JSON output (for CI/CD)
+# JSON output (for CI/CD) - NOW WORKS! (Fixed in v3.0.1)
 devcompass analyze --json
 
 # CI mode (exit code 1 if score < threshold)
@@ -197,9 +231,9 @@ devcompass analyze --ci
 devcompass analyze --silent
 ```
 
-## 📊 Dependency Graph Visualization (NEW in v3.0.0!)
+## 📊 Dependency Graph Visualization (v3.0.0)
 
-DevCompass now includes **powerful dependency graph visualization** with D3.js!
+DevCompass includes **powerful dependency graph visualization** with D3.js!
 
 ### Graph Features:
 
@@ -268,27 +302,20 @@ devcompass graph --depth 2 --width 1600 --open
 ### Graph Output:
 
 **Terminal Output:**
-```
-📊 DevCompass - Dependency Graph
 
+📊 DevCompass - Dependency Graph
 ✔ Generated graph with 341 nodes
 ✔ Graph exported: dependency-graph.html
-
 ──────────────────────────────────────────────────────────────────────
-
 📈 GRAPH SUMMARY
-
-  Format:        HTML
-  Layout:        tree
-  Total Nodes:   341
-  Total Links:   465
-  Max Depth:     7
-  File Size:     67.59 KB
-
+Format:        HTML
+Layout:        tree
+Total Nodes:   341
+Total Links:   465
+Max Depth:     7
+File Size:     67.59 KB
 ──────────────────────────────────────────────────────────────────────
-
 ✓ Graph generation complete!
-```
 
 **HTML Features:**
 - Clean, modern design
@@ -355,7 +382,7 @@ devcompass graph --output fixed-graph.html --open
 
 ## 📦 Batch Fix Modes (v2.8.5)
 
-DevCompass now includes **comprehensive batch mode** for granular control over which fix categories to apply!
+DevCompass includes **comprehensive batch mode** for granular control over which fix categories to apply!
 
 ### Batch Fix Categories:
 
@@ -436,7 +463,6 @@ devcompass fix --skip ecosystem,updates
 DevCompass includes **comprehensive backup management** for safe dependency fixes!
 
 ### Backup Commands:
-
 ```bash
 # List all backups
 devcompass backup list
@@ -461,7 +487,7 @@ devcompass backup clean --keep 3
 DevCompass can **automatically replace abandoned, deprecated, and stale packages** with modern alternatives!
 
 ### Alternative Database (50+ packages):
-```
+
 request → axios, got, ky
 moment → dayjs, date-fns, luxon
 tslint → eslint
@@ -469,8 +495,8 @@ node-sass → sass (Dart Sass)
 colors → chalk
 enzyme → @testing-library/react
 faker → @faker-js/faker
+depcheck → knip  (NEW in v3.0.1!)
 ...and 40+ more!
-```
 
 ---
 
@@ -493,7 +519,7 @@ DevCompass **automatically fixes supply chain security issues**!
 # Analyze project dependencies
 devcompass analyze
 
-# Generate dependency graph (NEW in v3.0.0!)
+# Generate dependency graph (v3.0.0+)
 devcompass graph
 
 # Auto-fix issues
@@ -523,7 +549,7 @@ devcompass --help
 devcompass -h
 ```
 
-### Graph Options (NEW in v3.0.0!)
+### Graph Options (v3.0.0+)
 ```bash
 # Basic graph generation
 devcompass graph
@@ -598,7 +624,7 @@ devcompass backup clean --keep 3 --force
 
 ### Analyze Options
 ```bash
-# JSON output
+# JSON output (FIXED in v3.0.1!)
 devcompass analyze --json
 
 # CI mode
@@ -616,107 +642,72 @@ devcompass analyze --json --ci
 ## 📊 Example Output
 
 ### Graph Command:
-```
-📊 DevCompass - Dependency Graph
 
+📊 DevCompass - Dependency Graph
 ✔ Generated graph with 341 nodes
 ✔ Graph exported: dependency-graph.html
-
 ──────────────────────────────────────────────────────────────────────
-
 📈 GRAPH SUMMARY
-
-  Format:        HTML
-  Layout:        tree
-  Total Nodes:   341
-  Total Links:   465
-  Max Depth:     7
-  File Size:     67.59 KB
-
+Format:        HTML
+Layout:        tree
+Total Nodes:   341
+Total Links:   465
+Max Depth:     7
+File Size:     67.59 KB
 ──────────────────────────────────────────────────────────────────────
-
 ✓ Graph generation complete!
-```
 
 ### Analyze Command:
-```
-🔍 DevCompass v3.0.0 - Analyzing your project...
 
+🔍 DevCompass v3.0.1 - Analyzing your project...
 ✔ Scanned 25 dependencies in project
 ⚡ GitHub check completed in 1.23s (parallel processing)
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 🔐 SECURITY VULNERABILITIES (5)
-
-  🔴 CRITICAL: 1
-  🟠 HIGH: 2
-  🟡 MODERATE: 2
-
-  Run npm audit fix to fix vulnerabilities
-
+🔴 CRITICAL: 1
+🟠 HIGH: 2
+🟡 MODERATE: 2
+Run npm audit fix to fix vulnerabilities
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 ✅ SUPPLY CHAIN SECURITY
-
-  No supply chain risks detected!
-
+No supply chain risks detected!
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 🚨 ECOSYSTEM ALERTS (1)
-
 🟠 HIGH
-  axios@1.6.0
-    Issue: Memory leak in request interceptors
-    Fix: 1.6.2
-
+axios@1.6.0
+Issue: Memory leak in request interceptors
+Fix: 1.6.2
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 📦 HEAVY PACKAGES (2)
-
-  Packages larger than 1MB:
-
-  typescript                8.1 MB
-  webpack                   2.3 MB
-
+Packages larger than 1MB:
+typescript                8.1 MB
+webpack                   2.3 MB
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 📊 PROJECT HEALTH
-
-  Overall Score:              6.2/10
-  Total Dependencies:         25
-  Security Vulnerabilities:   5
-  Ecosystem Alerts:           1
-  Unused:                     0
-  Outdated:                   3
-
+Overall Score:              6.2/10
+Total Dependencies:         25
+Security Vulnerabilities:   5
+Ecosystem Alerts:           1
+Unused:                     0
+Outdated:                   3
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 💡 QUICK WINS
-
-  🔐 Fix security vulnerabilities:
-
-  npm audit fix
-
-  🔴 Fix critical issues:
-
-  npm install axios@1.6.2
-
-  Expected impact:
-  ✓ Resolve security vulnerabilities
-  ✓ Resolve critical stability issues
-  ✓ Improve health score → 8.7/10
-
+🔐 Fix security vulnerabilities:
+npm audit fix
+🔴 Fix critical issues:
+npm install axios@1.6.2
+Expected impact:
+✓ Resolve security vulnerabilities
+✓ Resolve critical stability issues
+✓ Improve health score → 8.7/10
 💡 TIP: Run 'devcompass fix' to apply these fixes automatically!
-     Or use 'devcompass graph' to visualize your dependencies!
-```
+Or use 'devcompass graph' to visualize your dependencies!
 
 ---
 
 ## 🎯 Configuration
 
 Create `devcompass.config.json` in your project root:
-
 ```json
 {
   "ignore": ["package-name"],
@@ -733,6 +724,47 @@ Create `devcompass.config.json` in your project root:
 - **minSeverity** - Minimum severity to display (low/medium/high/critical)
 - **minScore** - Minimum health score for CI mode (default: 7)
 - **cache** - Enable/disable caching (default: true)
+
+---
+
+## 🐛 Troubleshooting
+
+### JSON Mode Not Working (v3.0.0)
+If you're experiencing `supplyChainWarnings.filter is not a function` error:
+```bash
+# Upgrade to v3.0.1 (includes the fix)
+npm install -g devcompass@3.0.1
+
+# Verify version
+devcompass --version
+# Should show: 3.0.1
+
+# Test JSON mode
+devcompass analyze --json
+# Should work without errors!
+```
+
+### Common Issues:
+
+**Issue:** "Command not found: devcompass"
+```bash
+# Solution: Install globally
+npm install -g devcompass@3.0.1
+```
+
+**Issue:** JSON output broken
+```bash
+# Solution: Upgrade to v3.0.1
+npm update -g devcompass
+```
+
+**Issue:** Unused dependencies showing up incorrectly
+```bash
+# Solution: Add them to devcompass.config.json
+{
+  "ignore": ["package-name"]
+}
+```
 
 ---
 
@@ -778,6 +810,7 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 - [x] ~~Backup & rollback command~~ ✅ **Added in v2.8.4!**
 - [x] ~~Batch fix modes~~ ✅ **Added in v2.8.5!**
 - [x] ~~Dependency graph visualization~~ ✅ **Added in v3.0.0!**
+- [x] ~~Fix broken JSON mode~~ ✅ **Fixed in v3.0.1!**
 - [ ] Force-directed network layout (v3.1.0)
 - [ ] Radial/circular graph layouts (v3.1.0)
 - [ ] Conflict-only graph view (v3.1.0)
@@ -798,4 +831,3 @@ Want to contribute? Pick an item and open an issue! 🚀
 *DevCompass - Keep your dependencies healthy!* 🧭
 
 **Like Lighthouse for your dependencies** ⚡
-```
