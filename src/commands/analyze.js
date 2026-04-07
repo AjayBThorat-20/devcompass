@@ -400,24 +400,33 @@ async function analyze(options) {
     });
     
     // Handle different output modes
-    if (outputMode === 'json') {
-      const jsonOutput = formatAsJson(
-        alerts, 
-        unusedDeps, 
-        outdatedDeps, 
-        score, 
-        totalDeps, 
-        securityData, 
-        bundleSizes, 
-        licenses, 
-        predictiveWarnings,
-        supplyChainData,
-        licenseRiskData,
-        qualityData,
-        recommendations
-      );
-      console.log(jsonOutput);
-    } else if (outputMode === 'ci') {
+ // Handle different output modes
+if (outputMode === 'json') {
+  const safeSupplyChainData = {
+    ...supplyChainData,
+    warnings: Array.isArray(supplyChainData.warnings) ? supplyChainData.warnings : []
+  };
+
+  const jsonOutput = formatAsJson(
+    alerts, 
+    unusedDeps, 
+    outdatedDeps, 
+    score, 
+    totalDeps, 
+    securityData, 
+    bundleSizes, 
+    licenses, 
+    predictiveWarnings,
+    {
+      ...supplyChainData,
+      warnings: Array.isArray(supplyChainData.warnings) ? supplyChainData.warnings : []
+    },
+    licenseRiskData,
+    qualityData,
+    recommendations
+  );
+  console.log(jsonOutput);
+  }else if (outputMode === 'ci') {
       displayResults(
         alerts, 
         unusedDeps, 
