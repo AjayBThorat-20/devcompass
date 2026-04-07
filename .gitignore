@@ -21,3 +21,6 @@ dependency-graph.html
 final-test.html
 *.graph.html
 *.graph.json
+test1.html
+test1.json
+test1-shallow.html
