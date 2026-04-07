@@ -9,11 +9,14 @@ function formatAsJson(
   bundleSizes, 
   licenses, 
   predictiveWarnings = [],
-  supplyChainWarnings = [],
+  supplyChainData = { warnings: [], total: 0 },
   licenseRiskData = {},
   qualityData = {},
   recommendations = []
 ) {
+  // Ensure supplyChainData.warnings is an array
+  const supplyChainWarnings = Array.isArray(supplyChainData.warnings) ? supplyChainData.warnings : [];
+  
   const output = {
     version: require('../../package.json').version,
     timestamp: new Date().toISOString(),

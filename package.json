@@ -83,12 +83,9 @@
   "author": "Ajay Thorat <ajaythorat988@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "canvas": "^2.11.2",
     "chalk": "4.1.2",
     "commander": "11.1.0",
-    "d3": "^7.9.0",
     "depcheck": "^1.4.7",
-    "jsdom": "^24.1.3",
     "npm-check-updates": "^20.0.0",
     "open": "^10.2.0",
     "ora": "5.4.1",
