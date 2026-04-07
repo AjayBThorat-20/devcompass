@@ -16,3 +16,8 @@ coverage/
 .devcompass-cache.json
 .devcompass-backups/
 devcompass-fix-report.json
+# Graph visualization outputs
+dependency-graph.html
+final-test.html
+*.graph.html
+*.graph.json

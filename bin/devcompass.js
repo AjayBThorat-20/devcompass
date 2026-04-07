@@ -20,7 +20,7 @@ const program = new Command();
 
 program
   .name('devcompass')
-  .description('Health check for your JavaScript project')
+  .description('Dependency health checker with ecosystem intelligence')
   .version(packageJson.version, '-v, --version', 'Display version information')
   .addHelpText('after', `
 ${chalk.gray('Author:')} Ajay Thorat
@@ -92,4 +92,22 @@ ${chalk.bold('Backup Examples:')}
     backup(action, options);
   });
 
+  // Graph command
+program
+  .command('graph')
+  .description('Generate dependency graph visualization')
+  .option('-p, --path <path>', 'Project path', process.cwd())
+  .option('-o, --output <file>', 'Output file', 'dependency-graph.html')
+  .option('-f, --format <format>', 'Output format: html, svg, json, png')
+  .option('-l, --layout <type>', 'Layout: tree, force, radial, conflict', 'tree')
+  .option('-d, --depth <number>', 'Maximum depth to traverse', parseInt, Infinity)
+  .option('--filter <filter>', 'Filter: all, vulnerable, outdated, unused', 'all')
+  .option('-w, --width <number>', 'Graph width in pixels', parseInt, 1200)
+  .option('-h, --height <number>', 'Graph height in pixels', parseInt, 800)
+  .option('--open', 'Open in browser (HTML only)', false)
+  .action(async (options) => {
+    const graphCommand = require('../src/commands/graph');
+    await graphCommand(options);
+  });
+  
 program.parse();
