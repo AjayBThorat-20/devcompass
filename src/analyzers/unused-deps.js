@@ -3,12 +3,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-/**
- * Find unused dependencies using knip
- * @param {string} projectPath - Path to the project
- * @param {object} dependencies - Dependencies from package.json
- * @returns {Promise<Array>} Array of unused dependencies
- */
+
 async function findUnusedDeps(projectPath, dependencies) {
   try {
     // Create a temporary knip config if it doesn't exist
@@ -119,9 +114,11 @@ async function findUnusedDeps(projectPath, dependencies) {
       for (const [file, issues] of Object.entries(knipResults.issues)) {
         if (issues.dependencies) {
           issues.dependencies.forEach(dep => {
-            if (!seenDeps.has(dep)) {
-              seenDeps.add(dep);
-              unusedDeps.push({ name: dep });
+            // Handle both string and object formats
+            const depName = typeof dep === 'string' ? dep : (dep.name || dep);
+            if (typeof depName === 'string' && !seenDeps.has(depName)) {
+              seenDeps.add(depName);
+              unusedDeps.push({ name: depName });
             }
           });
         }
@@ -129,8 +126,8 @@ async function findUnusedDeps(projectPath, dependencies) {
     } else if (knipResults.dependencies) {
       // Format 2: direct dependencies array
       knipResults.dependencies.forEach(dep => {
-        const depName = typeof dep === 'string' ? dep : dep.name;
-        if (!seenDeps.has(depName)) {
+        const depName = typeof dep === 'string' ? dep : (dep.name || dep);
+        if (typeof depName === 'string' && !seenDeps.has(depName)) {
           seenDeps.add(depName);
           unusedDeps.push({ name: depName });
         }
@@ -140,8 +137,8 @@ async function findUnusedDeps(projectPath, dependencies) {
       knipResults.files.forEach(file => {
         if (file.dependencies) {
           file.dependencies.forEach(dep => {
-            const depName = typeof dep === 'string' ? dep : dep.name;
-            if (!seenDeps.has(depName)) {
+            const depName = typeof dep === 'string' ? dep : (dep.name || dep);
+            if (typeof depName === 'string' && !seenDeps.has(depName)) {
               seenDeps.add(depName);
               unusedDeps.push({ name: depName });
             }
@@ -153,6 +150,11 @@ async function findUnusedDeps(projectPath, dependencies) {
     // Filter out @types packages and common false positives
     const filtered = unusedDeps.filter(dep => {
       const name = dep.name;
+      
+      // Safety check: ensure name is a string
+      if (typeof name !== 'string') {
+        return false;
+      }
       
       // Keep all non-@types packages
       if (!name.startsWith('@types/')) {
