@@ -1,3 +1,4 @@
+// src/commands/graph.js
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
@@ -23,12 +24,39 @@ async function graphCommand(options) {
 
   console.log(chalk.bold('\n📊 DevCompass - Dependency Graph\n'));
 
+  // Validate layout option
+  const validLayouts = ['tree', 'force', 'radial', 'conflict'];
+  if (!validLayouts.includes(layout)) {
+    console.error(chalk.red(`✗ Invalid layout: ${layout}`));
+    console.log(chalk.gray(`  Valid options: ${validLayouts.join(', ')}`));
+    return;
+  }
+
+  // Validate filter option
+  const validFilters = ['all', 'vulnerable', 'outdated', 'unused', 'conflict'];
+  if (!validFilters.includes(filter)) {
+    console.error(chalk.red(`✗ Invalid filter: ${filter}`));
+    console.log(chalk.gray(`  Valid options: ${validFilters.join(', ')}`));
+    return;
+  }
+
   const spinner = ora('Generating dependency graph...').start();
 
   try {
+    // Generate graph data
     const generator = new GraphGenerator(projectPath);
+    
+    // Try to load analysis results if available
+    try {
+      const { analyzeProject } = require('./analyze');
+      const analysisResults = await analyzeProject(projectPath, { silent: true });
+      generator.setAnalysisResults(analysisResults);
+    } catch (error) {
+      // Analysis results not available, continue without enrichment
+    }
+
     const graphData = generator.generate({
-      maxDepth: depth,
+      maxDepth: depth !== Infinity ? parseInt(depth) : Infinity,
       filter
     });
 
@@ -39,18 +67,27 @@ async function graphCommand(options) {
 
     spinner.succeed(`Generated graph with ${graphData.nodes.length} nodes`);
 
-    const exportSpinner = ora(`Exporting to ${format || 'auto-detect'}...`).start();
+    // Detect format from output filename if not specified
+    let detectedFormat = format;
+    if (!detectedFormat) {
+      const ext = path.extname(output).toLowerCase();
+      detectedFormat = ext.substring(1) || 'html';
+    }
+
+    const exportSpinner = ora(`Exporting to ${detectedFormat.toUpperCase()}...`).start();
 
     const exporter = new GraphExporter(graphData, {
       layout,
-      width,
-      height
+      width: parseInt(width),
+      height: parseInt(height),
+      filter
     });
 
+    // Ensure output path has correct extension
     let outputPath = output;
-    if (format && !output.endsWith(`.${format}`)) {
+    if (!output.endsWith(`.${detectedFormat}`)) {
       const basename = path.basename(output, path.extname(output));
-      outputPath = path.join(path.dirname(output), `${basename}.${format}`);
+      outputPath = path.join(path.dirname(output), `${basename}.${detectedFormat}`);
     }
 
     const result = await exporter.export(outputPath);
@@ -58,6 +95,7 @@ async function graphCommand(options) {
     if (result.success) {
       exportSpinner.succeed(`Graph exported: ${chalk.cyan(result.path)}`);
 
+      // Display summary
       console.log('\n' + chalk.gray('─'.repeat(70)));
       console.log(chalk.bold('\n📈 GRAPH SUMMARY\n'));
       console.log(`  ${chalk.gray('Format:')}        ${result.format.toUpperCase()}`);
@@ -65,8 +103,36 @@ async function graphCommand(options) {
       console.log(`  ${chalk.gray('Total Nodes:')}   ${graphData.nodes.length}`);
       console.log(`  ${chalk.gray('Total Links:')}   ${graphData.links.length}`);
       console.log(`  ${chalk.gray('Max Depth:')}     ${graphData.metadata.maxDepth}`);
-      console.log(`  ${chalk.gray('File Size:')}     ${getFileSize(result.path)}`);
+      console.log(`  ${chalk.gray('File Size:')}     ${result.fileSize || getFileSize(result.path)}`);
+      
+      if (filter !== 'all') {
+        console.log(`  ${chalk.gray('Filter:')}        ${filter}`);
+        console.log(`  ${chalk.gray('Filtered:')}      ${graphData.metadata.visibleDependencies} / ${graphData.metadata.totalDependencies}`);
+      }
+      
+      if (result.method) {
+        console.log(`  ${chalk.gray('Export Method:')} ${result.method}`);
+      }
+      
       console.log('\n' + chalk.gray('─'.repeat(70)));
+
+      // Show format-specific tips
+      if (result.format === 'html') {
+        console.log(chalk.cyan('\n💡 TIPS:'));
+        console.log(`  • ${chalk.gray('Zoom:')} Mouse wheel or pinch`);
+        console.log(`  • ${chalk.gray('Pan:')} Click and drag`);
+        console.log(`  • ${chalk.gray('Details:')} Hover over nodes`);
+        
+        if (layout === 'force') {
+          console.log(`  • ${chalk.gray('Move nodes:')} Drag individual nodes`);
+          console.log(`  • ${chalk.gray('Reset:')} Use "Reset Layout" button`);
+        }
+        
+        if (options.includeSearch !== false) {
+          console.log(`  • ${chalk.gray('Search:')} Use search panel on left`);
+          console.log(`  • ${chalk.gray('Filter:')} Apply filters to focus on issues`);
+        }
+      }
 
       // Open in browser if requested
       if (result.format === 'html' && shouldOpen) {
@@ -80,17 +146,52 @@ async function graphCommand(options) {
         }
       }
 
+      // Show next steps
+      console.log(chalk.bold('\n📋 NEXT STEPS:\n'));
+      
+      if (result.format === 'html') {
+        console.log(`  1. Open in browser: ${chalk.cyan(`file://${path.resolve(result.path)}`)}`);
+        console.log(`  2. Explore dependencies interactively`);
+        console.log(`  3. Use filters to identify issues`);
+      }
+      
+      if (filter === 'all') {
+        console.log(`  • Try: ${chalk.cyan(`devcompass graph --filter conflict`)} to see only problematic packages`);
+      }
+      
+      if (layout === 'tree') {
+        console.log(`  • Try: ${chalk.cyan(`devcompass graph --layout force`)} for interactive physics layout`);
+        console.log(`  • Try: ${chalk.cyan(`devcompass graph --layout radial`)} for circular visualization`);
+      }
+
       console.log(chalk.green('\n✓ Graph generation complete!\n'));
+
     } else {
       exportSpinner.fail(`Export failed: ${result.error}`);
+      
+      // Show helpful error messages
+      if (result.error.includes('puppeteer') || result.error.includes('canvas')) {
+        console.log(chalk.yellow('\n💡 TIP: For PNG export, install one of:'));
+        console.log(chalk.gray('  npm install -g puppeteer  (recommended, ~300MB)'));
+        console.log(chalk.gray('  npm install -g canvas     (lighter, ~50MB)'));
+        console.log(chalk.gray('\nOr use HTML/SVG formats which require no additional dependencies.'));
+      }
     }
 
   } catch (error) {
     spinner.fail('Graph generation failed');
-    console.error(chalk.red('\nError:'), error.message);
-    if (error.stack) {
+    console.error(chalk.red('\n✗ Error:'), error.message);
+    
+    if (process.env.DEBUG) {
       console.error(chalk.gray(error.stack));
     }
+    
+    // Show troubleshooting tips
+    console.log(chalk.yellow('\n💡 TROUBLESHOOTING:'));
+    console.log(chalk.gray('  • Ensure package.json exists in the project directory'));
+    console.log(chalk.gray('  • Run npm install to generate package-lock.json'));
+    console.log(chalk.gray('  • Check file permissions for output directory'));
+    console.log(chalk.gray(`  • Try: ${chalk.cyan('devcompass graph --format json')} for simpler output`));
   }
 }
 

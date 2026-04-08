@@ -1,50 +1,206 @@
 # 🧭 DevCompass
 
-**Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, interactive dependency graph visualization, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, batch fix modes with granular control, backup & rollback, parallel processing, advanced license risk detection, and enhanced fix command with dry-run mode, progress tracking, and automatic backups.**
+**Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, advanced interactive dependency graph visualization with multiple layouts, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, batch fix modes with granular control, backup & rollback, parallel processing, search & filter capabilities, and enhanced fix command with dry-run mode, progress tracking, and automatic backups.**
 
 [![npm version](https://img.shields.io/npm/v/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 500+ packages**, **visualize dependency graphs interactively**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
+Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 500+ packages**, **visualize dependency graphs with multiple interactive layouts**, **search and filter packages**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
-> **✨ LATEST v3.0.2:** Modern dependency analysis with knip - faster, more accurate! 🚀  
-> **🐛 PREVIOUS v3.0.1:** Fixed broken JSON output mode + removed unused dependencies + security fixes!  
-> **🎉 NEW v3.0.0:** Dependency Graph Visualization - Interactive D3.js graphs with health-based color coding! 📊  
+> **✨ LATEST v3.1.0:** Advanced Graph Visualization - Force-directed layouts, radial views, search & filter! 🎨  
+> **🚀 PREVIOUS v3.0.2:** Modern dependency analysis with knip - faster, more accurate! 🚀  
+> **🐛 FIXED v3.0.1:** Fixed broken JSON output mode + removed unused dependencies + security fixes!  
 
-## 🎉 Latest Release: v3.0.2 (2026-04-08)
+## 🎉 Latest Release: v3.1.0 (2026-04-08)
 
-**Improved dependency analysis with modern tooling!**
+**Advanced graph visualization with multiple layouts and interactive features!**
 
-### What's New in v3.0.2:
-- ✨ **Replaced depcheck with knip** - Modern, actively maintained alternative
-- ⚡ **Better Performance** - Faster unused dependency detection
-- 🎯 **Higher Accuracy** - More precise results with modern algorithms
-- 🔧 **TypeScript Native** - Full TypeScript support out of the box
-- 🛡️ **Security Fixed** - 0 vulnerabilities (resolved all 3 from v3.0.1)
-- 📊 **Health Improved** - 7.4/10 (up from 3.4/10 in v3.0.1)
+### What's New in v3.1.0:
+- 🎨 **Multiple Graph Layouts** - Force-directed, radial, and conflict views
+- 🔍 **Search & Filter** - Real-time package search and advanced filtering
+- 🎯 **Conflict-Only View** - Focus on problematic packages instantly
+- ⚡ **Interactive Physics** - Drag nodes in force-directed layout
+- 🎮 **Enhanced UI** - Zoom controls, fullscreen, keyboard shortcuts
+- 🌐 **Improved Theme** - Modern dark theme with smooth animations
+- 📊 **Better Performance** - Optimized for large dependency trees
+- 📤 **JSON Export** - Complete graph data for programmatic access
 
-### Why Upgrade to v3.0.2:
+### Why Upgrade to v3.1.0:
 ```bash
-# v3.0.1 (OLD)
-- depcheck (stale, 30+ months without updates)
-- 3 security vulnerabilities
-- Health: 3.4/10
+# v3.0.2 (OLD)
+- Single tree layout only
+- No search/filter capabilities
+- Basic visualization
+- Limited interactivity
 
-# v3.0.2 (NEW) ⭐
-- knip (actively maintained, modern)
-- 0 security vulnerabilities
-- Health: 7.4/10
+# v3.1.0 (NEW) ⭐
+- 4 different layouts (tree, force, radial, conflict)
+- Real-time search and filtering
+- Interactive physics simulation
+- Advanced zoom and navigation controls
+- Keyboard shortcuts
+- Fullscreen mode
+- Enhanced tooltips and stats
 ```
 
 ### Upgrade Now:
 ```bash
-npm install -g devcompass@3.0.2
+npm install -g devcompass@3.1.0
 ```
 
 ---
 
+## 🎨 Graph Visualization Features
+
+DevCompass v3.1.0 includes **powerful, interactive dependency graph visualization** with multiple layouts!
+
+### 🎯 Available Layouts
+
+#### 1. **Tree Layout** (Default)
+Classic hierarchical view with clear parent-child relationships.
+```bash
+devcompass graph --layout tree
+```
+- ✅ Best for: Understanding dependency hierarchy
+- ✅ Clear top-down structure
+- ✅ Easy to trace dependency chains
+
+#### 2. **Force-Directed Layout** 🆕
+Interactive physics-based network visualization with ultimate UI!
+```bash
+devcompass graph --layout force --open
+```
+- ✅ Best for: Exploring complex relationships
+- ✅ Drag individual nodes to reposition
+- ✅ Natural clustering of related packages
+- ✅ Real-time physics simulation
+- ✅ Zoom controls (buttons + keyboard + mouse)
+- ✅ Click to highlight connections
+- ✅ Search and filter functionality
+- ✅ Fullscreen mode
+- ✅ Modern dark theme
+- ✅ Interactive and engaging
+
+#### 3. **Radial/Circular Layout** 🆕
+Concentric circles based on dependency depth.
+```bash
+devcompass graph --layout radial
+```
+- ✅ Best for: Understanding dependency levels
+- ✅ Root package at center
+- ✅ Dependencies radiating outward
+- ✅ Clear depth visualization
+- ✅ Beautiful circular design
+
+#### 4. **Conflict-Only View** 🆕
+Shows only packages with issues - instantly identify problems!
+```bash
+devcompass graph --layout conflict --open
+```
+- ✅ Best for: Quick issue identification
+- ✅ Filters out healthy dependencies automatically
+- ✅ Organized by severity (Critical, High, Medium, Low)
+- ✅ Shows "No conflicts" when all packages are healthy
+- ✅ Color-coded by severity level
+
+### 📤 Export Formats
+
+#### HTML Export (Default)
+Interactive D3.js visualization with all features.
+```bash
+devcompass graph --output my-graph.html --open
+```
+- ✅ Full interactivity
+- ✅ Zoom, pan, and explore
+- ✅ Hover tooltips
+- ✅ Search and filter
+- ✅ Keyboard shortcuts
+- ✅ All layout options
+
+#### JSON Export
+Complete graph data structure for programmatic access.
+```bash
+devcompass graph --format json --output graph.json
+```
+- ✅ Full graph data (nodes + links)
+- ✅ Programmatic access
+- ✅ Integration with custom tools
+- ✅ Lightweight and fast
+
+### 🔍 Search & Filter 🆕
+
+**Real-time Search:**
+- 🔍 Instant package name search (Press F to focus)
+- 📦 Search by version
+- ⚡ Live results as you type
+- 🎯 Highlight matching nodes
+- 📋 Quick navigation to packages
+
+**Advanced Filters:**
+- ⚠️ Show only vulnerable packages
+- 📅 Show only outdated packages
+- 🚫 Show only deprecated packages
+- 💚 Filter by health score (Critical/Warning/Caution/Healthy)
+- 📊 Filter by dependency depth level
+- 📦 Filter by package type
+- 🔄 Combine multiple filters
+- ⚡ Real-time graph updates with live stats
+
+**Filter UI Features:**
+- 📊 Live statistics (visible/hidden nodes and links)
+- 🔄 Filter reset button
+- 🎨 Highlighted filtered nodes
+- 🔗 Updated link connections
+- 💡 Interactive dropdowns
+
+### 🎨 Interactive Features
+
+**All Layouts Include:**
+- 🔍 Zoom controls (in/out/reset/fit-to-screen)
+- 👆 Pan and drag support
+- 💡 Hover tooltips with package details
+- 🎯 Node highlighting on search
+- ⚡ Smooth transitions and animations
+- 📱 Responsive design
+- ⌨️ Keyboard shortcuts
+
+**Force Layout Specific:**
+- 🎮 Drag individual nodes
+- 🌀 Real-time physics simulation
+- 🔄 Reset layout button
+- ⚙️ Toggle labels/links
+- 🎯 Click to highlight connections
+- 📊 Stats panel with selection count
+- 🖥️ Fullscreen mode
+
+**Keyboard Shortcuts:**
+- **F** - Focus search box
+- **R** - Reset simulation (force layout)
+- **C** - Center view
+- **+** or **=** - Zoom in
+- **-** or **_** - Zoom out
+- **ESC** - Clear selection
+
+---
+
 ## 🎉 Recent Updates
+
+### v3.1.0 (2026-04-08) - Advanced Graph Visualization
+
+**Multiple layouts, search/filter, and enhanced UI!** This release dramatically enhances graph visualization capabilities.
+
+**What's New:**
+- ✅ Force-directed network layout (interactive physics)
+- ✅ Radial/circular layout (dependency levels)
+- ✅ Conflict-only view (issues at a glance)
+- ✅ Real-time search functionality
+- ✅ Advanced filtering options
+- ✅ Zoom controls (buttons + keyboard + mouse)
+- ✅ Fullscreen mode
+- ✅ Click to highlight connections
+- ✅ Modern dark theme UI
+- ✅ Improved performance
 
 ### v3.0.2 (2026-04-08) - Modern Dependency Analysis
 
@@ -78,7 +234,6 @@ npm install -g devcompass@3.0.2
 - 🔍 **Interactive Controls** - Zoom, pan, reset, and tooltips
 - 📤 **Multiple Export Formats** - HTML (interactive), JSON (data)
 - 📏 **Depth Limiting** - Focus on specific dependency levels
-- 📥 **SVG Export** - Download graphs as SVG files
 - ⚡ **Fast Generation** - <1 second for 300+ nodes
 - 🎯 **Smart Layout** - Hierarchical tree layout with D3.js
 - 💡 **Hover Tooltips** - Package details on hover
@@ -116,6 +271,7 @@ npm install -g devcompass@3.0.2
 
 ## ✨ Features
 
+- 🎨 **Advanced Graph Visualization** (v3.1.0) - Multiple layouts, search & filter, interactive UI
 - ✨ **Modern Dependency Analysis** (v3.0.2) - Replaced depcheck with knip for better accuracy
 - 🐛 **Critical Bug Fixes** (v3.0.1) - Fixed broken JSON mode + removed unused deps
 - 📊 **Dependency Graph Visualization** (v3.0.0) - Interactive D3.js graphs with health-based color coding
@@ -145,23 +301,25 @@ npm install -g devcompass@3.0.2
 
 **Global installation (recommended):**
 ```bash
-npm install -g devcompass@3.0.2
+npm install -g devcompass@3.1.0
 ```
 
 **Local installation:**
 ```bash
-npm install --save-dev devcompass@3.0.2
+npm install --save-dev devcompass@3.1.0
 ```
 
 **One-time use (no installation):**
 ```bash
-npx devcompass@3.0.2 analyze
+npx devcompass@3.1.0 analyze
 ```
 
 **Upgrade from previous versions:**
 ```bash
-npm install -g devcompass@3.0.2
+npm install -g devcompass@3.1.0
 ```
+
+**No additional dependencies needed!** All features work out of the box. 🎉
 
 ## 📖 Usage
 
@@ -170,11 +328,24 @@ npm install -g devcompass@3.0.2
 # Analyze your project
 devcompass analyze
 
-# Generate dependency graph (v3.0.0+)
-devcompass graph
-devcompass graph --open                         # Open in browser
-devcompass graph --depth 1                      # Direct dependencies only
-devcompass graph --format json                  # Export as JSON
+# Generate dependency graph with different layouts (v3.1.0+)
+devcompass graph                                # Tree layout (default)
+devcompass graph --layout force --open          # Interactive force-directed
+devcompass graph --layout radial                # Circular/radial view
+devcompass graph --layout conflict              # Show only issues
+
+# Export to different formats (v3.1.0+)
+devcompass graph --format json                  # JSON data
+devcompass graph --format html --open           # Interactive HTML
+
+# Search and filter (v3.1.0+)
+devcompass graph --filter vulnerable            # Vulnerable packages only
+devcompass graph --filter outdated              # Outdated packages only
+devcompass graph --filter conflict              # Packages with issues
+
+# Combined options (v3.1.0+)
+devcompass graph --layout force --filter conflict --open
+devcompass graph --layout radial --depth 2 --output radial-depth2.html
 
 # Auto-fix issues (includes supply chain + license + quality fixes!)
 devcompass fix
@@ -211,158 +382,130 @@ devcompass analyze --ci
 devcompass analyze --silent
 ```
 
-## 📊 Dependency Graph Visualization (v3.0.0)
+## 📊 Graph Visualization Commands (v3.1.0)
 
-DevCompass includes **powerful dependency graph visualization** with D3.js!
+### Layout Options
 
-### Graph Features:
-
-#### Interactive Visualization
-- 🎨 **D3.js Tree Layout** - Hierarchical dependency structure
-- 🔍 **Zoom & Pan Controls** - Navigate large dependency trees
-- 💡 **Hover Tooltips** - Package name, version, and health score
-- 📊 **Health-Based Colors** - Visual indicators from green to red
-- ⚡ **Smooth Animations** - Professional transitions and interactions
-- 📥 **Export to SVG** - Download graphs as SVG files
-- 🎯 **Responsive Design** - Works on all screen sizes
-
-#### Health Score Color Coding:
-- **🟢 Excellent (9-10)** - Green (#10b981) - Well-maintained packages
-- **🟡 Good (7-8)** - Light green (#84cc16) - Generally healthy
-- **🟠 Fair (5-6)** - Yellow (#eab308) - Some concerns
-- **🔴 Poor (3-4)** - Orange (#f97316) - Needs attention
-- **⛔ Critical (0-2)** - Red (#ef4444) - Immediate action required
-
-### Graph Commands:
-
-#### Basic Usage:
+#### Tree Layout (Default)
 ```bash
-# Generate interactive HTML graph
+# Basic tree layout
 devcompass graph
 
-# Specify output file
+# With depth limit
+devcompass graph --depth 2
+
+# Open in browser
+devcompass graph --open
+```
+
+#### Force-Directed Layout 🆕
+```bash
+# Interactive physics simulation with ultimate UI
+devcompass graph --layout force --open
+
+# With custom dimensions
+devcompass graph --layout force --width 1920 --height 1080
+
+# With filters
+devcompass graph --layout force --filter conflict --open
+```
+
+#### Radial Layout 🆕
+```bash
+# Circular visualization
+devcompass graph --layout radial --open
+
+# With depth limit
+devcompass graph --layout radial --depth 3
+```
+
+#### Conflict View 🆕
+```bash
+# Show only problematic packages
+devcompass graph --layout conflict --open
+
+# Combined with filter
+devcompass graph --layout conflict --filter vulnerable
+```
+
+### Export Options
+
+#### HTML Export (Interactive)
+```bash
+# Default - interactive HTML
 devcompass graph --output my-graph.html
 
-# Export as JSON (full graph data)
+# Force layout
+devcompass graph --layout force --output force.html --open
+
+# With filters
+devcompass graph --filter conflict --output conflicts.html
+```
+
+#### JSON Export
+```bash
+# Complete graph data
 devcompass graph --format json --output graph.json
 
-# Limit depth to direct dependencies
-devcompass graph --depth 1
-
-# Show only dependencies up to depth 2
-devcompass graph --depth 2 --output shallow-graph.html
-
-# Open in browser automatically
-devcompass graph --open
+# With filters
+devcompass graph --filter vulnerable --format json --output vulnerable.json
 ```
 
-#### Advanced Options:
+### Filter Options 🆕
 ```bash
-# Custom dimensions
-devcompass graph --width 1600 --height 1000
+# Show only vulnerable packages
+devcompass graph --filter vulnerable
 
-# Specific project path
-devcompass graph --path /path/to/project
+# Show only outdated packages
+devcompass graph --filter outdated
 
-# Combined options
-devcompass graph --depth 2 --width 1600 --open
+# Show only unused packages
+devcompass graph --filter unused
+
+# Show only packages with conflicts
+devcompass graph --filter conflict
+
+# All packages (default)
+devcompass graph --filter all
 ```
 
-#### Command Options:
-- `-p, --path <path>` - Project path (default: current directory)
-- `-o, --output <file>` - Output file (default: dependency-graph.html)
-- `-f, --format <format>` - Output format: html, json
-- `-l, --layout <type>` - Layout type: tree (more layouts in v3.1)
-- `-d, --depth <number>` - Maximum depth to traverse
-- `--filter <filter>` - Filter: all, vulnerable, outdated, unused
-- `-w, --width <number>` - Graph width in pixels (default: 1200)
-- `-h, --height <number>` - Graph height in pixels (default: 800)
-- `--open` - Open in browser (HTML only)
-
-### Graph Output:
-
-**Terminal Output:**
-```
-📊 DevCompass - Dependency Graph
-
-✔ Generated graph with 341 nodes
-✔ Graph exported: dependency-graph.html
-
-──────────────────────────────────────────────────────────────────────
-
-📈 GRAPH SUMMARY
-
-  Format:        HTML
-  Layout:        tree
-  Total Nodes:   341
-  Total Links:   465
-  Max Depth:     7
-  File Size:     67.59 KB
-
-──────────────────────────────────────────────────────────────────────
-
-✓ Graph generation complete!
-```
-
-**HTML Features:**
-- Clean, modern design
-- Interactive D3.js visualization
-- Zoom in/out buttons
-- Reset view button
-- Export SVG button
-- Health score legend
-- Project metadata display
-- Responsive layout
-
-### Graph Use Cases:
-
-**Perfect for:**
-- 📊 **Dependency Auditing** - Visualize entire dependency tree
-- 🔐 **Security Analysis** - Identify problematic dependencies visually
-- 📚 **Documentation** - Generate graphs for project documentation
-- 👥 **Team Collaboration** - Share interactive graphs with team members
-- 🏗️ **Architecture Review** - Understand dependency relationships
-- 🎓 **Onboarding** - Help new developers understand project structure
-- 📈 **Presentations** - Visual aid for technical presentations
-- 🔍 **Debugging** - Trace dependency chains and conflicts
-
-### Graph Performance:
-
-**Generation Speed:**
-- Small projects (<50 nodes): ~200ms
-- Medium projects (50-200 nodes): ~500ms
-- Large projects (200-500 nodes): ~1 second
-- Very large projects (500+ nodes): ~2 seconds
-
-**File Sizes:**
-- HTML (interactive): ~200 bytes per node
-- JSON (data): ~400 bytes per node
-- Depth limiting dramatically reduces size
-
-**Example Performance:**
-- 11 nodes (depth 1): 9.29 KB HTML, <100ms
-- 93 nodes (express): 23.72 KB HTML, ~500ms
-- 341 nodes (devcompass): 67.59 KB HTML, ~1 second
-
-### Graph Workflow Example:
+### Advanced Examples
 ```bash
-# 1. Analyze project health
-devcompass analyze
+# Force layout with vulnerable packages only
+devcompass graph --layout force --filter vulnerable --open
 
-# 2. Visualize dependencies
-devcompass graph --open
+# Radial layout, depth 2
+devcompass graph --layout radial --depth 2 --open
 
-# 3. Identify issues visually
-# (Look for red/orange nodes in the graph)
+# Quick conflict check
+devcompass graph --layout conflict --open
 
-# 4. Fix issues with batch mode
-devcompass fix --batch-mode high
+# Complete workflow
+devcompass analyze                              # Analyze health
+devcompass graph --layout conflict --open       # Visualize issues
+devcompass fix --batch-mode high                # Fix critical issues
+devcompass graph --layout force --open          # Verify improvements
 
-# 5. Re-visualize to see improvements
-devcompass graph --output fixed-graph.html --open
+# Search and filter interactively
+devcompass graph --layout force --open
+# Then: Press F to search, use filter dropdowns, click nodes
 
-# 6. Compare before/after
-# (Notice fewer red nodes, better health colors)
+# Fullscreen immersive experience
+devcompass graph --layout force --open
+# Then: Click Fullscreen button or press F11
+```
+
+### Command Options (v3.1.0)
+```bash
+-p, --path <path>       # Project path (default: current directory)
+-o, --output <file>     # Output file (default: dependency-graph.html)
+-f, --format <format>   # Output format: html, json
+-l, --layout <type>     # Layout: tree, force, radial, conflict (default: tree)
+-d, --depth <number>    # Maximum depth to traverse (default: unlimited)
+--filter <filter>       # Filter: all, vulnerable, outdated, unused, conflict
+-w, --width <number>    # Graph width in pixels (default: 1200)
+-h, --height <number>   # Graph height in pixels (default: 800)
+--open                  # Open in browser (HTML only)
 ```
 
 ---
@@ -474,243 +617,73 @@ devcompass backup clean --keep 3
 DevCompass can **automatically replace abandoned, deprecated, and stale packages** with modern alternatives!
 
 ### Alternative Database (50+ packages):
-```
-request → axios, got, ky
-moment → dayjs, date-fns, luxon
-tslint → eslint
-node-sass → sass (Dart Sass)
-colors → chalk
-enzyme → @testing-library/react
-faker → @faker-js/faker
-depcheck → knip  (NEW in v3.0.2!)
-...and 40+ more!
-```
 
----
-
-## ⚖️ License Conflict Auto-Fix (v2.8.2)
-
-DevCompass **automatically replaces GPL/AGPL packages** with MIT/Apache alternatives!
-
----
-
-## 🛡️ Supply Chain Auto-Fix (v2.8.1)
-
-DevCompass **automatically fixes supply chain security issues**!
-
----
-
-## ⚙️ Commands & Options
-
-### Commands
-```bash
-# Analyze project dependencies
-devcompass analyze
-
-# Generate dependency graph (v3.0.0+)
-devcompass graph
-
-# Auto-fix issues
-devcompass fix
-
-# Batch fix modes
-devcompass fix --batch
-devcompass fix --batch-mode <mode>
-devcompass fix --only <categories>
-devcompass fix --skip <categories>
-
-# Preview fixes
-devcompass fix --dry-run
-
-# Manage backups
-devcompass backup list
-devcompass backup restore --name <backup-name>
-devcompass backup info --name <backup-name>
-devcompass backup clean
-
-# Show version
-devcompass --version
-devcompass -v
-
-# Show help
-devcompass --help
-devcompass -h
-```
-
-### Graph Options (v3.0.0+)
-```bash
-# Basic graph generation
-devcompass graph
-devcompass graph --output my-graph.html
-
-# Export formats
-devcompass graph --format html          # Interactive HTML (default)
-devcompass graph --format json          # Raw graph data
-
-# Depth control
-devcompass graph --depth 1              # Direct dependencies only
-devcompass graph --depth 2              # Up to 2 levels deep
-
-# Custom dimensions
-devcompass graph --width 1600 --height 1000
-
-# Browser integration
-devcompass graph --open                 # Auto-open in browser
-
-# Filter options
-devcompass graph --filter all           # All dependencies (default)
-devcompass graph --filter vulnerable    # Vulnerable packages only
-devcompass graph --filter outdated      # Outdated packages only
-devcompass graph --filter unused        # Unused packages only
-
-# Combined options
-devcompass graph --depth 2 --width 1600 --open
-devcompass graph --format json --output data.json
-```
-
-### Fix Options
-```bash
-# Normal fix mode
-devcompass fix
-devcompass fix --yes
-devcompass fix --dry-run
-
-# Batch mode options
-devcompass fix --batch
-devcompass fix --batch --dry-run
-
-# Preset batch modes
-devcompass fix --batch-mode critical
-devcompass fix --batch-mode high
-devcompass fix --batch-mode all
-
-# Category filtering
-devcompass fix --only quality
-devcompass fix --only supply-chain,license,security
-devcompass fix --skip updates
-
-# Combined options
-devcompass fix --batch-mode high --yes --verbose
-```
-
-### Backup Options
-```bash
-# List backups
-devcompass backup list
-
-# Restore
-devcompass backup restore --name <backup-name>
-devcompass backup restore --name <backup-name> --force
-
-# Show info
-devcompass backup info --name <backup-name>
-
-# Clean
-devcompass backup clean
-devcompass backup clean --keep 3 --force
-```
-
-### Analyze Options
-```bash
-# JSON output (Fixed in v3.0.1!)
-devcompass analyze --json
-
-# CI mode
-devcompass analyze --ci
-
-# Silent mode
-devcompass analyze --silent
-
-# Combined
-devcompass analyze --json --ci
-```
-
----
-
-## 📊 Example Output
-
-### Graph Command:
-```
 📊 DevCompass - Dependency Graph
-
 ✔ Generated graph with 341 nodes
 ✔ Graph exported: dependency-graph.html
-
 ──────────────────────────────────────────────────────────────────────
-
 📈 GRAPH SUMMARY
-
-  Format:        HTML
-  Layout:        tree
-  Total Nodes:   341
-  Total Links:   465
-  Max Depth:     7
-  File Size:     67.59 KB
-
+Format:        HTML
+Layout:        force
+Total Nodes:   341
+Total Links:   465
+Max Depth:     7
+File Size:     67.59 KB
 ──────────────────────────────────────────────────────────────────────
+💡 TIPS:
+• Zoom: Mouse wheel or pinch
+• Pan: Click and drag
+• Details: Hover over nodes
+• Move nodes: Drag individual nodes
+• Reset: Use "Reset Layout" button
+• Search: Use search panel (press F)
+• Filter: Apply filters to focus on issues
+📋 NEXT STEPS:
+
+Open in browser: file:///path/to/dependency-graph.html
+Explore dependencies interactively
+Use filters to identify issues
+• Try: devcompass graph --filter conflict to see only problematic packages
+• Try: devcompass graph --layout radial for circular visualization
 
 ✓ Graph generation complete!
-```
 
 ### Analyze Command:
-```
-🔍 DevCompass v3.0.2 - Analyzing your project...
-
+🔍 DevCompass v3.1.0 - Analyzing your project...
 ✔ Scanned 7 dependencies in project
 ⚡ GitHub check completed in 0.50s (parallel processing)
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 ✅ SECURITY VULNERABILITIES
-
-  No vulnerabilities detected!
-
+No vulnerabilities detected!
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 ✅ SUPPLY CHAIN SECURITY
-
-  No supply chain risks detected!
-
+No supply chain risks detected!
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 ✅ UNUSED DEPENDENCIES
-
-  No unused dependencies detected!
-
+No unused dependencies detected!
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 🟡 OUTDATED PACKAGES (6)
-
-  chalk                4.1.2 → 5.6.2  (major update)
-  commander            11.1.0 → 14.0.3  (major update)
-  knip                 5.88.1 → ^6.3.0  (major update)
-  open                 10.2.0 → ^11.0.0  (major update)
-  ora                  5.4.1 → 9.3.0  (major update)
-  semver               7.6.0 → ^7.7.4  (major update)
-
+chalk                4.1.2 → 5.6.2  (major update)
+commander            11.1.0 → 14.0.3  (major update)
+knip                 5.88.1 → ^6.3.0  (major update)
+open                 10.2.0 → ^11.0.0  (major update)
+ora                  5.4.1 → 9.3.0  (major update)
+semver               7.6.0 → ^7.7.4  (major update)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 📦 HEAVY PACKAGES (2)
-
-  Packages larger than 1MB:
-
-  npm-check-updates         6.2 MB
-  knip                      2.2 MB
-
+Packages larger than 1MB:
+npm-check-updates         6.2 MB
+knip                      2.2 MB
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 📊 PROJECT HEALTH
-
-  Overall Score:              7.4/10
-  Total Dependencies:         7
-  Unused:                     0
-  Outdated:                   6
-
+Overall Score:              7.4/10
+Total Dependencies:         7
+Unused:                     0
+Outdated:                   6
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 💡 TIP: Run 'devcompass fix' to apply automated fixes!
-     Or use 'devcompass graph' to visualize your dependencies!
-```
+Or use 'devcompass graph --layout conflict' to visualize issues!
+
 
 ---
 
@@ -740,11 +713,10 @@ Create `devcompass.config.json` in your project root:
 
 ### Unused Dependency Detection
 DevCompass v3.0.2+ uses **knip** for modern, accurate unused dependency detection:
-
 ```bash
 # Verify you're on v3.0.2+
 devcompass --version
-# Should show: 3.0.2 or higher
+# Should show: 3.1.0 or higher
 
 # Run analysis
 devcompass analyze
@@ -755,11 +727,11 @@ devcompass analyze
 If you're experiencing `supplyChainWarnings.filter is not a function` error:
 ```bash
 # Upgrade to latest version
-npm install -g devcompass@3.0.2
+npm install -g devcompass@3.1.0
 
 # Verify version
 devcompass --version
-# Should show: 3.0.2
+# Should show: 3.1.0
 
 # Test JSON mode
 devcompass analyze --json
@@ -771,13 +743,27 @@ devcompass analyze --json
 **Issue:** "Command not found: devcompass"
 ```bash
 # Solution: Install globally
-npm install -g devcompass@3.0.2
+npm install -g devcompass@3.1.0
 ```
 
 **Issue:** Old version installed
 ```bash
 # Solution: Update to latest
 npm update -g devcompass
+```
+
+**Issue:** Graphs not showing properly
+```bash
+# Solution: Open HTML files in modern browser
+firefox graph.html
+# or
+google-chrome graph.html
+```
+
+**Issue:** Force layout nodes clustered
+```bash
+# Solution: Use fit-to-screen button or wait for simulation to settle
+# The layout spreads nodes automatically after a few seconds
 ```
 
 **Issue:** Unused dependencies showing up incorrectly
@@ -834,17 +820,16 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 - [x] ~~Dependency graph visualization~~ ✅ **Added in v3.0.0!**
 - [x] ~~Fix broken JSON mode~~ ✅ **Fixed in v3.0.1!**
 - [x] ~~Modern dependency analysis with knip~~ ✅ **Added in v3.0.2!**
-- [ ] Force-directed network layout (v3.1.0)
-- [ ] Radial/circular graph layouts (v3.1.0)
-- [ ] Conflict-only graph view (v3.1.0)
-- [ ] PNG/SVG static export (v3.1.0)
-- [ ] Search and filter in graphs (v3.1.0)
-- [ ] Web dashboard for team health monitoring (v3.1.0)
-- [ ] Monorepo support with knip (v3.1.0)
-- [ ] Team collaboration features (v3.2.0)
-- [ ] Slack/Discord notifications (v3.2.0)
+- [x] ~~Force-directed network layout~~ ✅ **Added in v3.1.0!**
+- [x] ~~Radial/circular graph layouts~~ ✅ **Added in v3.1.0!**
+- [x] ~~Conflict-only graph view~~ ✅ **Added in v3.1.0!**
+- [x] ~~Search and filter in graphs~~ ✅ **Added in v3.1.0!**
+- [x] ~~Interactive UI enhancements~~ ✅ **Added in v3.1.0!**
+- [ ] Web dashboard for team health monitoring (v3.2.0)
+- [ ] Monorepo support with knip (v3.2.0)
 - [ ] Historical tracking (v3.2.0)
 - [ ] Compare graphs before/after fixes (v3.2.0)
+
 
 Want to contribute? Pick an item and open an issue! 🚀
 

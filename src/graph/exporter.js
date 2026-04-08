@@ -1,9 +1,10 @@
+// src/graph/exporter.js
 const fs = require('fs');
 const path = require('path');
 const GraphVisualizer = require('./visualizer');
 
 /**
- * GraphExporter - Export graphs to various formats
+ * GraphExporter - Export graphs to HTML and JSON formats
  */
 class GraphExporter {
   constructor(graphData, options = {}) {
@@ -24,10 +25,14 @@ class GraphExporter {
       const html = visualizer.generateHTML();
       fs.writeFileSync(outputPath, html, 'utf8');
 
+      const stats = fs.statSync(outputPath);
+      const fileSizeKB = (stats.size / 1024).toFixed(2);
+
       return {
         success: true,
         path: outputPath,
-        format: 'html'
+        format: 'html',
+        fileSize: fileSizeKB + ' KB'
       };
     } catch (error) {
       return {
@@ -45,10 +50,14 @@ class GraphExporter {
       const json = JSON.stringify(this.graphData, null, 2);
       fs.writeFileSync(outputPath, json, 'utf8');
 
+      const stats = fs.statSync(outputPath);
+      const fileSizeKB = (stats.size / 1024).toFixed(2);
+
       return {
         success: true,
         path: outputPath,
-        format: 'json'
+        format: 'json',
+        fileSize: fileSizeKB + ' KB'
       };
     } catch (error) {
       return {
@@ -69,6 +78,12 @@ class GraphExporter {
         return this.exportHTML(outputPath);
       case '.json':
         return this.exportJSON(outputPath);
+      case '.svg':
+      case '.png':
+        return {
+          success: false,
+          error: `${ext.substring(1).toUpperCase()} export is not supported. Use HTML or JSON format instead.`
+        };
       default:
         return this.exportHTML(outputPath);
     }

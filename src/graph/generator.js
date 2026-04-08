@@ -1,3 +1,4 @@
+// src/graph/generator.js
 const fs = require('fs');
 const path = require('path');
 
@@ -9,6 +10,7 @@ class GraphGenerator {
     this.projectPath = projectPath;
     this.packageJson = null;
     this.packageLock = null;
+    this.analysisResults = null;
   }
 
   /**
@@ -32,6 +34,13 @@ class GraphGenerator {
   }
 
   /**
+   * Set analysis results for enriched graph data
+   */
+  setAnalysisResults(results) {
+    this.analysisResults = results;
+  }
+
+  /**
    * Generate graph data structure
    */
   generate(options = {}) {
@@ -52,7 +61,8 @@ class GraphGenerator {
       type: 'root',
       dependencies: [],
       healthScore: 10,
-      issues: []
+      issues: [],
+      depth: 0
     };
 
     const deps = {
@@ -66,13 +76,22 @@ class GraphGenerator {
 
     this.buildTree(rootNode, deps, nodes, links, visited, 0, maxDepth);
 
+    // Enrich with analysis results
+    if (this.analysisResults) {
+      this.enrichNodesWithAnalysis(nodes);
+    }
+
+    // Apply filters
+    const filteredData = this.applyFilter(nodes, links, filter);
+
     return {
-      nodes,
-      links,
+      nodes: filteredData.nodes,
+      links: filteredData.links,
       metadata: {
         projectName: this.packageJson.name,
         version: this.packageJson.version,
         totalDependencies: nodes.length - 1,
+        visibleDependencies: filteredData.nodes.length - 1,
         generatedAt: new Date().toISOString(),
         maxDepth: this.calculateMaxDepth(nodes),
         filter
@@ -89,11 +108,13 @@ class GraphGenerator {
     for (const [name, versionRange] of Object.entries(deps)) {
       const nodeId = `${name}@${versionRange}`;
       
+      // Check for circular dependencies
       if (visited.has(nodeId)) {
         links.push({
           source: parent.id,
           target: nodeId,
-          type: 'circular'
+          type: 'circular',
+          depth: currentDepth + 1
         });
         continue;
       }
@@ -118,9 +139,11 @@ class GraphGenerator {
       links.push({
         source: parent.id,
         target: nodeId,
-        type: 'normal'
+        type: 'normal',
+        depth: currentDepth + 1
       });
 
+      // Recursively build tree
       if (this.packageLock && this.packageLock.packages) {
         const pkgKey = `node_modules/${name}`;
         const lockEntry = this.packageLock.packages[pkgKey];
@@ -130,6 +153,157 @@ class GraphGenerator {
         }
       }
     }
+  }
+
+  /**
+   * Enrich nodes with analysis results
+   */
+  enrichNodesWithAnalysis(nodes) {
+    if (!this.analysisResults) return;
+
+    const {
+      security = {},
+      outdatedPackages = [],
+      unusedDependencies = [],
+      ecosystemAlerts = []
+    } = this.analysisResults;
+
+    nodes.forEach(node => {
+      if (node.type === 'root') return;
+
+      // Add security vulnerabilities
+      if (security.vulnerabilities) {
+        const vulnerabilities = security.vulnerabilities.filter(v => 
+          v.package === node.name || v.via?.includes(node.name)
+        );
+        
+        vulnerabilities.forEach(v => {
+          node.issues.push({
+            type: 'security',
+            severity: v.severity,
+            message: v.title,
+            fixAvailable: v.fixAvailable
+          });
+        });
+      }
+
+      // Add outdated info
+      const outdated = outdatedPackages.find(p => p.name === node.name);
+      if (outdated) {
+        node.issues.push({
+          type: 'outdated',
+          severity: 'medium',
+          message: `Outdated: ${outdated.current} → ${outdated.latest}`,
+          current: outdated.current,
+          latest: outdated.latest
+        });
+      }
+
+      // Add unused info
+      const unused = unusedDependencies.find(u => u.name === node.name);
+      if (unused) {
+        node.issues.push({
+          type: 'unused',
+          severity: 'low',
+          message: 'Package appears to be unused'
+        });
+      }
+
+      // Add ecosystem alerts
+      const alert = ecosystemAlerts.find(a => a.package === node.name);
+      if (alert) {
+        node.issues.push({
+          type: 'deprecated',
+          severity: alert.severity,
+          message: alert.title,
+          fix: alert.fix
+        });
+      }
+
+      // Calculate health score based on issues
+      node.healthScore = this.calculateHealthScore(node.issues);
+    });
+  }
+
+  /**
+   * Calculate health score based on issues
+   */
+  calculateHealthScore(issues) {
+    if (!issues || issues.length === 0) return 10;
+
+    let score = 10;
+    
+    issues.forEach(issue => {
+      switch (issue.severity) {
+        case 'critical':
+          score -= 3;
+          break;
+        case 'high':
+          score -= 2;
+          break;
+        case 'medium':
+        case 'moderate':
+          score -= 1;
+          break;
+        case 'low':
+          score -= 0.5;
+          break;
+      }
+    });
+
+    return Math.max(0, Math.min(10, score));
+  }
+
+  /**
+   * Apply filters to graph data
+   */
+  applyFilter(nodes, links, filter) {
+    if (filter === 'all') {
+      return { nodes, links };
+    }
+
+    let filteredNodes = nodes;
+
+    switch (filter) {
+      case 'vulnerable':
+        filteredNodes = nodes.filter(node => 
+          node.type === 'root' || 
+          node.issues.some(i => i.type === 'security')
+        );
+        break;
+
+      case 'outdated':
+        filteredNodes = nodes.filter(node => 
+          node.type === 'root' || 
+          node.issues.some(i => i.type === 'outdated')
+        );
+        break;
+
+      case 'unused':
+        filteredNodes = nodes.filter(node => 
+          node.type === 'root' || 
+          node.issues.some(i => i.type === 'unused')
+        );
+        break;
+
+      case 'conflict':
+        filteredNodes = nodes.filter(node => 
+          node.type === 'root' || 
+          node.issues.length > 0
+        );
+        break;
+    }
+
+    // Filter links to only include connections between visible nodes
+    const visibleIds = new Set(filteredNodes.map(n => n.id));
+    const filteredLinks = links.filter(link => 
+      visibleIds.has(link.source) && visibleIds.has(link.target)
+    );
+
+    return {
+      nodes: filteredNodes,
+      links: filteredLinks
+    };
   }
 
   /**

@@ -1,7 +1,7 @@
 {
   "name": "devcompass",
-  "version": "3.0.2",
-  "description": "Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, batch fix modes, backup & rollback, parallel processing, advanced license risk detection, and enhanced fix command.",
+  "version": "3.1.0",
+  "description": "Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, advanced interactive dependency graph visualization with multiple layouts, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, batch fix modes, backup & rollback, search & filter capabilities, and interactive dependency exploration.",
   "main": "src/index.js",
   "bin": {
     "devcompass": "bin/devcompass.js"
@@ -78,7 +78,19 @@
     "batch-mode",
     "category-fixes",
     "granular-control",
-    "selective-fixes"
+    "selective-fixes",
+    "dependency-graph",
+    "graph-visualization",
+    "force-directed-graph",
+    "radial-layout",
+    "conflict-view",
+    "interactive-graph",
+    "graph-export",
+    "graph-search",
+    "graph-filter",
+    "d3-visualization",
+    "dependency-tree",
+    "visual-analysis"
   ],
   "author": "Ajay Thorat <ajaythorat988@gmail.com>",
   "license": "MIT",
