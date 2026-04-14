@@ -389,10 +389,15 @@ async function analyze(options) {
     }
     
     // NEW v2.7.0 - Generate Security Recommendations
+    // ✅ FIXED: Ensure supplyChainData.warnings is always an array
+    const safeSupplyChainWarnings = Array.isArray(supplyChainData.warnings) 
+      ? supplyChainData.warnings 
+      : [];
+    
     const recommendations = generateSecurityRecommendations({
-      supplyChainWarnings: supplyChainData.warnings || [],
-      licenseWarnings: licenseRiskData.warnings,
-      qualityResults: qualityData.results,
+      supplyChainWarnings: safeSupplyChainWarnings,
+      licenseWarnings: licenseRiskData.warnings || [],
+      qualityResults: qualityData.results || [],
       securityVulnerabilities: securityData.metadata,
       ecosystemAlerts: alerts,
       unusedDeps,
@@ -400,33 +405,30 @@ async function analyze(options) {
     });
     
     // Handle different output modes
- // Handle different output modes
-if (outputMode === 'json') {
-  const safeSupplyChainData = {
-    ...supplyChainData,
-    warnings: Array.isArray(supplyChainData.warnings) ? supplyChainData.warnings : []
-  };
+    if (outputMode === 'json') {
+      // ✅ FIXED: Create safe supply chain data for JSON output
+      const safeSupplyChainData = {
+        ...supplyChainData,
+        warnings: Array.isArray(supplyChainData.warnings) ? supplyChainData.warnings : []
+      };
 
-  const jsonOutput = formatAsJson(
-    alerts, 
-    unusedDeps, 
-    outdatedDeps, 
-    score, 
-    totalDeps, 
-    securityData, 
-    bundleSizes, 
-    licenses, 
-    predictiveWarnings,
-    {
-      ...supplyChainData,
-      warnings: Array.isArray(supplyChainData.warnings) ? supplyChainData.warnings : []
-    },
-    licenseRiskData,
-    qualityData,
-    recommendations
-  );
-  console.log(jsonOutput);
-  }else if (outputMode === 'ci') {
+      const jsonOutput = formatAsJson(
+        alerts, 
+        unusedDeps, 
+        outdatedDeps, 
+        score, 
+        totalDeps, 
+        securityData, 
+        bundleSizes, 
+        licenses, 
+        predictiveWarnings,
+        safeSupplyChainData,
+        licenseRiskData,
+        qualityData,
+        recommendations
+      );
+      console.log(jsonOutput);
+    } else if (outputMode === 'ci') {
       displayResults(
         alerts, 
         unusedDeps, 
@@ -520,14 +522,17 @@ function displayResults(
   
   logDivider();
   
-  // NEW v2.7.0 / v2.8.1 - SUPPLY CHAIN SECURITY (FIXED)
-  if (supplyChainData.total > 0 && supplyChainData.warnings && Array.isArray(supplyChainData.warnings)) {
+  // NEW v2.7.0 / v3.1.0 - SUPPLY CHAIN SECURITY (✅ FIXED)
+  // ✅ FIXED: Always ensure warnings is an array before any operations
+  const safeWarnings = Array.isArray(supplyChainData.warnings) ? supplyChainData.warnings : [];
+  
+  if (supplyChainData.total > 0 && safeWarnings.length > 0) {
     logSection('🛡️  SUPPLY CHAIN SECURITY', supplyChainData.total);
     
     // Group by type
-    const malicious = supplyChainData.warnings.filter(w => w.type === 'malicious');
-    const typosquatting = supplyChainData.warnings.filter(w => w.type === 'typosquatting');
-    const suspiciousScripts = supplyChainData.warnings.filter(w => w.type === 'install_script');
+    const malicious = safeWarnings.filter(w => w.type === 'malicious');
+    const typosquatting = safeWarnings.filter(w => w.type === 'typosquatting');
+    const suspiciousScripts = safeWarnings.filter(w => w.type === 'install_script');
     
     // Malicious packages (CRITICAL)
     if (malicious.length > 0) {

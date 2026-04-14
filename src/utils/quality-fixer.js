@@ -1,3 +1,4 @@
+// src/utils/quality-fixer.js
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');

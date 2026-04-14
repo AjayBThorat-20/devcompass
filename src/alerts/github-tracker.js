@@ -601,6 +601,11 @@ const TRACKED_REPOS = {
  * Fetch GitHub issues for a package
  */
 async function fetchGitHubIssues(packageName) {
+  // ✅ FIXED: Add input validation
+  if (!packageName || typeof packageName !== 'string') {
+    return null;
+  }
+
   const repo = TRACKED_REPOS[packageName];
   
   if (!repo) {
@@ -614,9 +619,22 @@ async function fetchGitHubIssues(packageName) {
       labels: 'bug'
     });
     
+    // ✅ FIXED: Validate response is an array
+    if (!Array.isArray(data)) {
+      console.error(`Invalid GitHub response for ${packageName}: expected array`);
+      return null;
+    }
+    
     return analyzeIssues(data, packageName);
   } catch (error) {
-    console.error(`GitHub API error for ${packageName}:`, error.message);
+    // ✅ FIXED: Better error handling with specific error types
+    if (error.message.includes('403')) {
+      console.error(`GitHub rate limit exceeded for ${packageName}`);
+    } else if (error.message.includes('404')) {
+      // Repository not found or moved - silently skip
+    } else {
+      console.error(`GitHub API error for ${packageName}:`, error.message);
+    }
     return null;
   }
 }
@@ -626,6 +644,12 @@ async function fetchGitHubIssues(packageName) {
  */
 function makeGitHubRequest(path, params = {}) {
   return new Promise((resolve, reject) => {
+    // ✅ FIXED: Validate inputs
+    if (!path || typeof path !== 'string') {
+      reject(new Error('Invalid API path'));
+      return;
+    }
+
     const queryString = Object.entries(params)
       .map(([key, val]) => `${key}=${encodeURIComponent(val)}`)
       .join('&');
@@ -650,17 +674,33 @@ function makeGitHubRequest(path, params = {}) {
       res.on('end', () => {
         if (res.statusCode === 200) {
           try {
-            resolve(JSON.parse(data));
+            const parsed = JSON.parse(data);
+            resolve(parsed);
           } catch (error) {
             reject(new Error('Failed to parse GitHub response'));
           }
+        } else if (res.statusCode === 403) {
+          // Rate limit exceeded
+          reject(new Error('GitHub rate limit exceeded (403)'));
+        } else if (res.statusCode === 404) {
+          // Repository not found
+          reject(new Error('Repository not found (404)'));
         } else {
           reject(new Error(`GitHub API returned ${res.statusCode}`));
         }
       });
     });
     
-    req.on('error', reject);
+    req.on('error', (error) => {
+      reject(new Error(`Network error: ${error.message}`));
+    });
+    
+    // ✅ FIXED: Add timeout handling
+    req.setTimeout(10000, () => {
+      req.destroy();
+      reject(new Error('GitHub API request timeout'));
+    });
+    
     req.end();
   });
 }
@@ -669,25 +709,55 @@ function makeGitHubRequest(path, params = {}) {
  * Analyze issues to detect trends
  */
 function analyzeIssues(issues, packageName) {
+  // ✅ FIXED: Validate inputs
+  if (!Array.isArray(issues)) {
+    return {
+      package: packageName,
+      totalIssues: 0,
+      last7Days: 0,
+      last30Days: 0,
+      criticalIssues: 0,
+      riskScore: 0,
+      trend: 'stable',
+      repoUrl: TRACKED_REPOS[packageName] ? `https://github.com/${TRACKED_REPOS[packageName]}` : ''
+    };
+  }
+
   const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
   
-  const last7Days = issues.filter(i => 
-    (now - new Date(i.created_at).getTime()) < 7 * day
-  ).length;
+  const last7Days = issues.filter(i => {
+    // ✅ FIXED: Safe date parsing
+    if (!i || !i.created_at) return false;
+    try {
+      return (now - new Date(i.created_at).getTime()) < 7 * day;
+    } catch {
+      return false;
+    }
+  }).length;
   
-  const last30Days = issues.filter(i => 
-    (now - new Date(i.created_at).getTime()) < 30 * day
-  ).length;
+  const last30Days = issues.filter(i => {
+    // ✅ FIXED: Safe date parsing
+    if (!i || !i.created_at) return false;
+    try {
+      return (now - new Date(i.created_at).getTime()) < 30 * day;
+    } catch {
+      return false;
+    }
+  }).length;
   
   const criticalLabels = ['critical', 'security', 'regression', 'breaking'];
-  const criticalIssues = issues.filter(issue => 
-    issue.labels.some(label => 
-      criticalLabels.some(critical => 
+  const criticalIssues = issues.filter(issue => {
+    // ✅ FIXED: Safe label checking
+    if (!issue || !Array.isArray(issue.labels)) return false;
+    
+    return issue.labels.some(label => {
+      if (!label || !label.name) return false;
+      return criticalLabels.some(critical => 
         label.name.toLowerCase().includes(critical)
-      )
-    )
-  );
+      );
+    });
+  });
   
   let riskScore = 0;
   if (last7Days > 15) riskScore += 3;
@@ -713,11 +783,20 @@ function analyzeIssues(issues, packageName) {
  * Determine trend
  */
 function determineTrend(last7Days, last30Days) {
-  const weeklyAverage = last30Days / 4;
+  // ✅ FIXED: Add input validation
+  const validLast7 = typeof last7Days === 'number' && !isNaN(last7Days) ? last7Days : 0;
+  const validLast30 = typeof last30Days === 'number' && !isNaN(last30Days) ? last30Days : 0;
   
-  if (last7Days > weeklyAverage * 1.5) {
+  // ✅ FIXED: Avoid division by zero
+  if (validLast30 === 0) {
+    return 'stable';
+  }
+  
+  const weeklyAverage = validLast30 / 4;
+  
+  if (validLast7 > weeklyAverage * 1.5) {
     return 'increasing';
-  } else if (last7Days < weeklyAverage * 0.5) {
+  } else if (validLast7 < weeklyAverage * 0.5) {
     return 'decreasing';
   } else {
     return 'stable';
@@ -729,38 +808,60 @@ function determineTrend(last7Days, last30Days) {
  * NEW in v2.6.0: Parallel processing for better performance
  */
 async function processBatch(packages, concurrency = 5, onProgress) {
+  // ✅ FIXED: Validate inputs
+  if (!Array.isArray(packages)) {
+    return [];
+  }
+
+  const validConcurrency = typeof concurrency === 'number' && concurrency > 0 
+    ? Math.min(concurrency, 10) // Cap at 10 to avoid overwhelming API
+    : 5;
+
   const results = [];
   const batches = [];
   
   // Split into batches
-  for (let i = 0; i < packages.length; i += concurrency) {
-    batches.push(packages.slice(i, i + concurrency));
+  for (let i = 0; i < packages.length; i += validConcurrency) {
+    batches.push(packages.slice(i, i + validConcurrency));
   }
   
   // Process each batch in parallel
   for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
     const batch = batches[batchIndex];
     
-    // Process batch in parallel
-    const batchResults = await Promise.all(
+    // Process batch in parallel with error handling
+    const batchResults = await Promise.allSettled(
       batch.map(async (packageName) => {
-        const result = await fetchGitHubIssues(packageName);
-        
-        // Call progress callback
-        if (onProgress) {
-          const processed = batchIndex * concurrency + batch.indexOf(packageName) + 1;
-          onProgress(processed, packages.length, packageName);
+        try {
+          const result = await fetchGitHubIssues(packageName);
+          
+          // Call progress callback safely
+          if (onProgress && typeof onProgress === 'function') {
+            try {
+              const processed = batchIndex * validConcurrency + batch.indexOf(packageName) + 1;
+              onProgress(processed, packages.length, packageName);
+            } catch {
+              // Ignore progress callback errors
+            }
+          }
+          
+          return result;
+        } catch (error) {
+          // Return null for failed requests
+          return null;
         }
-        
-        return result;
       })
     );
     
-    results.push(...batchResults.filter(r => r !== null));
+    // Extract successful results
+    results.push(...batchResults
+      .filter(r => r.status === 'fulfilled' && r.value !== null)
+      .map(r => r.value)
+    );
     
     // Small delay between batches to respect rate limits
     if (batchIndex < batches.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 1000)); // ✅ Increased to 1s
     }
   }
   
@@ -772,20 +873,38 @@ async function processBatch(packages, concurrency = 5, onProgress) {
  * Now uses parallel processing for 80% faster execution
  */
 async function checkGitHubIssues(packages, options = {}) {
-  const { concurrency = 5, onProgress } = options;
+  // ✅ FIXED: Validate inputs
+  if (!packages || typeof packages !== 'object') {
+    return [];
+  }
+
+  const { 
+    concurrency = 5, 
+    onProgress 
+  } = options || {};
+  
   const results = [];
   const packageNames = Object.keys(packages);
   
   // Only check packages that are tracked AND installed
-  const trackedAndInstalled = packageNames.filter(pkg => TRACKED_REPOS[pkg]);
+  const trackedAndInstalled = packageNames.filter(pkg => {
+    // ✅ FIXED: Validate package name
+    if (!pkg || typeof pkg !== 'string') return false;
+    return TRACKED_REPOS[pkg] !== undefined;
+  });
   
   if (trackedAndInstalled.length === 0) {
     return results;
   }
   
-  // Use parallel processing
-  const batchResults = await processBatch(trackedAndInstalled, concurrency, onProgress);
-  results.push(...batchResults);
+  try {
+    // Use parallel processing
+    const batchResults = await processBatch(trackedAndInstalled, concurrency, onProgress);
+    results.push(...batchResults);
+  } catch (error) {
+    console.error('GitHub batch processing error:', error.message);
+    // Return partial results instead of failing completely
+  }
   
   return results;
 }

@@ -5,6 +5,11 @@
  */
 
 function generateForceLayout(graphData, options = {}) {
+  // ✅ FIXED: Validate input
+  if (!graphData || typeof graphData !== 'object') {
+    throw new Error('Invalid graph data provided');
+  }
+
   const {
     width = 1200,
     height = 800,
@@ -14,10 +19,41 @@ function generateForceLayout(graphData, options = {}) {
     centerStrength = 0.05      // DECREASED for less center pull
   } = options;
 
-  const { nodes, links } = graphData;
+  // ✅ FIXED: Ensure nodes and links are arrays
+  const nodes = Array.isArray(graphData.nodes) ? graphData.nodes : [];
+  const links = Array.isArray(graphData.links) ? graphData.links : [];
+
+  // ✅ FIXED: Handle empty graph
+  if (nodes.length === 0) {
+    return {
+      type: 'force',
+      width,
+      height,
+      simulation: {
+        nodes: [],
+        links: [],
+        forces: {
+          charge: chargeStrength,
+          link: linkDistance,
+          center: centerStrength,
+          collision: true,
+          forceX: 0.05,
+          forceY: 0.05
+        }
+      },
+      metadata: {
+        nodeCount: 0,
+        linkCount: 0,
+        avgDegree: 0
+      }
+    };
+  }
 
   // Better initial positioning - spread across viewport
   nodes.forEach((node, i) => {
+    // ✅ FIXED: Validate node object
+    if (!node || typeof node !== 'object') return;
+    
     if (!node.x || !node.y) {
       // Spread nodes in a circle initially for better distribution
       const angle = (i / nodes.length) * 2 * Math.PI;
@@ -29,16 +65,38 @@ function generateForceLayout(graphData, options = {}) {
 
   // D3 force simulation configuration
   const simulation = {
-    nodes: nodes.map(n => ({
-      ...n,
-      radius: getNodeRadius(n, nodeRadius),
-      color: getNodeColor(n)
-    })),
-    links: links.map(l => ({
-      source: l.source,
-      target: l.target,
-      strength: getLinkStrength(l)
-    })),
+    nodes: nodes.map(n => {
+      // ✅ FIXED: Safe node mapping with validation
+      if (!n || typeof n !== 'object') {
+        return {
+          id: 'invalid',
+          radius: nodeRadius,
+          color: '#64748b'
+        };
+      }
+      
+      return {
+        ...n,
+        radius: getNodeRadius(n, nodeRadius),
+        color: getNodeColor(n)
+      };
+    }),
+    links: links.map(l => {
+      // ✅ FIXED: Safe link mapping with validation
+      if (!l || typeof l !== 'object') {
+        return {
+          source: 'invalid',
+          target: 'invalid',
+          strength: 0.4
+        };
+      }
+      
+      return {
+        source: l.source,
+        target: l.target,
+        strength: getLinkStrength(l)
+      };
+    }),
     forces: {
       charge: chargeStrength,
       link: linkDistance,
@@ -49,6 +107,9 @@ function generateForceLayout(graphData, options = {}) {
     }
   };
 
+  // ✅ FIXED: Safe average degree calculation
+  const avgDegree = nodes.length > 0 ? (links.length * 2) / nodes.length : 0;
+
   return {
     type: 'force',
     width,
@@ -57,25 +118,37 @@ function generateForceLayout(graphData, options = {}) {
     metadata: {
       nodeCount: nodes.length,
       linkCount: links.length,
-      avgDegree: (links.length * 2) / nodes.length
+      avgDegree: Number(avgDegree.toFixed(2))
     }
   };
 }
 
 function getNodeRadius(node, baseRadius) {
-  if (node.type === 'root') return baseRadius * 2.5;
+  // ✅ FIXED: Validate inputs
+  if (!node || typeof node !== 'object') {
+    return baseRadius;
+  }
+
+  const validBaseRadius = typeof baseRadius === 'number' && baseRadius > 0 ? baseRadius : 6;
   
-  const issueCount = node.issues?.length || 0;
-  if (issueCount > 5) return baseRadius * 2;
-  if (issueCount > 0) return baseRadius * 1.5;
+  if (node.type === 'root') return validBaseRadius * 2.5;
   
-  return baseRadius;
+  const issueCount = Array.isArray(node.issues) ? node.issues.length : 0;
+  if (issueCount > 5) return validBaseRadius * 2;
+  if (issueCount > 0) return validBaseRadius * 1.5;
+  
+  return validBaseRadius;
 }
 
 function getNodeColor(node) {
+  // ✅ FIXED: Validate input
+  if (!node || typeof node !== 'object') {
+    return '#64748b'; // Default gray color
+  }
+  
   if (node.type === 'root') return '#60a5fa';
   
-  const score = node.healthScore || 10;
+  const score = typeof node.healthScore === 'number' ? node.healthScore : 10;
   if (score < 3) return '#ef4444';
   if (score < 5) return '#f97316';
   if (score < 7) return '#eab308';
@@ -84,11 +157,42 @@ function getNodeColor(node) {
 }
 
 function getLinkStrength(link) {
+  // ✅ FIXED: Validate input
+  if (!link || typeof link !== 'object') {
+    return 0.4;
+  }
+  
   return link.depth === 1 ? 0.8 : 0.4;  // ADJUSTED: weaker links
 }
 
 function generateForceHTML(layoutData, graphData) {
-  const { width, height, simulation } = layoutData;
+  // ✅ FIXED: Validate inputs
+  if (!layoutData || typeof layoutData !== 'object') {
+    throw new Error('Invalid layout data provided');
+  }
+
+  if (!graphData || typeof graphData !== 'object') {
+    throw new Error('Invalid graph data provided');
+  }
+
+  const { width = 1200, height = 800, simulation } = layoutData;
+  
+  // ✅ FIXED: Validate simulation data
+  if (!simulation || typeof simulation !== 'object') {
+    throw new Error('Invalid simulation data');
+  }
+
+  const nodes = Array.isArray(simulation.nodes) ? simulation.nodes : [];
+  const links = Array.isArray(simulation.links) ? simulation.links : [];
+
+  // ✅ FIXED: Safe JSON stringification with error handling
+  let simulationJSON;
+  try {
+    simulationJSON = JSON.stringify(simulation);
+  } catch (error) {
+    console.error('Failed to stringify simulation data:', error.message);
+    simulationJSON = JSON.stringify({ nodes: [], links: [], forces: {} });
+  }
   
   return `
 <!DOCTYPE html>
@@ -825,15 +929,15 @@ function generateForceHTML(layoutData, graphData) {
     <div class="stats-title">📊 Statistics</div>
     <div class="stat-item">
       <span class="stat-label">Total Nodes</span>
-      <span class="stat-value" id="total-nodes">${simulation.nodes.length}</span>
+      <span class="stat-value" id="total-nodes">${nodes.length}</span>
     </div>
     <div class="stat-item">
       <span class="stat-label">Visible Nodes</span>
-      <span class="stat-value" id="visible-nodes">${simulation.nodes.length}</span>
+      <span class="stat-value" id="visible-nodes">${nodes.length}</span>
     </div>
     <div class="stat-item">
       <span class="stat-label">Links</span>
-      <span class="stat-value" id="link-count">${simulation.links.length}</span>
+      <span class="stat-value" id="link-count">${links.length}</span>
     </div>
     <div class="stat-item">
       <span class="stat-label">Selected</span>
@@ -881,7 +985,25 @@ function generateForceHTML(layoutData, graphData) {
   <div class="tooltip" id="tooltip"></div>
 
   <script>
-    const graphData = ${JSON.stringify(simulation)};
+    // ✅ FIXED: Safe data parsing with error handling
+    let graphData;
+    try {
+      graphData = ${simulationJSON};
+      // ✅ FIXED: Validate parsed data
+      if (!graphData || typeof graphData !== 'object') {
+        throw new Error('Invalid graph data');
+      }
+      if (!Array.isArray(graphData.nodes)) {
+        graphData.nodes = [];
+      }
+      if (!Array.isArray(graphData.links)) {
+        graphData.links = [];
+      }
+    } catch (error) {
+      console.error('Failed to parse graph data:', error);
+      graphData = { nodes: [], links: [], forces: {} };
+    }
+
     const width = window.innerWidth;   // USE FULL WINDOW WIDTH
     const height = window.innerHeight;  // USE FULL WINDOW HEIGHT
     
@@ -899,6 +1021,13 @@ function generateForceHTML(layoutData, graphData) {
       if (loading) loading.remove();
     }, 500);
     
+    // ✅ FIXED: Check if D3 is loaded
+    if (typeof d3 === 'undefined') {
+      console.error('D3.js failed to load');
+      document.querySelector('.loading-text').textContent = 'Error: D3.js library failed to load';
+      throw new Error('D3.js not loaded');
+    }
+
     // Create SVG with full viewport
     const svg = d3.select("#graph-container")
       .append("svg")
@@ -918,21 +1047,29 @@ function generateForceHTML(layoutData, graphData) {
     
     const g = svg.append("g");
     
+    // ✅ FIXED: Safe force configuration extraction
+    const forces = graphData.forces || {};
+    const linkDistance = forces.link || 150;
+    const chargeStrength = forces.charge || -400;
+    const centerStrength = forces.center || 0.05;
+    const forceXStrength = forces.forceX || 0.05;
+    const forceYStrength = forces.forceY || 0.05;
+
     // Create force simulation with better spacing
     const simulation = d3.forceSimulation(graphData.nodes)
       .force("link", d3.forceLink(graphData.links)
         .id(d => d.id)
-        .distance(${simulation.forces.link})  // Increased distance
-        .strength(d => d.strength))
+        .distance(linkDistance)
+        .strength(d => d.strength || 0.4))
       .force("charge", d3.forceManyBody()
-        .strength(${simulation.forces.charge}))  // Stronger repulsion
+        .strength(chargeStrength))
       .force("center", d3.forceCenter(width / 2, height / 2)
-        .strength(${simulation.forces.center}))  // Weaker center pull
+        .strength(centerStrength))
       .force("collision", d3.forceCollide()
-        .radius(d => d.radius + 12))  // More collision padding
-      .force("x", d3.forceX(width / 2).strength(${simulation.forces.forceX}))  // Spread horizontally
-      .force("y", d3.forceY(height / 2).strength(${simulation.forces.forceY}))  // Spread vertically
-      .alphaDecay(0.02);  // Slower settling for better spread
+        .radius(d => (d.radius || 6) + 12))
+      .force("x", d3.forceX(width / 2).strength(forceXStrength))
+      .force("y", d3.forceY(height / 2).strength(forceYStrength))
+      .alphaDecay(0.02);
     
     // Create links
     const link = g.append("g")
@@ -947,8 +1084,8 @@ function generateForceHTML(layoutData, graphData) {
       .data(graphData.nodes)
       .join("circle")
       .attr("class", "node")
-      .attr("r", d => d.radius)
-      .attr("fill", d => d.color)
+      .attr("r", d => d.radius || 6)
+      .attr("fill", d => d.color || '#64748b')
       .call(drag(simulation))
       .on("click", handleNodeClick)
       .on("mouseover", showTooltip)
@@ -960,24 +1097,24 @@ function generateForceHTML(layoutData, graphData) {
       .data(graphData.nodes)
       .join("text")
       .attr("class", "node-label")
-      .attr("dy", d => d.radius + 15)
-      .text(d => d.name);
+      .attr("dy", d => (d.radius || 6) + 15)
+      .text(d => d.name || 'unknown');
     
     // Update positions on tick
     simulation.on("tick", () => {
       link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
+        .attr("x1", d => d.source.x || 0)
+        .attr("y1", d => d.source.y || 0)
+        .attr("x2", d => d.target.x || 0)
+        .attr("y2", d => d.target.y || 0);
       
       node
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y);
+        .attr("cx", d => d.x || 0)
+        .attr("cy", d => d.y || 0);
       
       label
-        .attr("x", d => d.x)
-        .attr("y", d => d.y);
+        .attr("x", d => d.x || 0)
+        .attr("y", d => d.y || 0);
     });
     
     // Drag behavior
@@ -1025,12 +1162,16 @@ function generateForceHTML(layoutData, graphData) {
       const connectedLinks = new Set();
       
       graphData.links.forEach(l => {
-        if (l.source.id === d.id) {
-          connectedNodes.add(l.target.id);
+        // ✅ FIXED: Safe property access
+        const sourceId = l.source?.id || l.source;
+        const targetId = l.target?.id || l.target;
+        
+        if (sourceId === d.id) {
+          connectedNodes.add(targetId);
           connectedLinks.add(l);
         }
-        if (l.target.id === d.id) {
-          connectedNodes.add(l.source.id);
+        if (targetId === d.id) {
+          connectedNodes.add(sourceId);
           connectedLinks.add(l);
         }
       });
@@ -1050,8 +1191,9 @@ function generateForceHTML(layoutData, graphData) {
     // Enhanced tooltip
     function showTooltip(event, d) {
       const tooltip = document.getElementById('tooltip');
-      const issues = d.issues || [];
-      const score = d.healthScore || 10;
+      // ✅ FIXED: Safe property access
+      const issues = Array.isArray(d.issues) ? d.issues : [];
+      const score = typeof d.healthScore === 'number' ? d.healthScore : 10;
       
       let badgeClass = 'badge-healthy';
       if (score < 3) badgeClass = 'badge-critical';
@@ -1060,8 +1202,8 @@ function generateForceHTML(layoutData, graphData) {
       
       let html = \`
         <div class="tooltip-header">
-          <div class="tooltip-icon" style="background: \${d.color};"></div>
-          <div class="tooltip-title">\${d.name}@\${d.version}</div>
+          <div class="tooltip-icon" style="background: \${d.color || '#64748b'};"></div>
+          <div class="tooltip-title">\${d.name || 'unknown'}@\${d.version || '?'}</div>
         </div>
         <div class="tooltip-section">
           <div class="tooltip-row">
@@ -1070,7 +1212,7 @@ function generateForceHTML(layoutData, graphData) {
           </div>
           <div class="tooltip-row">
             <span class="tooltip-label">Type</span>
-            <span class="tooltip-value">\${d.type}</span>
+            <span class="tooltip-value">\${d.type || 'unknown'}</span>
           </div>
           <div class="tooltip-row">
             <span class="tooltip-label">Depth</span>
@@ -1139,29 +1281,44 @@ function generateForceHTML(layoutData, graphData) {
       simulation.alpha(0.3).restart();
       
       setTimeout(() => {
-        const bounds = g.node().getBBox();
-        const fullWidth = width;
-        const fullHeight = height;
-        const midX = bounds.x + bounds.width / 2;
-        const midY = bounds.y + bounds.height / 2;
-        
-        const scale = 0.8 / Math.max(bounds.width / fullWidth, bounds.height / fullHeight);
-        const translate = [fullWidth / 2 - scale * midX, fullHeight / 2 - scale * midY];
-        
-        svg.transition().duration(750).call(
-          zoom.transform,
-          d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
-        );
+        // ✅ FIXED: Safe bbox access
+        try {
+          const bounds = g.node().getBBox();
+          const fullWidth = width;
+          const fullHeight = height;
+          const midX = bounds.x + bounds.width / 2;
+          const midY = bounds.y + bounds.height / 2;
+          
+          const scale = 0.8 / Math.max(bounds.width / fullWidth, bounds.height / fullHeight);
+          const translate = [fullWidth / 2 - scale * midX, fullHeight / 2 - scale * midY];
+          
+          svg.transition().duration(750).call(
+            zoom.transform,
+            d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+          );
+        } catch (error) {
+          console.error('Failed to fit to screen:', error);
+        }
       }, 1000);
     }
     
     function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
+      // ✅ FIXED: Add browser compatibility for fullscreen
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+          elem.webkitRequestFullscreen();
+        }
         document.getElementById('fullscreen-text').textContent = 'Exit Fullscreen';
         document.body.classList.add('fullscreen');
       } else {
-        document.exitFullscreen();
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
         document.getElementById('fullscreen-text').textContent = 'Fullscreen';
         document.body.classList.remove('fullscreen');
       }
@@ -1208,12 +1365,14 @@ function generateForceHTML(layoutData, graphData) {
       node.style("display", function(d) {
         let visible = true;
         
-        if (searchTerm && !d.name.toLowerCase().includes(searchTerm)) {
+        // ✅ FIXED: Safe name access
+        const name = (d.name || '').toLowerCase();
+        if (searchTerm && !name.includes(searchTerm)) {
           visible = false;
         }
         
         if (healthFilter !== 'all') {
-          const score = d.healthScore || 10;
+          const score = typeof d.healthScore === 'number' ? d.healthScore : 10;
           if (healthFilter === 'critical' && score >= 3) visible = false;
           if (healthFilter === 'warning' && (score < 3 || score >= 5)) visible = false;
           if (healthFilter === 'caution' && (score < 5 || score >= 7)) visible = false;
@@ -1240,6 +1399,7 @@ function generateForceHTML(layoutData, graphData) {
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       if (e.key === 'f' && !e.target.matches('input')) {
+        e.preventDefault();
         document.getElementById('search-input').focus();
       }
       if (e.key === 'Escape') {
@@ -1247,15 +1407,19 @@ function generateForceHTML(layoutData, graphData) {
         document.getElementById('search-input').blur();
       }
       if (e.key === 'r' && !e.target.matches('input')) {
+        e.preventDefault();
         resetSimulation();
       }
       if (e.key === 'c' && !e.target.matches('input')) {
+        e.preventDefault();
         centerView();
       }
       if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
         zoomIn();
       }
       if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
         zoomOut();
       }
     });

@@ -175,9 +175,14 @@ async function fix(options = {}) {
     const startTime = Date.now();
     const fixSpinner = ora('Starting fixes...').start();
 
+    // ✅ FIXED: Safe array extraction for supply chain warnings
+    const safeSupplyChainWarnings = Array.isArray(analysisData.supplyChain?.warnings) 
+      ? analysisData.supplyChain.warnings 
+      : [];
+
     // Priority 1: Fix supply chain issues FIRST
-    if (analysisData.supplyChain?.warnings?.length > 0) {
-      const autoFixableSupplyChain = analysisData.supplyChain.warnings.filter(w => w.autoFixable);
+    if (safeSupplyChainWarnings.length > 0) {
+      const autoFixableSupplyChain = safeSupplyChainWarnings.filter(w => w.autoFixable);
       
       for (const warning of autoFixableSupplyChain) {
         currentFix++;
@@ -214,9 +219,14 @@ async function fix(options = {}) {
       }
     }
 
+    // ✅ FIXED: Safe array extraction for license warnings
+    const safeLicenseWarnings = Array.isArray(analysisData.licenseData?.warnings)
+      ? analysisData.licenseData.warnings
+      : [];
+
     // Priority 2: Fix license conflicts
-    if (analysisData.licenseData?.warnings?.length > 0) {
-      const autoFixableLicense = analysisData.licenseData.warnings.filter(w => w.autoFixable);
+    if (safeLicenseWarnings.length > 0) {
+      const autoFixableLicense = safeLicenseWarnings.filter(w => w.autoFixable);
       
       for (const warning of autoFixableLicense) {
         currentFix++;
@@ -253,9 +263,14 @@ async function fix(options = {}) {
       }
     }
 
+    // ✅ FIXED: Safe array extraction for quality packages
+    const safeQualityPackages = Array.isArray(analysisData.qualityData?.packages)
+      ? analysisData.qualityData.packages
+      : [];
+
     // Priority 3: Fix package quality issues
-    if (analysisData.qualityData?.packages?.length > 0) {
-      const qualityIssues = analysisData.qualityData.packages.filter(p => p.autoFixable);
+    if (safeQualityPackages.length > 0) {
+      const qualityIssues = safeQualityPackages.filter(p => p.autoFixable);
       
       for (const pkg of qualityIssues) {
         currentFix++;
@@ -335,9 +350,14 @@ async function fix(options = {}) {
       }
     }
 
+    // ✅ FIXED: Safe array extraction for ecosystem alerts
+    const safeEcosystemAlerts = Array.isArray(analysisData.ecosystem)
+      ? analysisData.ecosystem
+      : [];
+
     // Priority 5: Fix ecosystem alerts
-    if (analysisData.ecosystem?.length > 0) {
-      const criticalAlerts = analysisData.ecosystem.filter(a => a.severity === 'critical' || a.severity === 'high');
+    if (safeEcosystemAlerts.length > 0) {
+      const criticalAlerts = safeEcosystemAlerts.filter(a => a.severity === 'critical' || a.severity === 'high');
       
       for (const alert of criticalAlerts) {
         currentFix++;
@@ -375,9 +395,14 @@ async function fix(options = {}) {
       }
     }
 
+    // ✅ FIXED: Safe array extraction for unused dependencies
+    const safeUnusedDeps = Array.isArray(analysisData.unused)
+      ? analysisData.unused
+      : [];
+
     // Priority 6: Remove unused dependencies
-    if (analysisData.unused?.length > 0) {
-      for (const dep of analysisData.unused) {
+    if (safeUnusedDeps.length > 0) {
+      for (const dep of safeUnusedDeps) {
         currentFix++;
         const progress = Math.round((currentFix / totalFixes) * 100);
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -406,9 +431,14 @@ async function fix(options = {}) {
       }
     }
 
+    // ✅ FIXED: Safe array extraction for outdated packages
+    const safeOutdatedDeps = Array.isArray(analysisData.outdated)
+      ? analysisData.outdated
+      : [];
+
     // Priority 7: Update outdated packages
-    if (analysisData.outdated?.length > 0) {
-      const safeUpdates = analysisData.outdated.filter(pkg => !isMajorVersionUpdate(pkg.versionsBehind));
+    if (safeOutdatedDeps.length > 0) {
+      const safeUpdates = safeOutdatedDeps.filter(pkg => !isMajorVersionUpdate(pkg.versionsBehind));
       
       for (const pkg of safeUpdates) {
         currentFix++;
@@ -446,15 +476,15 @@ async function fix(options = {}) {
     fixSpinner.succeed('All fixes applied!');
 
     // Display fix summaries
-    if (analysisData.supplyChain?.warnings?.length > 0) {
+    if (safeSupplyChainWarnings.length > 0) {
       supplyChainFixer.displaySummary();
     }
 
-    if (analysisData.licenseData?.warnings?.length > 0) {
+    if (safeLicenseWarnings.length > 0) {
       licenseConflictFixer.displaySummary();
     }
 
-    if (analysisData.qualityData?.packages?.filter(p => p.autoFixable).length > 0) {
+    if (safeQualityPackages.filter(p => p.autoFixable).length > 0) {
       qualityFixer.displaySummary();
     }
 
@@ -673,18 +703,19 @@ async function executeBatchMode(options, plannedFixes, analysisData, projectPath
 function buildPlannedFixes(analysisData) {
   const planned = {};
 
+  // ✅ FIXED: Safe array extraction
   // Supply chain fixes
-  if (analysisData.supplyChain?.warnings) {
+  if (Array.isArray(analysisData.supplyChain?.warnings)) {
     planned.supplyChain = analysisData.supplyChain.warnings.filter(w => w.autoFixable);
   }
 
   // License conflict fixes
-  if (analysisData.licenseData?.warnings) {
+  if (Array.isArray(analysisData.licenseData?.warnings)) {
     planned.licenseConflicts = analysisData.licenseData.warnings.filter(w => w.autoFixable);
   }
 
   // Quality fixes
-  if (analysisData.qualityData?.packages) {
+  if (Array.isArray(analysisData.qualityData?.packages)) {
     planned.quality = analysisData.qualityData.packages.filter(p => p.autoFixable);
   }
 
@@ -698,19 +729,19 @@ function buildPlannedFixes(analysisData) {
   }
 
   // Ecosystem fixes
-  if (analysisData.ecosystem) {
+  if (Array.isArray(analysisData.ecosystem)) {
     planned.ecosystem = analysisData.ecosystem.filter(a => 
       a.severity === 'critical' || a.severity === 'high'
     );
   }
 
   // Unused dependencies
-  if (analysisData.unused) {
+  if (Array.isArray(analysisData.unused)) {
     planned.unused = analysisData.unused.map(dep => dep.name);
   }
 
   // Safe updates
-  if (analysisData.outdated) {
+  if (Array.isArray(analysisData.outdated)) {
     const safeUpdates = analysisData.outdated.filter(pkg => !isMajorVersionUpdate(pkg.versionsBehind));
     if (safeUpdates.length > 0) {
       planned.updates = { safe: safeUpdates };
@@ -773,15 +804,16 @@ async function analyzeProject(projectPath) {
 function calculateTotalFixes(security, supplyChain, licenseData, qualityData, ecosystem, unused, outdated) {
   let total = 0;
 
-  if (supplyChain?.warnings) {
+  // ✅ FIXED: Safe array checks
+  if (Array.isArray(supplyChain?.warnings)) {
     total += supplyChain.warnings.filter(w => w.autoFixable).length;
   }
 
-  if (licenseData?.warnings) {
+  if (Array.isArray(licenseData?.warnings)) {
     total += licenseData.warnings.filter(w => w.autoFixable).length;
   }
 
-  if (qualityData?.packages) {
+  if (Array.isArray(qualityData?.packages)) {
     total += qualityData.packages.filter(p => p.autoFixable).length;
   }
 
@@ -789,15 +821,15 @@ function calculateTotalFixes(security, supplyChain, licenseData, qualityData, ec
     total += 1;
   }
 
-  if (ecosystem) {
+  if (Array.isArray(ecosystem)) {
     total += ecosystem.filter(a => a.severity === 'critical' || a.severity === 'high').length;
   }
 
-  if (unused) {
+  if (Array.isArray(unused)) {
     total += unused.length;
   }
 
-  if (outdated) {
+  if (Array.isArray(outdated)) {
     const safeUpdates = outdated.filter(pkg => !isMajorVersionUpdate(pkg.versionsBehind));
     total += safeUpdates.length;
   }
@@ -808,9 +840,29 @@ function calculateTotalFixes(security, supplyChain, licenseData, qualityData, ec
 function displayPlannedFixes(data, dryRun) {
   const qualityFixer = new QualityFixer();
 
+  // ✅ FIXED: Safe array extractions for all display sections
+  const safeSupplyChainWarnings = Array.isArray(data.supplyChain?.warnings) 
+    ? data.supplyChain.warnings 
+    : [];
+  const safeLicenseWarnings = Array.isArray(data.licenseData?.warnings)
+    ? data.licenseData.warnings
+    : [];
+  const safeQualityPackages = Array.isArray(data.qualityData?.packages)
+    ? data.qualityData.packages
+    : [];
+  const safeEcosystemAlerts = Array.isArray(data.ecosystem)
+    ? data.ecosystem
+    : [];
+  const safeUnusedDeps = Array.isArray(data.unused)
+    ? data.unused
+    : [];
+  const safeOutdatedDeps = Array.isArray(data.outdated)
+    ? data.outdated
+    : [];
+
   // Priority 1: Supply chain fixes
-  if (data.supplyChain?.warnings?.length > 0) {
-    const autoFixable = data.supplyChain.warnings.filter(w => w.autoFixable);
+  if (safeSupplyChainWarnings.length > 0) {
+    const autoFixable = safeSupplyChainWarnings.filter(w => w.autoFixable);
     
     if (autoFixable.length > 0) {
       console.log(chalk.red.bold('🔴 SUPPLY CHAIN SECURITY FIXES'));
@@ -827,8 +879,8 @@ function displayPlannedFixes(data, dryRun) {
   }
 
   // Priority 2: License conflict fixes
-  if (data.licenseData?.warnings?.length > 0) {
-    const autoFixable = data.licenseData.warnings.filter(w => w.autoFixable);
+  if (safeLicenseWarnings.length > 0) {
+    const autoFixable = safeLicenseWarnings.filter(w => w.autoFixable);
     
     if (autoFixable.length > 0) {
       console.log(chalk.yellow.bold('\n🟠 LICENSE CONFLICT FIXES'));
@@ -845,8 +897,8 @@ function displayPlannedFixes(data, dryRun) {
   }
 
   // Priority 3: Package quality fixes
-  if (data.qualityData?.packages?.length > 0) {
-    const qualityIssues = data.qualityData.packages.filter(p => p.autoFixable);
+  if (safeQualityPackages.length > 0) {
+    const qualityIssues = safeQualityPackages.filter(p => p.autoFixable);
     
     if (qualityIssues.length > 0) {
       console.log(chalk.blue.bold('\n🔵 PACKAGE QUALITY FIXES'));
@@ -882,8 +934,8 @@ function displayPlannedFixes(data, dryRun) {
   }
 
   // Priority 5: Ecosystem alerts
-  if (data.ecosystem?.length > 0) {
-    const criticalAlerts = data.ecosystem.filter(a => a.severity === 'critical' || a.severity === 'high');
+  if (safeEcosystemAlerts.length > 0) {
+    const criticalAlerts = safeEcosystemAlerts.filter(a => a.severity === 'critical' || a.severity === 'high');
     
     if (criticalAlerts.length > 0) {
       console.log(chalk.yellow.bold('\n🟠 ECOSYSTEM ALERTS'));
@@ -897,18 +949,18 @@ function displayPlannedFixes(data, dryRun) {
   }
 
   // Priority 6: Unused dependencies
-  if (data.unused?.length > 0) {
+  if (safeUnusedDeps.length > 0) {
     console.log(chalk.yellow.bold('\n🟡 UNUSED DEPENDENCIES'));
     
-    data.unused.forEach(dep => {
+    safeUnusedDeps.forEach(dep => {
       console.log(`  ${chalk.cyan(dep.name)}`);
       console.log(`    ${chalk.gray('→')} Will be removed`);
     });
   }
 
   // Priority 7: Safe updates
-  if (data.outdated?.length > 0) {
-    const safeUpdates = data.outdated.filter(pkg => !isMajorVersionUpdate(pkg.versionsBehind));
+  if (safeOutdatedDeps.length > 0) {
+    const safeUpdates = safeOutdatedDeps.filter(pkg => !isMajorVersionUpdate(pkg.versionsBehind));
     
     if (safeUpdates.length > 0) {
       console.log(chalk.cyan.bold('\n🔵 SAFE UPDATES (patch/minor)'));
@@ -919,7 +971,7 @@ function displayPlannedFixes(data, dryRun) {
       });
     }
 
-    const majorUpdates = data.outdated.filter(pkg => isMajorVersionUpdate(pkg.versionsBehind));
+    const majorUpdates = safeOutdatedDeps.filter(pkg => isMajorVersionUpdate(pkg.versionsBehind));
     
     if (majorUpdates.length > 0) {
       console.log(chalk.gray.bold('\n⚪ SKIPPED (major updates - manual review required)'));

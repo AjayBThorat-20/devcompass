@@ -17,7 +17,7 @@ async function backup(action, options = {}) {
         break;
       
       case 'restore':
-        await restoreBackup(backupRestorer, options);  // ✅ FIXED: Pass only options
+        await restoreBackup(backupRestorer, options);
         break;
       
       case 'clean':
@@ -25,7 +25,7 @@ async function backup(action, options = {}) {
         break;
       
       case 'info':
-        await showBackupInfo(backupManager, options);  // ✅ FIXED: Pass options
+        await showBackupInfo(backupManager, options);
         break;
       
       default:
@@ -88,9 +88,8 @@ async function listBackups(backupManager) {
   console.log(chalk.gray('   Clean:'), chalk.cyan('devcompass backup clean\n'));
 }
 
-// ✅ FIXED: Function signature and error handling
 async function restoreBackup(backupRestorer, options) {
-  const backupName = options.name;  // ✅ Get from options
+  const backupName = options.name;
   
   if (!backupName) {
     console.error(chalk.red('\n❌ Please specify a backup name'));
@@ -262,9 +261,8 @@ async function cleanBackups(backupManager, options) {
   }
 }
 
-// ✅ FIXED: Function signature
 async function showBackupInfo(backupManager, options) {
-  const backupName = options.name;  // ✅ Get from options
+  const backupName = options.name;
   
   if (!backupName) {
     console.error(chalk.red('\n❌ Please specify a backup name'));

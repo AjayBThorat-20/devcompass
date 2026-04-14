@@ -32,6 +32,10 @@ function fetchNpmPackageInfo(packageName) {
           } catch (error) {
             reject(new Error('Failed to parse npm response'));
           }
+        } else if (res.statusCode === 404) {
+          reject(new Error('Package not found'));
+        } else if (res.statusCode === 429) {
+          reject(new Error('Rate limit exceeded'));
         } else {
           reject(new Error(`npm registry returned ${res.statusCode}`));
         }
@@ -51,11 +55,17 @@ function fetchNpmPackageInfo(packageName) {
  * Calculate days since last publish
  */
 function daysSincePublish(dateString) {
-  const publishDate = new Date(dateString);
-  const now = new Date();
-  const diffTime = Math.abs(now - publishDate);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
+  if (!dateString) return 0;
+  
+  try {
+    const publishDate = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - publishDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  } catch (error) {
+    return 0;
+  }
 }
 
 /**
@@ -64,10 +74,15 @@ function daysSincePublish(dateString) {
 function calculateHealthScore(packageData, githubData = null) {
   let score = 10;
   
-  // Get latest version info
+  // ✅ FIXED: Validate packageData structure
+  if (!packageData || typeof packageData !== 'object') {
+    return 5; // Default score for invalid data
+  }
+  
+  // Get latest version info with safety checks
   const latestVersion = packageData['dist-tags']?.latest;
-  const versionData = packageData.versions?.[latestVersion];
-  const time = packageData.time?.[latestVersion];
+  const versionData = latestVersion ? packageData.versions?.[latestVersion] : null;
+  const time = latestVersion ? packageData.time?.[latestVersion] : null;
   
   if (!versionData || !time) {
     return 5; // Default score if data missing
@@ -100,8 +115,8 @@ function calculateHealthScore(packageData, githubData = null) {
   }
   
   // 3. GitHub activity (if available) (max -2 points)
-  if (githubData) {
-    const { totalIssues, last7Days, last30Days } = githubData;
+  if (githubData && typeof githubData === 'object') {
+    const { totalIssues = 0, last7Days = 0, last30Days = 0 } = githubData;
     
     // High issue count with low activity is bad
     if (totalIssues > 100 && last30Days < 5) {
@@ -146,28 +161,32 @@ function calculateHealthScore(packageData, githubData = null) {
  * Determine package status based on health score
  */
 function getPackageStatus(score, daysSince) {
-  if (score === 0) {
+  // ✅ FIXED: Add input validation
+  const validScore = typeof score === 'number' && !isNaN(score) ? score : 5;
+  const validDaysSince = typeof daysSince === 'number' && !isNaN(daysSince) ? daysSince : 0;
+  
+  if (validScore === 0) {
     return {
       status: 'DEPRECATED',
       color: 'red',
       severity: 'critical',
       label: 'DEPRECATED'
     };
-  } else if (score < 3 || daysSince > 365 * 3) {
+  } else if (validScore < 3 || validDaysSince > 365 * 3) {
     return {
       status: 'ABANDONED',
       color: 'red',
       severity: 'critical',
       label: 'ABANDONED'
     };
-  } else if (score < 5 || daysSince > 365 * 2) {
+  } else if (validScore < 5 || validDaysSince > 365 * 2) {
     return {
       status: 'STALE',
       color: 'yellow',
       severity: 'high',
       label: 'STALE'
     };
-  } else if (score < 7) {
+  } else if (validScore < 7) {
     return {
       status: 'NEEDS_ATTENTION',
       color: 'yellow',
@@ -188,9 +207,14 @@ function getPackageStatus(score, daysSince) {
  * Get maintainer activity status
  */
 function getMaintainerStatus(packageData) {
+  // ✅ FIXED: Add null checks
+  if (!packageData || typeof packageData !== 'object') {
+    return 'unknown';
+  }
+  
   const maintainers = packageData.maintainers || [];
   const latestVersion = packageData['dist-tags']?.latest;
-  const time = packageData.time?.[latestVersion];
+  const time = latestVersion ? packageData.time?.[latestVersion] : null;
   
   if (!time) {
     return 'unknown';
@@ -213,13 +237,16 @@ function getMaintainerStatus(packageData) {
  * Format last update time in human-readable format
  */
 function formatLastUpdate(daysSince) {
-  if (daysSince < 30) {
-    return `${daysSince} days ago`;
-  } else if (daysSince < 365) {
-    const months = Math.floor(daysSince / 30);
+  // ✅ FIXED: Add input validation
+  const validDays = typeof daysSince === 'number' && !isNaN(daysSince) ? daysSince : 0;
+  
+  if (validDays < 30) {
+    return `${validDays} days ago`;
+  } else if (validDays < 365) {
+    const months = Math.floor(validDays / 30);
     return `${months} month${months > 1 ? 's' : ''} ago`;
   } else {
-    const years = Math.floor(daysSince / 365);
+    const years = Math.floor(validDays / 365);
     return `${years} year${years > 1 ? 's' : ''} ago`;
   }
 }
@@ -228,9 +255,30 @@ function formatLastUpdate(daysSince) {
  * Analyze package quality for all dependencies
  */
 async function analyzePackageQuality(dependencies, githubData = []) {
+  // ✅ FIXED: Validate inputs
+  if (!dependencies || typeof dependencies !== 'object') {
+    return {
+      total: 0,
+      healthy: 0,
+      needsAttention: 0,
+      stale: 0,
+      abandoned: 0,
+      deprecated: 0,
+      packages: []
+    };
+  }
+
+  // ✅ FIXED: Ensure githubData is always an array
+  const safeGithubData = Array.isArray(githubData) ? githubData : [];
+
   // Load quality fixer for alternative suggestions
-  const QualityFixer = require('../utils/quality-fixer');
-  const qualityFixer = new QualityFixer();
+  let qualityFixer = null;
+  try {
+    const QualityFixer = require('../utils/quality-fixer');
+    qualityFixer = new QualityFixer();
+  } catch (error) {
+    // Quality fixer not available, continue without alternatives
+  }
 
   const results = [];
   const stats = {
@@ -244,19 +292,32 @@ async function analyzePackageQuality(dependencies, githubData = []) {
   
   // Create GitHub data lookup
   const githubLookup = {};
-  for (const data of githubData) {
-    githubLookup[data.package] = data;
+  for (const data of safeGithubData) {
+    if (data && data.package) {
+      githubLookup[data.package] = data;
+    }
   }
   
   // Analyze each package (limit to prevent rate limiting)
   const packages = Object.keys(dependencies).slice(0, 20); // Analyze first 20
   
   for (const packageName of packages) {
+    // ✅ FIXED: Skip invalid package names
+    if (!packageName || typeof packageName !== 'string') {
+      continue;
+    }
+
     try {
       stats.total++;
       
       // Fetch package info from npm
       const packageData = await fetchNpmPackageInfo(packageName);
+      
+      // ✅ FIXED: Validate packageData before proceeding
+      if (!packageData || typeof packageData !== 'object') {
+        console.error(`Invalid package data for ${packageName}`);
+        continue;
+      }
       
       // Calculate health score
       const github = githubLookup[packageName];
@@ -264,7 +325,7 @@ async function analyzePackageQuality(dependencies, githubData = []) {
       
       // Get latest version info
       const latestVersion = packageData['dist-tags']?.latest;
-      const time = packageData.time?.[latestVersion];
+      const time = latestVersion ? packageData.time?.[latestVersion] : null;
       const daysSince = time ? daysSincePublish(time) : 0;
       
       // Determine status
@@ -288,8 +349,15 @@ async function analyzePackageQuality(dependencies, githubData = []) {
       const repository = packageData.repository?.url || '';
       const hasGithub = repository.includes('github.com');
       
-      // Check for alternative packages
-      const alternative = qualityFixer.findAlternative(packageName);
+      // Check for alternative packages (only if qualityFixer is available)
+      let alternative = null;
+      if (qualityFixer) {
+        try {
+          alternative = qualityFixer.findAlternative(packageName);
+        } catch (error) {
+          // Alternative lookup failed, continue without it
+        }
+      }
       
       // Determine if package is auto-fixable
       const isAutoFixable = (
@@ -314,7 +382,7 @@ async function analyzePackageQuality(dependencies, githubData = []) {
         hasGithub: hasGithub,
         totalVersions: Object.keys(packageData.versions || {}).length,
         description: packageData.description || '',
-        deprecated: packageData.versions?.[latestVersion]?.deprecated || false,
+        deprecated: latestVersion && packageData.versions?.[latestVersion]?.deprecated ? true : false,
         // Auto-fix metadata
         autoFixable: isAutoFixable,
         autoFixAction: isAutoFixable ? 'replace' : null,
@@ -322,15 +390,21 @@ async function analyzePackageQuality(dependencies, githubData = []) {
         allAlternatives: alternative ? alternative.alternatives : null,
         migrationGuide: alternative ? alternative.migration_guide : null,
         requiresConfirmation: true,
-        reason: alternative ? alternative.reason : getQualityRecommendation({ status: statusInfo.status, healthScore, daysSincePublish: daysSince }).recommendation
+        reason: alternative 
+          ? alternative.reason 
+          : getQualityRecommendation({ 
+              status: statusInfo.status, 
+              healthScore, 
+              daysSincePublish: daysSince 
+            }).recommendation
       };
       
       // Add GitHub metrics if available
-      if (github) {
+      if (github && typeof github === 'object') {
         result.githubMetrics = {
-          totalIssues: github.totalIssues,
-          recentIssues: github.last30Days,
-          trend: github.trend
+          totalIssues: github.totalIssues || 0,
+          recentIssues: github.last30Days || 0,
+          trend: github.trend || 'stable'
         };
       }
       
@@ -340,11 +414,21 @@ async function analyzePackageQuality(dependencies, githubData = []) {
       await new Promise(resolve => setTimeout(resolve, 100));
       
     } catch (error) {
-      console.error(`Error analyzing ${packageName}:`, error.message);
-      // Continue with next package
+      // ✅ FIXED: Better error handling with specific error types
+      if (error.message === 'Rate limit exceeded') {
+        console.error(`Rate limit hit while analyzing ${packageName}, skipping remaining packages`);
+        break; // Stop analyzing more packages
+      } else if (error.message === 'Package not found') {
+        // Skip packages that don't exist
+        continue;
+      } else {
+        console.error(`Error analyzing ${packageName}:`, error.message);
+        // Continue with next package
+      }
     }
   }
   
+  // ✅ FIXED: Return consistent structure with results instead of packages
   return {
     total: results.length,
     healthy: stats.healthy,
@@ -352,7 +436,9 @@ async function analyzePackageQuality(dependencies, githubData = []) {
     stale: stats.stale,
     abandoned: stats.abandoned,
     deprecated: stats.deprecated,
-    packages: results
+    results: results,  // Return as 'results'
+    packages: results, // Also keep as 'packages' for backward compatibility
+    stats: stats       // Also include stats object
   };
 }
 
@@ -360,7 +446,21 @@ async function analyzePackageQuality(dependencies, githubData = []) {
  * Get quality recommendations for a package
  */
 function getQualityRecommendation(packageResult) {
-  const { status, healthScore, daysSincePublish, maintainerStatus } = packageResult;
+  // ✅ FIXED: Add input validation
+  if (!packageResult || typeof packageResult !== 'object') {
+    return {
+      action: 'none',
+      message: 'No data available',
+      recommendation: 'Unable to provide recommendation'
+    };
+  }
+
+  const { 
+    status = 'UNKNOWN', 
+    healthScore = 5, 
+    daysSincePublish = 0, 
+    maintainerStatus = 'unknown' 
+  } = packageResult;
   
   if (status === 'DEPRECATED') {
     return {
@@ -371,17 +471,19 @@ function getQualityRecommendation(packageResult) {
   }
   
   if (status === 'ABANDONED') {
+    const years = Math.floor(daysSincePublish / 365);
     return {
       action: 'high',
-      message: `Last updated ${Math.floor(daysSincePublish / 365)} years ago`,
+      message: `Last updated ${years} year${years > 1 ? 's' : ''} ago`,
       recommendation: 'Migrate to an actively maintained alternative'
     };
   }
   
   if (status === 'STALE') {
+    const months = Math.floor(daysSincePublish / 30);
     return {
       action: 'medium',
-      message: `Not updated in ${Math.floor(daysSincePublish / 30)} months`,
+      message: `Not updated in ${months} month${months > 1 ? 's' : ''} ago`,
       recommendation: 'Consider finding a more actively maintained package'
     };
   }
