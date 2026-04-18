@@ -1,5 +1,5 @@
 // src/commands/graph.js
-// v3.1.2 - Fixed async generator.generate() call
+// v3.1.3 - Fixed analyzeProject import and graph filter enrichment
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
@@ -34,7 +34,7 @@ async function graphCommand(options) {
   }
 
   // Validate filter option
-  const validFilters = ['all', 'vulnerable', 'outdated', 'unused', 'conflict'];
+  const validFilters = ['all', 'vulnerable', 'outdated', 'unused', 'conflict', 'deprecated'];
   if (!validFilters.includes(filter)) {
     console.error(chalk.red(`✗ Invalid filter: ${filter}`));
     console.log(chalk.gray(`  Valid options: ${validFilters.join(', ')}`));
@@ -49,22 +49,34 @@ async function graphCommand(options) {
     
     // Try to load analysis results for enrichment
     let analysisLoaded = false;
+    let analysisResults = null;
+    
+    // v3.1.3 - FIXED: Import analyzeProject correctly
     try {
-      const { analyzeProject } = require('./analyze');
-      spinner.text = 'Running analysis for graph enrichment...';
-      const analysisResults = await analyzeProject(projectPath, { silent: true });
+      const analyzeModule = require('./analyze');
       
-      if (analysisResults) {
-        generator.setAnalysisResults(analysisResults);
-        analysisLoaded = true;
+      // Check if analyzeProject exists (v3.1.3+)
+      if (typeof analyzeModule.analyzeProject === 'function') {
+        spinner.text = 'Running analysis for graph enrichment...';
+        analysisResults = await analyzeModule.analyzeProject(projectPath, { silent: true });
         
-        // Debug: log what we got
+        if (analysisResults) {
+          generator.setAnalysisResults(analysisResults);
+          analysisLoaded = true;
+          
+          // Debug: log what we got
+          if (process.env.DEBUG) {
+            console.log('\n[graph] Analysis results loaded:');
+            console.log('  - Security vulnerabilities:', analysisResults.security?.vulnerabilities?.length || 0);
+            console.log('  - Outdated packages:', analysisResults.outdatedPackages?.length || 0);
+            console.log('  - Unused dependencies:', analysisResults.unusedDependencies?.length || 0);
+            console.log('  - Ecosystem alerts:', analysisResults.ecosystemAlerts?.length || 0);
+          }
+        }
+      } else {
+        // Fallback for older versions without analyzeProject
         if (process.env.DEBUG) {
-          console.log('[graph] Analysis results loaded:');
-          console.log('  - Security vulnerabilities:', analysisResults.security?.vulnerabilities?.length || 0);
-          console.log('  - Outdated packages:', analysisResults.outdatedPackages?.length || 0);
-          console.log('  - Unused dependencies:', analysisResults.unusedDependencies?.length || 0);
-          console.log('  - Ecosystem alerts:', analysisResults.ecosystemAlerts?.length || 0);
+          console.log('[graph] analyzeProject not available, skipping enrichment');
         }
       }
     } catch (error) {
@@ -76,7 +88,7 @@ async function graphCommand(options) {
 
     spinner.text = 'Building dependency graph...';
     
-    // FIXED: generator.generate() is now async, must use await
+    // v3.1.3 - generator.generate() is async, must use await
     const graphData = await generator.generate({
       maxDepth: depth !== Infinity ? parseInt(depth) : Infinity,
       filter,
@@ -88,7 +100,13 @@ async function graphCommand(options) {
       return;
     }
 
-    spinner.succeed(`Generated graph with ${graphData.nodes.length} nodes`);
+    // v3.1.3 - Show enrichment status in spinner
+    if (analysisLoaded) {
+      const issueCount = graphData.nodes.filter(n => n.issues && n.issues.length > 0).length;
+      spinner.succeed(`Generated graph with ${graphData.nodes.length} nodes (${issueCount} with issues)`);
+    } else {
+      spinner.succeed(`Generated graph with ${graphData.nodes.length} nodes`);
+    }
 
     // Detect format from output filename if not specified
     let detectedFormat = format;
@@ -133,19 +151,27 @@ async function graphCommand(options) {
         console.log(`  ${chalk.gray('Filtered:')}      ${graphData.metadata.visibleDependencies} / ${graphData.metadata.totalDependencies}`);
       }
       
-      // Show enrichment status
+      // v3.1.3 - Show enrichment status with detailed breakdown
       if (analysisLoaded) {
         const issueNodes = graphData.nodes.filter(n => n.issues && n.issues.length > 0).length;
         const vulnNodes = graphData.nodes.filter(n => n.isVulnerable).length;
         const outdatedNodes = graphData.nodes.filter(n => n.isOutdated).length;
         const unusedNodes = graphData.nodes.filter(n => n.isUnused).length;
+        const deprecatedNodes = graphData.nodes.filter(n => n.isDeprecated).length;
+        
+        console.log(`  ${chalk.gray('Enriched:')}      ${chalk.green('✓')} Analysis data applied`);
         
         if (issueNodes > 0) {
           console.log(`  ${chalk.gray('With Issues:')}   ${issueNodes} packages`);
-          if (vulnNodes > 0) console.log(`  ${chalk.gray('  Vulnerable:')} ${chalk.red(vulnNodes)}`);
-          if (outdatedNodes > 0) console.log(`  ${chalk.gray('  Outdated:')}   ${chalk.yellow(outdatedNodes)}`);
-          if (unusedNodes > 0) console.log(`  ${chalk.gray('  Unused:')}     ${chalk.blue(unusedNodes)}`);
+          if (vulnNodes > 0) console.log(`    ${chalk.gray('Vulnerable:')} ${chalk.red(vulnNodes)}`);
+          if (outdatedNodes > 0) console.log(`    ${chalk.gray('Outdated:')}   ${chalk.yellow(outdatedNodes)}`);
+          if (unusedNodes > 0) console.log(`    ${chalk.gray('Unused:')}     ${chalk.blue(unusedNodes)}`);
+          if (deprecatedNodes > 0) console.log(`    ${chalk.gray('Deprecated:')} ${chalk.magenta(deprecatedNodes)}`);
+        } else {
+          console.log(`  ${chalk.gray('With Issues:')}   ${chalk.green('0 (healthy project)')}`);
         }
+      } else {
+        console.log(`  ${chalk.gray('Enriched:')}      ${chalk.yellow('✗')} Run 'devcompass analyze' first for full data`);
       }
       
       if (result.method) {
@@ -193,7 +219,25 @@ async function graphCommand(options) {
         console.log(`  3. Use filters to identify issues`);
       }
       
-      if (filter === 'all') {
+      // v3.1.3 - Show filter suggestions based on analysis
+      if (filter === 'all' && analysisLoaded) {
+        const vulnCount = graphData.nodes.filter(n => n.isVulnerable).length;
+        const outdatedCount = graphData.nodes.filter(n => n.isOutdated).length;
+        const unusedCount = graphData.nodes.filter(n => n.isUnused).length;
+        
+        if (vulnCount > 0) {
+          console.log(`  • Try: ${chalk.cyan(`devcompass graph --filter vulnerable`)} to see ${chalk.red(vulnCount)} vulnerable packages`);
+        }
+        if (outdatedCount > 0) {
+          console.log(`  • Try: ${chalk.cyan(`devcompass graph --filter outdated`)} to see ${chalk.yellow(outdatedCount)} outdated packages`);
+        }
+        if (unusedCount > 0) {
+          console.log(`  • Try: ${chalk.cyan(`devcompass graph --filter unused`)} to see ${chalk.blue(unusedCount)} unused packages`);
+        }
+        if (vulnCount === 0 && outdatedCount === 0 && unusedCount === 0) {
+          console.log(`  • ${chalk.green('✓')} Your project looks healthy! No issues detected.`);
+        }
+      } else if (filter === 'all') {
         console.log(`  • Try: ${chalk.cyan(`devcompass graph --filter conflict`)} to see only problematic packages`);
       }
       

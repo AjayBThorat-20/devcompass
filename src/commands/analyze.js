@@ -1,4 +1,5 @@
 // src/commands/analyze.js
+// v3.1.3 - Added analyzeProject() for graph enrichment
 const chalk = require('chalk');
 const ora = require('ora');
 const path = require('path');
@@ -38,6 +39,175 @@ const {
 } = require('../analyzers/security-recommendations');
 
 const packageJson = require('../../package.json');
+
+/**
+ * v3.1.3 - analyzeProject() for graph enrichment
+ * Returns structured analysis data without console output
+ * Used by graph command to enrich nodes with vulnerability/outdated/unused flags
+ * 
+ * @param {string} projectPath - Path to project directory
+ * @param {object} options - Options (silent mode enabled by default)
+ * @returns {object|null} Analysis results or null on failure
+ */
+async function analyzeProject(projectPath, options = {}) {
+  const config = loadConfig(projectPath);
+  
+  try {
+    const packageJsonPath = path.join(projectPath, 'package.json');
+    
+    if (!fs.existsSync(packageJsonPath)) {
+      return null;
+    }
+    
+    let projectPackageJson;
+    try {
+      const fileContent = fs.readFileSync(packageJsonPath, 'utf8');
+      projectPackageJson = JSON.parse(fileContent);
+    } catch (error) {
+      return null;
+    }
+    
+    const dependencies = {
+      ...(projectPackageJson.dependencies || {}),
+      ...(projectPackageJson.devDependencies || {})
+    };
+    
+    const totalDeps = Object.keys(dependencies).length;
+    
+    if (totalDeps === 0) {
+      return {
+        security: { vulnerabilities: [], metadata: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 } },
+        outdatedPackages: [],
+        unusedDependencies: [],
+        ecosystemAlerts: [],
+        summary: { totalDeps: 0 }
+      };
+    }
+    
+    // Check for ecosystem alerts
+    let alerts = [];
+    if (config.cache) {
+      alerts = getCached(projectPath, 'alerts');
+    }
+    if (!alerts) {
+      try {
+        alerts = await checkEcosystemAlerts(projectPath, dependencies);
+        if (config.cache) {
+          setCache(projectPath, 'alerts', alerts);
+        }
+      } catch (error) {
+        alerts = [];
+      }
+    }
+    alerts = filterAlerts(alerts, config);
+    
+    // Unused dependencies
+    let unusedDeps = [];
+    if (config.cache) {
+      unusedDeps = getCached(projectPath, 'unused');
+    }
+    if (!unusedDeps) {
+      try {
+        unusedDeps = await findUnusedDeps(projectPath, dependencies);
+        if (config.cache) {
+          setCache(projectPath, 'unused', unusedDeps);
+        }
+      } catch (error) {
+        unusedDeps = [];
+      }
+    }
+    
+    // Outdated packages
+    let outdatedDeps = [];
+    if (config.cache) {
+      outdatedDeps = getCached(projectPath, 'outdated');
+    }
+    if (!outdatedDeps) {
+      try {
+        outdatedDeps = await findOutdatedDeps(projectPath, dependencies);
+        if (config.cache) {
+          setCache(projectPath, 'outdated', outdatedDeps);
+        }
+      } catch (error) {
+        outdatedDeps = [];
+      }
+    }
+    
+    // Check security vulnerabilities
+    let securityData = { vulnerabilities: [], metadata: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 } };
+    if (config.cache) {
+      const cached = getCached(projectPath, 'security');
+      if (cached) securityData = cached;
+    }
+    if (securityData.metadata.total === 0) {
+      try {
+        securityData = await checkSecurity(projectPath);
+        if (config.cache) {
+          setCache(projectPath, 'security', securityData);
+        }
+      } catch (error) {
+        // Keep default empty securityData
+      }
+    }
+    
+    // Return structured data for graph enrichment
+    // Format matches what enrichNodesWithAnalysis() expects
+    return {
+      // Security data - vulnerabilities array with package names
+      security: {
+        vulnerabilities: securityData.vulnerabilities || [],
+        metadata: securityData.metadata || { total: 0, critical: 0, high: 0, moderate: 0, low: 0 },
+        total: securityData.metadata?.total || 0,
+        critical: securityData.metadata?.critical || 0,
+        high: securityData.metadata?.high || 0,
+        moderate: securityData.metadata?.moderate || 0,
+        low: securityData.metadata?.low || 0
+      },
+      
+      // Outdated packages - array of { name, current, latest, wanted, versionsBehind }
+      outdatedPackages: (outdatedDeps || []).map(dep => ({
+        name: dep.name,
+        package: dep.name,
+        current: dep.current,
+        latest: dep.latest,
+        wanted: dep.wanted,
+        versionsBehind: dep.versionsBehind
+      })),
+      
+      // Unused dependencies - array of { name } or strings
+      unusedDependencies: (unusedDeps || []).map(dep => 
+        typeof dep === 'string' ? dep : (dep.name || dep.package)
+      ),
+      
+      // Ecosystem alerts - array of { package, title, severity, fix, source }
+      ecosystemAlerts: (alerts || []).map(alert => ({
+        package: alert.package,
+        name: alert.package,
+        title: alert.title,
+        message: alert.title,
+        severity: alert.severity,
+        fix: alert.fix,
+        source: alert.source,
+        affected: alert.affected
+      })),
+      
+      // Summary
+      summary: {
+        totalDeps,
+        unusedCount: unusedDeps?.length || 0,
+        outdatedCount: outdatedDeps?.length || 0,
+        alertCount: alerts?.length || 0,
+        vulnerabilityCount: securityData.metadata?.total || 0
+      }
+    };
+    
+  } catch (error) {
+    if (process.env.DEBUG) {
+      console.error('[analyzeProject] Error:', error.message);
+    }
+    return null;
+  }
+}
 
 async function analyze(options) {
   const projectPath = options.path || process.cwd();
@@ -1052,4 +1222,5 @@ function displayQuickWins(alerts, unusedDeps, outdatedDeps, score, totalDeps, se
   }
 }
 
-module.exports = { analyze };
+// v3.1.3 - Export both analyze (CLI command) and analyzeProject (for internal use)
+module.exports = { analyze, analyzeProject };
