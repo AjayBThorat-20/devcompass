@@ -1,469 +1,685 @@
 // src/graph/layouts/radial.js
-/**
- * Radial/circular layout for dependency graphs
- * Arranges nodes in concentric circles based on depth
- */
+// Fixed radial layout with improved label positioning and collision handling
 
-function generateRadialLayout(graphData, options = {}) {
-  const {
-    width = 1200,
-    height = 800,
-    nodeRadius = 6,
-    startRadius = 120,
-    radiusIncrement = 100
-  } = options;
+function generateRadialLayoutHTML(graphData, options = {}) {
+  const width = options.width || 1400;
+  const height = options.height || 900;
+  const projectName = options.projectName || 'Project';
+  const projectVersion = options.projectVersion || '1.0.0';
 
-  const { nodes, links } = graphData;
-  const centerX = width / 2;
-  const centerY = height / 2;
+  // Validate input
+  const nodes = Array.isArray(graphData.nodes) ? graphData.nodes : [];
+  const links = Array.isArray(graphData.links) ? graphData.links : [];
 
-  // Group nodes by depth
-  const nodesByDepth = new Map();
-  nodes.forEach(node => {
-    const depth = node.depth || 0;
-    if (!nodesByDepth.has(depth)) {
-      nodesByDepth.set(depth, []);
-    }
-    nodesByDepth.get(depth).push(node);
-  });
+  if (nodes.length === 0) {
+    return generateEmptyStateHTML(projectName, projectVersion);
+  }
 
-  // Calculate positions for each depth level
-  const positionedNodes = [];
-  
-  nodesByDepth.forEach((nodesAtDepth, depth) => {
-    const radius = depth === 0 ? 0 : startRadius + (depth - 1) * radiusIncrement;
-    const angleStep = (2 * Math.PI) / nodesAtDepth.length;
-    
-    nodesAtDepth.forEach((node, index) => {
-      if (depth === 0) {
-        // Root node at center
-        positionedNodes.push({
-          ...node,
-          x: centerX,
-          y: centerY,
-          radius: getNodeRadius(node, nodeRadius),
-          color: getNodeColor(node),
-          angle: 0
-        });
-      } else {
-        // Other nodes in circles
-        const angle = index * angleStep - Math.PI / 2; // Start from top
-        positionedNodes.push({
-          ...node,
-          x: centerX + radius * Math.cos(angle),
-          y: centerY + radius * Math.sin(angle),
-          radius: getNodeRadius(node, nodeRadius),
-          color: getNodeColor(node),
-          angle: angle
-        });
-      }
-    });
-  });
+  const graphDataJSON = JSON.stringify({ nodes, links });
 
-  return {
-    type: 'radial',
-    width,
-    height,
-    nodes: positionedNodes,
-    links: links.map(l => ({
-      source: l.source,
-      target: l.target,
-      curved: true
-    })),
-    center: { x: centerX, y: centerY },
-    metadata: {
-      nodeCount: nodes.length,
-      linkCount: links.length,
-      maxDepth: Math.max(...Array.from(nodesByDepth.keys()))
-    }
-  };
-}
-
-function getNodeRadius(node, baseRadius) {
-  if (node.type === 'root') return baseRadius * 2.5;
-  
-  const issueCount = node.issues?.length || 0;
-  if (issueCount > 5) return baseRadius * 1.8;
-  if (issueCount > 0) return baseRadius * 1.4;
-  
-  return baseRadius;
-}
-
-function getNodeColor(node) {
-  if (node.type === 'root') return '#4299e1';
-  
-  const score = node.healthScore || 10;
-  if (score < 3) return '#f56565';
-  if (score < 5) return '#ed8936';
-  if (score < 7) return '#ecc94b';
-  return '#48bb78';
-}
-
-function generateRadialHTML(layoutData) {
-  const { width, height, nodes, links, center } = layoutData;
-  
-  return `
-<!DOCTYPE html>
-<html>
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DevCompass - Radial Dependency Graph</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
-    body {
-      margin: 0;
-      padding: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #1a202c;
-      color: #e2e8f0;
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-purple: #8b5cf6;
+      --border-color: #475569;
+      --health-excellent: #10b981;
+      --health-good: #84cc16;
+      --health-caution: #eab308;
+      --health-warning: #f97316;
+      --health-critical: #ef4444;
+      --root-color: #60a5fa;
     }
-    
-    #graph-container {
-      background: #2d3748;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      color: var(--text-primary);
+      min-height: 100vh;
       overflow: hidden;
     }
-    
-    .node {
-      cursor: pointer;
-      stroke: #1a202c;
-      stroke-width: 2px;
-      transition: all 0.3s ease;
+
+    #container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
     }
-    
-    .node:hover {
-      stroke: #fff;
-      stroke-width: 3px;
+
+    svg {
+      width: 100%;
+      height: 100%;
+      cursor: grab;
     }
-    
-    .link {
-      stroke: #4a5568;
-      stroke-opacity: 0.4;
-      stroke-width: 1.5px;
-      fill: none;
+
+    svg:active { cursor: grabbing; }
+
+    /* Header */
+    .header {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30, 41, 59, 0.95);
+      padding: 16px 32px;
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      z-index: 100;
+      text-align: center;
     }
-    
-    .node-label {
-      font-size: 11px;
-      fill: #e2e8f0;
-      text-anchor: middle;
-      pointer-events: none;
-      user-select: none;
+
+    .header-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
     }
-    
-    .depth-circle {
-      stroke: #4a5568;
-      stroke-width: 1px;
-      stroke-dasharray: 5,5;
-      fill: none;
-      opacity: 0.3;
+
+    .header-subtitle {
+      font-size: 12px;
+      color: var(--text-secondary);
     }
-    
-    .tooltip {
-      position: absolute;
-      padding: 12px;
-      background: rgba(26, 32, 44, 0.95);
-      border: 1px solid #4a5568;
-      border-radius: 6px;
-      pointer-events: none;
-      font-size: 13px;
-      max-width: 300px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-      z-index: 1000;
-    }
-    
-    .tooltip-title {
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #4299e1;
-      font-size: 14px;
-    }
-    
-    .tooltip-row {
-      margin: 4px 0;
-      display: flex;
-      justify-content: space-between;
-    }
-    
-    .tooltip-label {
-      color: #a0aec0;
-      margin-right: 12px;
-    }
-    
-    .tooltip-value {
-      color: #e2e8f0;
-      font-weight: 500;
-    }
-    
+
+    /* Controls Panel */
     .controls {
       position: fixed;
       top: 20px;
       right: 20px;
-      background: #2d3748;
-      padding: 16px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      background: rgba(30, 41, 59, 0.95);
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
       z-index: 100;
+      min-width: 180px;
     }
-    
-    .control-button {
+
+    .controls-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .control-btn {
       display: block;
       width: 100%;
-      padding: 8px 16px;
+      padding: 10px 14px;
       margin: 6px 0;
-      background: #4299e1;
-      color: white;
-      border: none;
-      border-radius: 4px;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
-      transition: background 0.2s;
+      text-align: left;
+      transition: all 0.2s ease;
     }
-    
-    .control-button:hover {
-      background: #3182ce;
+
+    .control-btn:hover {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
     }
-    
-    .control-button.secondary {
-      background: #4a5568;
+
+    .control-btn.active {
+      background: var(--accent-purple);
+      border-color: var(--accent-purple);
     }
-    
-    .control-button.secondary:hover {
-      background: #2d3748;
-    }
-    
+
+    /* Legend */
     .legend {
       position: fixed;
       bottom: 20px;
       right: 20px;
-      background: #2d3748;
-      padding: 16px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-      font-size: 12px;
+      background: rgba(30, 41, 59, 0.95);
+      padding: 16px 20px;
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      z-index: 100;
     }
-    
+
     .legend-title {
-      font-weight: 600;
-      margin-bottom: 10px;
-      color: #e2e8f0;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
     }
-    
+
     .legend-item {
       display: flex;
       align-items: center;
+      gap: 10px;
       margin: 6px 0;
+      font-size: 11px;
+      color: var(--text-secondary);
     }
-    
-    .legend-color {
-      width: 16px;
-      height: 16px;
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      margin-right: 10px;
-      border: 2px solid #1a202c;
+      flex-shrink: 0;
+    }
+
+    /* Depth circles visualization */
+    .depth-circle {
+      fill: none;
+      stroke: var(--border-color);
+      stroke-width: 1px;
+      stroke-dasharray: 4, 4;
+      opacity: 0.4;
+    }
+
+    .depth-label {
+      fill: var(--text-muted);
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    /* Node styles */
+    .node circle {
+      stroke: var(--bg-primary);
+      stroke-width: 2px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .node circle:hover {
+      stroke: var(--text-primary);
+      stroke-width: 3px;
+      filter: drop-shadow(0 0 10px currentColor);
+    }
+
+    .node-label {
+      font-size: 9px;
+      fill: var(--text-secondary);
+      pointer-events: none;
+      font-weight: 500;
+      text-shadow: 
+        -1px -1px 2px var(--bg-primary),
+        1px -1px 2px var(--bg-primary),
+        -1px 1px 2px var(--bg-primary),
+        1px 1px 2px var(--bg-primary);
+    }
+
+    .node-label.hidden { display: none; }
+
+    /* Link styles */
+    .link {
+      fill: none;
+      stroke: var(--border-color);
+      stroke-width: 1px;
+      stroke-opacity: 0.4;
+    }
+
+    .link.highlighted {
+      stroke: var(--accent-cyan);
+      stroke-opacity: 0.8;
+      stroke-width: 2px;
+    }
+
+    /* Tooltip */
+    .tooltip {
+      position: absolute;
+      padding: 14px 18px;
+      background: rgba(15, 23, 42, 0.98);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      font-size: 12px;
+      max-width: 280px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 1000;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .tooltip.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .tooltip-title {
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 4px 0;
+    }
+
+    .tooltip-label { color: var(--text-secondary); }
+    .tooltip-value { color: var(--text-primary); font-weight: 600; }
+
+    /* Zoom Controls */
+    .zoom-controls {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      display: flex;
+      gap: 8px;
+      z-index: 100;
+    }
+
+    .zoom-btn {
+      width: 40px;
+      height: 40px;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(12px);
+    }
+
+    .zoom-btn:hover {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
     }
   </style>
 </head>
 <body>
-  <div id="graph-container"></div>
-  
-  <div class="controls">
-    <button class="control-button secondary" onclick="toggleLabels()">Toggle Labels</button>
-    <button class="control-button secondary" onclick="toggleDepthCircles()">Toggle Depth Circles</button>
-    <button class="control-button secondary" onclick="toggleLinks()">Toggle Links</button>
+  <div id="container"></div>
+
+  <div class="header">
+    <div class="header-title">🌐 Radial Dependency Graph</div>
+    <div class="header-subtitle">Concentric circles by dependency depth</div>
   </div>
-  
+
+  <div class="controls">
+    <div class="controls-title">Display Options</div>
+    <button class="control-btn active" id="btn-labels" onclick="toggleLabels()">Toggle Labels</button>
+    <button class="control-btn" id="btn-depth" onclick="toggleDepthCircles()">Toggle Depth Circles</button>
+    <button class="control-btn" id="btn-links" onclick="toggleLinks()">Toggle Links</button>
+  </div>
+
   <div class="legend">
     <div class="legend-title">Health Status</div>
     <div class="legend-item">
-      <div class="legend-color" style="background: #48bb78;"></div>
+      <div class="legend-dot" style="background: var(--health-excellent);"></div>
       <span>Healthy (7-10)</span>
     </div>
     <div class="legend-item">
-      <div class="legend-color" style="background: #ecc94b;"></div>
+      <div class="legend-dot" style="background: var(--health-caution);"></div>
       <span>Caution (5-7)</span>
     </div>
     <div class="legend-item">
-      <div class="legend-color" style="background: #ed8936;"></div>
+      <div class="legend-dot" style="background: var(--health-warning);"></div>
       <span>Warning (3-5)</span>
     </div>
     <div class="legend-item">
-      <div class="legend-color" style="background: #f56565;"></div>
-      <span>Critical (&lt;3)</span>
+      <div class="legend-dot" style="background: var(--health-critical);"></div>
+      <span>Critical (<3)</span>
     </div>
     <div class="legend-item">
-      <div class="legend-color" style="background: #4299e1; border: 3px solid #1a202c;"></div>
+      <div class="legend-dot" style="background: var(--root-color);"></div>
       <span>Root Package</span>
     </div>
   </div>
-  
-  <div class="tooltip" id="tooltip" style="display: none;"></div>
+
+  <div class="zoom-controls">
+    <button class="zoom-btn" onclick="zoomIn()">+</button>
+    <button class="zoom-btn" onclick="zoomOut()">−</button>
+    <button class="zoom-btn" onclick="resetZoom()">⟲</button>
+  </div>
+
+  <div class="tooltip" id="tooltip"></div>
 
   <script>
-    const nodes = ${JSON.stringify(nodes)};
-    const links = ${JSON.stringify(links)};
-    const center = ${JSON.stringify(center)};
-    const width = ${width};
-    const height = ${height};
+    const graphData = ${graphDataJSON};
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const centerX = width / 2;
+    const centerY = height / 2;
     
     let showLabels = true;
     let showDepthCircles = true;
     let showLinks = true;
+    let currentZoom = 1;
+
+    // Calculate max depth
+    const maxDepth = Math.max(...graphData.nodes.map(n => n.depth || 0), 1);
     
-    // Create node map for link lookup
-    const nodeMap = new Map(nodes.map(n => [n.id, n]));
-    
+    // Radius configuration - distribute nodes across available space
+    const minRadius = 60;
+    const maxRadius = Math.min(width, height) / 2 - 100;
+    const radiusStep = (maxRadius - minRadius) / Math.max(maxDepth, 1);
+
+    // Get radius for depth level
+    function getRadiusForDepth(depth) {
+      if (depth === 0) return 0; // Root at center
+      return minRadius + (depth - 1) * radiusStep + radiusStep / 2;
+    }
+
+    // Get color based on health score
+    function getHealthColor(node) {
+      if (node.type === 'root' || node.depth === 0) return 'var(--root-color)';
+      const score = node.healthScore || 8;
+      if (score >= 7) return 'var(--health-excellent)';
+      if (score >= 5) return 'var(--health-caution)';
+      if (score >= 3) return 'var(--health-warning)';
+      return 'var(--health-critical)';
+    }
+
+    // Get node radius based on type/depth
+    function getNodeRadius(node) {
+      if (node.type === 'root' || node.depth === 0) return 20;
+      if (node.depth === 1) return 10;
+      return 6;
+    }
+
+    // Group nodes by depth for angular distribution
+    const nodesByDepth = {};
+    graphData.nodes.forEach(node => {
+      const depth = node.depth || 0;
+      if (!nodesByDepth[depth]) nodesByDepth[depth] = [];
+      nodesByDepth[depth].push(node);
+    });
+
+    // Calculate positions for each node
+    graphData.nodes.forEach(node => {
+      const depth = node.depth || 0;
+      const nodesAtDepth = nodesByDepth[depth];
+      const index = nodesAtDepth.indexOf(node);
+      const count = nodesAtDepth.length;
+      
+      if (depth === 0) {
+        // Root at center
+        node.x = centerX;
+        node.y = centerY;
+      } else {
+        // Distribute evenly around circle at this depth
+        // Add some offset to avoid all nodes starting at same angle
+        const angleOffset = (depth * 0.3); // Stagger by depth
+        const angle = (2 * Math.PI * index / count) + angleOffset;
+        const radius = getRadiusForDepth(depth);
+        
+        node.x = centerX + radius * Math.cos(angle);
+        node.y = centerY + radius * Math.sin(angle);
+        node.angle = angle; // Store for label positioning
+      }
+    });
+
     // Create SVG
-    const svg = d3.select("#graph-container")
+    const svg = d3.select("#container")
       .append("svg")
       .attr("width", width)
-      .attr("height", height)
-      .attr("viewBox", [0, 0, width, height])
-      .call(d3.zoom()
-        .scaleExtent([0.1, 4])
-        .on("zoom", (event) => {
-          g.attr("transform", event.transform);
-        }));
-    
-    const g = svg.append("g");
-    
-    // Draw depth circles
-    const maxDepth = Math.max(...nodes.map(n => n.depth || 0));
-    const depthCircles = g.append("g").attr("class", "depth-circles");
-    
-    for (let i = 1; i <= maxDepth; i++) {
-      const radius = 120 + (i - 1) * 100;
-      depthCircles.append("circle")
-        .attr("class", "depth-circle")
-        .attr("cx", center.x)
-        .attr("cy", center.y)
-        .attr("r", radius);
-    }
-    
-    // Create curved path generator
-    const linkPath = d3.linkRadial()
-      .angle(d => {
-        const node = nodeMap.get(d.id);
-        return node ? node.angle : 0;
-      })
-      .radius(d => {
-        const node = nodeMap.get(d.id);
-        if (!node) return 0;
-        const depth = node.depth || 0;
-        return depth === 0 ? 0 : 120 + (depth - 1) * 100;
+      .attr("height", height);
+
+    // Zoom behavior
+    const zoom = d3.zoom()
+      .scaleExtent([0.2, 4])
+      .on("zoom", (event) => {
+        g.attr("transform", event.transform);
+        currentZoom = event.transform.k;
       });
+
+    svg.call(zoom);
+
+    const g = svg.append("g");
+
+    // Draw depth circles (concentric rings)
+    const depthCirclesGroup = g.append("g").attr("class", "depth-circles");
     
-    // Create links
-    const link = g.append("g")
-      .selectAll("path")
-      .data(links)
+    for (let d = 1; d <= maxDepth; d++) {
+      const r = getRadiusForDepth(d);
+      
+      depthCirclesGroup.append("circle")
+        .attr("class", "depth-circle")
+        .attr("cx", centerX)
+        .attr("cy", centerY)
+        .attr("r", r);
+      
+      // Depth label
+      depthCirclesGroup.append("text")
+        .attr("class", "depth-label")
+        .attr("x", centerX + r + 5)
+        .attr("y", centerY - 5)
+        .text("Depth " + d);
+    }
+
+    // Build link lookup for highlighting
+    const linkLookup = new Set();
+    graphData.links.forEach(l => {
+      const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+      const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+      linkLookup.add(sourceId + '-' + targetId);
+    });
+
+    // Create node lookup
+    const nodeById = new Map();
+    graphData.nodes.forEach(n => nodeById.set(n.id, n));
+
+    // Draw links with curved paths
+    const linksGroup = g.append("g").attr("class", "links");
+    
+    const links = linksGroup.selectAll(".link")
+      .data(graphData.links)
       .join("path")
       .attr("class", "link")
       .attr("d", d => {
-        const source = nodeMap.get(d.source);
-        const target = nodeMap.get(d.target);
+        const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
+        const targetId = typeof d.target === 'object' ? d.target.id : d.target;
+        const source = nodeById.get(sourceId);
+        const target = nodeById.get(targetId);
+        
         if (!source || !target) return '';
         
-        // Simple curved path
-        const path = d3.path();
-        path.moveTo(source.x, source.y);
-        
-        // Calculate control point for curve
+        // Use curved path through center point for radial layout
         const midX = (source.x + target.x) / 2;
         const midY = (source.y + target.y) / 2;
-        const dx = target.x - source.x;
-        const dy = target.y - source.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const offset = dist * 0.2;
         
-        // Perpendicular offset for curve
-        const cx = midX - dy / dist * offset;
-        const cy = midY + dx / dist * offset;
+        // Pull midpoint slightly toward center for nice curves
+        const pullFactor = 0.2;
+        const curveX = midX + (centerX - midX) * pullFactor;
+        const curveY = midY + (centerY - midY) * pullFactor;
         
-        path.quadraticCurveTo(cx, cy, target.x, target.y);
-        return path.toString();
+        return "M" + source.x + "," + source.y 
+             + "Q" + curveX + "," + curveY 
+             + " " + target.x + "," + target.y;
       });
+
+    // Draw nodes
+    const nodesGroup = g.append("g").attr("class", "nodes");
     
-    // Create nodes
-    const node = g.append("g")
-      .selectAll("circle")
-      .data(nodes)
-      .join("circle")
+    const node = nodesGroup.selectAll(".node")
+      .data(graphData.nodes)
+      .join("g")
       .attr("class", "node")
-      .attr("cx", d => d.x)
-      .attr("cy", d => d.y)
-      .attr("r", d => d.radius)
-      .attr("fill", d => d.color)
-      .on("mouseover", showTooltip)
-      .on("mouseout", hideTooltip);
-    
-    // Create labels
-    const label = g.append("g")
-      .selectAll("text")
-      .data(nodes)
-      .join("text")
+      .attr("transform", d => "translate(" + d.x + "," + d.y + ")")
+      .on("mouseover", handleMouseOver)
+      .on("mouseout", handleMouseOut);
+
+    // Add circles
+    node.append("circle")
+      .attr("r", d => getNodeRadius(d))
+      .attr("fill", d => getHealthColor(d));
+
+    // Add labels with smart positioning
+    node.append("text")
       .attr("class", "node-label")
-      .attr("x", d => d.x)
-      .attr("y", d => d.y + d.radius + 15)
-      .text(d => d.name)
-      .style("display", showLabels ? "block" : "none");
-    
+      .attr("dy", d => {
+        if (d.depth === 0) return -28;
+        // Position label outside the circle based on angle
+        const angle = d.angle || 0;
+        return Math.sin(angle) > 0.3 ? 20 : (Math.sin(angle) < -0.3 ? -12 : 4);
+      })
+      .attr("dx", d => {
+        if (d.depth === 0) return 0;
+        const angle = d.angle || 0;
+        return Math.cos(angle) > 0.3 ? 12 : (Math.cos(angle) < -0.3 ? -12 : 0);
+      })
+      .attr("text-anchor", d => {
+        if (d.depth === 0) return "middle";
+        const angle = d.angle || 0;
+        if (Math.cos(angle) > 0.3) return "start";
+        if (Math.cos(angle) < -0.3) return "end";
+        return "middle";
+      })
+      .text(d => {
+        // Truncate long names
+        const name = d.name || d.id;
+        return name.length > 15 ? name.substring(0, 12) + '...' : name;
+      });
+
     // Tooltip functions
-    function showTooltip(event, d) {
+    function handleMouseOver(event, d) {
+      // Highlight connected links
+      links.classed("highlighted", l => {
+        const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+        const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+        return sourceId === d.id || targetId === d.id;
+      });
+
+      // Show tooltip
       const tooltip = document.getElementById('tooltip');
-      const issues = d.issues || [];
+      const score = d.healthScore || 8;
       
-      let html = \`<div class="tooltip-title">\${d.name}@\${d.version}</div>\`;
-      html += \`<div class="tooltip-row">
-        <span class="tooltip-label">Health:</span>
-        <span class="tooltip-value">\${d.healthScore}/10</span>
-      </div>\`;
-      html += \`<div class="tooltip-row">
-        <span class="tooltip-label">Depth:</span>
-        <span class="tooltip-value">\${d.depth}</span>
-      </div>\`;
+      tooltip.innerHTML = 
+        '<div class="tooltip-title">' + (d.name || d.id) + '</div>' +
+        '<div class="tooltip-row"><span class="tooltip-label">Version</span><span class="tooltip-value">' + (d.version || 'N/A') + '</span></div>' +
+        '<div class="tooltip-row"><span class="tooltip-label">Health Score</span><span class="tooltip-value">' + score + '/10</span></div>' +
+        '<div class="tooltip-row"><span class="tooltip-label">Depth</span><span class="tooltip-value">' + (d.depth || 0) + '</span></div>' +
+        '<div class="tooltip-row"><span class="tooltip-label">Type</span><span class="tooltip-value">' + (d.type || 'dependency') + '</span></div>';
       
-      if (issues.length > 0) {
-        html += \`<div class="tooltip-row">
-          <span class="tooltip-label">Issues:</span>
-          <span class="tooltip-value">\${issues.length}</span>
-        </div>\`;
-      }
+      tooltip.classList.add('visible');
       
-      tooltip.innerHTML = html;
-      tooltip.style.display = 'block';
-      tooltip.style.left = (event.pageX + 15) + 'px';
-      tooltip.style.top = (event.pageY + 15) + 'px';
+      const x = Math.min(event.pageX + 15, window.innerWidth - 300);
+      const y = event.pageY - 10;
+      tooltip.style.left = x + 'px';
+      tooltip.style.top = y + 'px';
     }
-    
-    function hideTooltip() {
-      document.getElementById('tooltip').style.display = 'none';
+
+    function handleMouseOut() {
+      links.classed("highlighted", false);
+      document.getElementById('tooltip').classList.remove('visible');
     }
-    
+
     // Control functions
     function toggleLabels() {
       showLabels = !showLabels;
-      label.style("display", showLabels ? "block" : "none");
+      d3.selectAll('.node-label').classed('hidden', !showLabels);
+      document.getElementById('btn-labels').classList.toggle('active', showLabels);
     }
-    
+
     function toggleDepthCircles() {
       showDepthCircles = !showDepthCircles;
-      depthCircles.style("display", showDepthCircles ? "block" : "none");
+      d3.selectAll('.depth-circles').style('display', showDepthCircles ? 'block' : 'none');
+      document.getElementById('btn-depth').classList.toggle('active', showDepthCircles);
     }
-    
+
     function toggleLinks() {
       showLinks = !showLinks;
-      link.style("display", showLinks ? "block" : "none");
+      d3.selectAll('.links').style('display', showLinks ? 'block' : 'none');
+      document.getElementById('btn-links').classList.toggle('active', showLinks);
     }
+
+    function zoomIn() {
+      svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+    }
+
+    function zoomOut() {
+      svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+    }
+
+    function resetZoom() {
+      svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'l' || e.key === 'L') toggleLabels();
+      if (e.key === 'd' || e.key === 'D') toggleDepthCircles();
+      if (e.key === '+' || e.key === '=') zoomIn();
+      if (e.key === '-') zoomOut();
+      if (e.key === 'r' || e.key === 'R') resetZoom();
+    });
   </script>
 </body>
-</html>
-  `.trim();
+</html>`;
+}
+
+/**
+ * Generate empty state HTML
+ */
+function generateEmptyStateHTML(projectName, projectVersion) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DevCompass - No Dependencies</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .message {
+      text-align: center;
+      padding: 40px;
+      background: rgba(30, 41, 59, 0.95);
+      border-radius: 20px;
+      border: 1px solid #475569;
+    }
+    .icon { font-size: 64px; margin-bottom: 20px; }
+    h1 { margin: 0 0 10px; font-size: 24px; }
+    p { color: #94a3b8; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="message">
+    <div class="icon">🌐</div>
+    <h1>No Dependencies Found</h1>
+    <p>${projectName} has no dependencies to visualize.</p>
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * Legacy function for backward compatibility
+ */
+function generateRadialLayout(graphData, options = {}) {
+  return generateRadialLayoutHTML(graphData, options);
 }
 
 module.exports = {
   generateRadialLayout,
-  generateRadialHTML
+  generateRadialLayoutHTML
 };

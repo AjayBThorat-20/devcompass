@@ -1,4 +1,5 @@
 // src/commands/graph.js
+// v3.1.2 - Fixed async generator.generate() call
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
@@ -46,18 +47,40 @@ async function graphCommand(options) {
     // Generate graph data
     const generator = new GraphGenerator(projectPath);
     
-    // Try to load analysis results if available
+    // Try to load analysis results for enrichment
+    let analysisLoaded = false;
     try {
       const { analyzeProject } = require('./analyze');
+      spinner.text = 'Running analysis for graph enrichment...';
       const analysisResults = await analyzeProject(projectPath, { silent: true });
-      generator.setAnalysisResults(analysisResults);
+      
+      if (analysisResults) {
+        generator.setAnalysisResults(analysisResults);
+        analysisLoaded = true;
+        
+        // Debug: log what we got
+        if (process.env.DEBUG) {
+          console.log('[graph] Analysis results loaded:');
+          console.log('  - Security vulnerabilities:', analysisResults.security?.vulnerabilities?.length || 0);
+          console.log('  - Outdated packages:', analysisResults.outdatedPackages?.length || 0);
+          console.log('  - Unused dependencies:', analysisResults.unusedDependencies?.length || 0);
+          console.log('  - Ecosystem alerts:', analysisResults.ecosystemAlerts?.length || 0);
+        }
+      }
     } catch (error) {
-      // Analysis results not available, continue without enrichment
+      // Analysis not available, continue without enrichment
+      if (process.env.DEBUG) {
+        console.log('[graph] Analysis failed:', error.message);
+      }
     }
 
-    const graphData = generator.generate({
+    spinner.text = 'Building dependency graph...';
+    
+    // FIXED: generator.generate() is now async, must use await
+    const graphData = await generator.generate({
       maxDepth: depth !== Infinity ? parseInt(depth) : Infinity,
-      filter
+      filter,
+      enrichWithIssues: false  // Dynamic npm fetching disabled for speed
     });
 
     if (!graphData) {
@@ -108,6 +131,21 @@ async function graphCommand(options) {
       if (filter !== 'all') {
         console.log(`  ${chalk.gray('Filter:')}        ${filter}`);
         console.log(`  ${chalk.gray('Filtered:')}      ${graphData.metadata.visibleDependencies} / ${graphData.metadata.totalDependencies}`);
+      }
+      
+      // Show enrichment status
+      if (analysisLoaded) {
+        const issueNodes = graphData.nodes.filter(n => n.issues && n.issues.length > 0).length;
+        const vulnNodes = graphData.nodes.filter(n => n.isVulnerable).length;
+        const outdatedNodes = graphData.nodes.filter(n => n.isOutdated).length;
+        const unusedNodes = graphData.nodes.filter(n => n.isUnused).length;
+        
+        if (issueNodes > 0) {
+          console.log(`  ${chalk.gray('With Issues:')}   ${issueNodes} packages`);
+          if (vulnNodes > 0) console.log(`  ${chalk.gray('  Vulnerable:')} ${chalk.red(vulnNodes)}`);
+          if (outdatedNodes > 0) console.log(`  ${chalk.gray('  Outdated:')}   ${chalk.yellow(outdatedNodes)}`);
+          if (unusedNodes > 0) console.log(`  ${chalk.gray('  Unused:')}     ${chalk.blue(unusedNodes)}`);
+        }
       }
       
       if (result.method) {

@@ -1,102 +1,169 @@
 // src/graph/visualizer.js
-const fs = require('fs');
-const path = require('path');
+// Unified graph visualizer - routes to appropriate layout generator
+
+const { generateTreeLayoutHTML } = require('./layouts/tree');
+const { generateRadialLayoutHTML } = require('./layouts/radial');
+const { generateForceLayoutHTML } = require('./layouts/force');
+const { generateConflictLayoutHTML } = require('./layouts/conflict');
 
 /**
- * GraphVisualizer - Main visualization engine
+ * GraphVisualizer - Main entry point for graph visualization
+ * Generates HTML output for various layout types
  */
 class GraphVisualizer {
   constructor(graphData, options = {}) {
-    this.graphData = graphData;
+    this.graphData = this.validateGraphData(graphData);
     this.options = {
+      width: options.width || 1400,
+      height: options.height || 900,
       layout: options.layout || 'tree',
-      width: options.width || 1200,
-      height: options.height || 800,
-      interactive: options.interactive !== false,
+      projectName: options.projectName || 'Project',
+      projectVersion: options.projectVersion || '1.0.0',
       filter: options.filter || 'all',
-      includeSearch: options.includeSearch !== false,
       ...options
     };
   }
 
   /**
-   * Generate HTML visualization
+   * Validate and normalize graph data
+   */
+  validateGraphData(graphData) {
+    if (!graphData) {
+      return { nodes: [], links: [] };
+    }
+
+    return {
+      nodes: Array.isArray(graphData.nodes) ? graphData.nodes : [],
+      links: Array.isArray(graphData.links) ? graphData.links : [],
+      metadata: graphData.metadata || {}
+    };
+  }
+
+  /**
+   * Apply filter to graph data
+   */
+  applyFilter(filter) {
+    if (!filter || filter === 'all') {
+      return this.graphData;
+    }
+
+    const nodes = this.graphData.nodes;
+    const links = this.graphData.links;
+
+    let filteredNodes = [];
+
+    switch (filter) {
+      case 'vulnerable':
+        filteredNodes = nodes.filter(n => 
+          n.type === 'root' || 
+          (Array.isArray(n.issues) && n.issues.some(i => i.type === 'security' || i.type === 'vulnerability'))
+        );
+        break;
+
+      case 'outdated':
+        filteredNodes = nodes.filter(n => 
+          n.type === 'root' || 
+          n.isOutdated === true ||
+          (Array.isArray(n.issues) && n.issues.some(i => i.type === 'outdated'))
+        );
+        break;
+
+      case 'unused':
+        filteredNodes = nodes.filter(n => 
+          n.type === 'root' || 
+          n.isUnused === true ||
+          (Array.isArray(n.issues) && n.issues.some(i => i.type === 'unused'))
+        );
+        break;
+
+      case 'conflict':
+        filteredNodes = nodes.filter(n => 
+          n.type === 'root' || 
+          (Array.isArray(n.issues) && n.issues.length > 0) ||
+          n.healthScore < 7
+        );
+        break;
+
+      default:
+        filteredNodes = nodes;
+    }
+
+    // Get IDs of filtered nodes
+    const nodeIds = new Set(filteredNodes.map(n => n.id));
+
+    // Filter links to only include those between filtered nodes
+    const filteredLinks = links.filter(l => {
+      const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+      const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+      return nodeIds.has(sourceId) && nodeIds.has(targetId);
+    });
+
+    return {
+      nodes: filteredNodes,
+      links: filteredLinks,
+      metadata: this.graphData.metadata
+    };
+  }
+
+  /**
+   * Generate HTML output for the configured layout
    */
   generateHTML() {
-    const layout = this.options.layout;
-    
-    // Use layout-specific HTML generation if available
-    if (layout === 'force') {
-      return this.generateForceHTML();
-    } else if (layout === 'radial') {
-      return this.generateRadialHTML();
-    } else if (layout === 'conflict') {
-      return this.generateConflictHTML();
+    const filteredData = this.applyFilter(this.options.filter);
+    const layout = this.options.layout.toLowerCase();
+
+    switch (layout) {
+      case 'force':
+        return generateForceLayoutHTML(filteredData, this.options);
+
+      case 'radial':
+        return generateRadialLayoutHTML(filteredData, this.options);
+
+      case 'conflict':
+        return generateConflictLayoutHTML(filteredData, this.options);
+
+      case 'tree':
+      default:
+        return generateTreeLayoutHTML(filteredData, this.options);
     }
-    
-    // Default to tree layout
-    return this.generateTreeHTML();
   }
 
   /**
-   * Generate tree layout HTML
+   * Get graph script for embedding (backward compatibility)
    */
-  generateTreeHTML() {
-    const templatePath = path.join(__dirname, 'template.html');
-    let template = fs.readFileSync(templatePath, 'utf8');
-
-    const { createTreeLayout } = require('./layouts/tree');
-    const graphScript = createTreeLayout(this.graphData, this.options);
-
-    // Add search/filter if enabled
-    let searchFilterHTML = '';
-    let searchFilterJS = '';
-    
-    if (this.options.includeSearch) {
-      const searchFilter = require('./search-filter');
-      searchFilterHTML = searchFilter.generateSearchFilterHTML(this.graphData);
-      searchFilterJS = searchFilter.generateSearchFilterJS(this.graphData);
-    }
-
-    template = template
-      .replace(/{{TITLE}}/g, 'Dependency Graph')
-      .replace(/{{PROJECT_NAME}}/g, this.graphData.metadata.projectName || 'Unknown')
-      .replace(/{{PROJECT_VERSION}}/g, this.graphData.metadata.version || '1.0.0')
-      .replace(/{{TOTAL_DEPS}}/g, this.graphData.metadata.totalDependencies || this.graphData.nodes.length - 1)
-      .replace(/{{MAX_DEPTH}}/g, this.graphData.metadata.maxDepth || 0)
-      .replace(/{{GENERATED_AT}}/g, new Date(this.graphData.metadata.generatedAt).toLocaleString())
-      .replace(/{{SEARCH_FILTER_HTML}}/g, searchFilterHTML)
-      .replace(/{{GRAPH_SCRIPT}}/g, graphScript + '\n\n' + searchFilterJS);
-
-    return template;
-  }
-
-  /**
-   * Generate force layout HTML
-   */
-  generateForceHTML() {
-    const forceLayout = require('./layouts/force');
-    const layoutData = forceLayout.generateForceLayout(this.graphData, this.options);
-    return forceLayout.generateForceHTML(layoutData, this.graphData);
-  }
-
-  /**
-   * Generate radial layout HTML
-   */
-  generateRadialHTML() {
-    const radialLayout = require('./layouts/radial');
-    const layoutData = radialLayout.generateRadialLayout(this.graphData, this.options);
-    return radialLayout.generateRadialHTML(layoutData);
-  }
-
-  /**
-   * Generate conflict layout HTML
-   */
-  generateConflictHTML() {
-    const conflictLayout = require('./layouts/conflict');
-    const layoutData = conflictLayout.generateConflictLayout(this.graphData, this.options);
-    return conflictLayout.generateConflictHTML(layoutData);
+  generateGraphScript() {
+    // For backward compatibility, return a script that can be embedded
+    return this.generateHTML();
   }
 }
 
-module.exports = GraphVisualizer;
+/**
+ * Get available layouts
+ */
+function getAvailableLayouts() {
+  return [
+    { id: 'tree', name: 'Tree Layout', description: 'Hierarchical tree structure' },
+    { id: 'force', name: 'Force-Directed', description: 'Interactive physics simulation' },
+    { id: 'radial', name: 'Radial Layout', description: 'Concentric circles by depth' },
+    { id: 'conflict', name: 'Conflict View', description: 'Shows only problematic packages' }
+  ];
+}
+
+/**
+ * Get available filters
+ */
+function getAvailableFilters() {
+  return [
+    { id: 'all', name: 'All Packages', description: 'Show all dependencies' },
+    { id: 'vulnerable', name: 'Vulnerable', description: 'Security vulnerabilities only' },
+    { id: 'outdated', name: 'Outdated', description: 'Outdated packages only' },
+    { id: 'unused', name: 'Unused', description: 'Unused dependencies only' },
+    { id: 'conflict', name: 'Conflicts', description: 'Packages with issues' }
+  ];
+}
+
+module.exports = {
+  GraphVisualizer,
+  getAvailableLayouts,
+  getAvailableFilters
+};

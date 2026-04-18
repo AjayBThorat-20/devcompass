@@ -1,6 +1,6 @@
 # 🧭 DevCompass
 
-**Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, advanced interactive dependency graph visualization with multiple layouts, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, batch fix modes with granular control, backup & rollback, parallel processing, search & filter capabilities, and enhanced fix command with dry-run mode, progress tracking, and automatic backups.**
+**Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, advanced interactive dependency graph visualization with multiple layouts, dynamic issue detection, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, batch fix modes with granular control, backup & rollback, parallel processing, search & filter capabilities, and enhanced fix command with dry-run mode, progress tracking, and automatic backups.**
 
 [![npm version](https://img.shields.io/npm/v/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
@@ -8,51 +8,57 @@
 
 Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 500+ packages**, **visualize dependency graphs with multiple interactive layouts**, **search and filter packages**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
-> **✨ LATEST v3.1.1:** Production Safety & Stability - Comprehensive bug fixes and hardening! 🛡️  
-> **🎨 PREVIOUS v3.1.0:** Advanced Graph Visualization - Force-directed layouts, radial views, search & filter! 🎨  
-> **🚀 v3.0.2:** Modern dependency analysis with knip - faster, more accurate! 🚀  
+> **✨ LATEST v3.1.2:** Graph Layout Fixes & Dynamic Issues - Tree/Radial layouts fixed, real-time vulnerability detection! 🎯  
+> **🛡️ PREVIOUS v3.1.1:** Production Safety & Stability - Comprehensive bug fixes and hardening! 🛡️  
+> **🎨 v3.1.0:** Advanced Graph Visualization - Force-directed layouts, radial views, search & filter! 🎨
 
-## 🎉 Latest Release: v3.1.1 (2026-04-14)
+## 🎉 Latest Release: v3.1.2 (2026-04-17)
 
-**Production safety and stability improvements!**
+**Graph layout fixes and dynamic issue detection!**
 
-### What's New in v3.1.1:
-- 🛡️ **Critical Bug Fixes** - Fixed JSON mode crash and division by zero errors
-- ✅ **Comprehensive Validation** - 100+ new validation checks across all modules
-- 🔒 **Array Safety Guards** - Safe array operations throughout codebase
-- 🌐 **Cross-Browser Support** - Enhanced fullscreen compatibility (Firefox, Safari, Chrome)
-- ⚡ **Enhanced Stability** - Null-safe operations and graceful fallbacks
-- 🚀 **Zero Performance Impact** - All safety improvements with <100ms overhead
-- 📊 **Better Error Handling** - Try-catch wrappers for all external calls
-- 🎯 **Production Ready** - Thoroughly tested and hardened
+### What's New in v3.1.2:
+
+- 🌳 **Tree Layout Fix** - Proper horizontal spreading (was vertical line)
+- 🎯 **Radial Layout Fix** - Labels positioned outside nodes (no overlap)
+- 📊 **Panel Separation** - Controls/Statistics panels no longer overlap
+- 🔄 **Dynamic Issues Analyzer** - Real-time npm audit integration (replaces hardcoded issues-db.json)
+- ⚡ **Async Graph Generation** - Proper async/await handling
+- 🎨 **Conflict Layout Improved** - Card-based UI organized by severity
+- 🔗 **Unified Visualizer** - Single entry point for all layout types
 
 ### Critical Fixes:
-```bash
-# v3.1.0 (OLD - Had Issues)
-❌ JSON mode crashes on undefined warnings
-❌ Division by zero in trend calculations
-❌ Unsafe array operations in analyzers
-❌ Missing input validation
-❌ Cross-browser fullscreen issues
 
-# v3.1.1 (NEW - All Fixed) ⭐
-✅ JSON mode works perfectly
-✅ Safe division with zero checks
-✅ Array.isArray() checks everywhere
-✅ Input validation on all functions
-✅ Cross-browser fullscreen support
-✅ Graceful fallbacks throughout
-✅ Enhanced error handling
-✅ Production-ready stability
+```bash
+# v3.1.1 (Had Layout Issues)
+❌ Tree layout: All nodes in single vertical line
+❌ Radial layout: Labels overlapping nodes
+❌ Tree layout: Controls/Statistics panels overlapping
+❌ Issues: Hardcoded issues-db.json (only 5 packages)
+❌ Graph generation: Missing await on async generate()
+
+# v3.1.2 (All Fixed) ⭐
+✅ Tree layout: Proper horizontal spreading with D3.js d3.tree()
+✅ Tree layout: Curved links with d3.linkHorizontal()
+✅ Tree layout: Correct sibling separation
+✅ Radial layout: Smart label positioning outside nodes
+✅ Radial layout: Text truncation (15 char max)
+✅ Radial layout: Staggered angles per depth level
+✅ Panel layout: Right-sidebar with flexbox (16px gap)
+✅ Dynamic issues: Real-time npm audit + registry checks
+✅ Dynamic issues: Works for ANY package (not just hardcoded list)
+✅ Conflict layout: Card-based UI with collapsible sections
+✅ Async fix: Proper await on generator.generate()
 ```
 
 ### Upgrade Now:
+
 ```bash
-npm install -g devcompass@3.1.1
+npm install -g devcompass@3.1.2
 ```
 
-### Migration from v3.1.0:
-**No changes required - drop-in replacement!** All existing functionality works exactly the same, just more stable and safer.
+### Migration from v3.1.1:
+
+**No changes required - drop-in replacement!** All existing functionality works exactly the same, with fixed layouts and dynamic issue detection.
 
 ---
 
@@ -62,20 +68,28 @@ DevCompass v3.1.0+ includes **powerful, interactive dependency graph visualizati
 
 ### 🎯 Available Layouts
 
-#### 1. **Tree Layout** (Default)
+#### 1. **Tree Layout** (Default) - FIXED in v3.1.2! 🆕
+
 Classic hierarchical view with clear parent-child relationships.
+
 ```bash
 devcompass graph --layout tree
 ```
-- ✅ Best for: Understanding dependency hierarchy
-- ✅ Clear top-down structure
-- ✅ Easy to trace dependency chains
 
-#### 2. **Force-Directed Layout** 🆕
+- ✅ Best for: Understanding dependency hierarchy
+- ✅ **FIXED:** Proper horizontal spreading (root left, children right)
+- ✅ **FIXED:** Curved links with d3.linkHorizontal()
+- ✅ **FIXED:** Correct sibling vertical separation
+- ✅ **FIXED:** Controls/Statistics panels separated
+
+#### 2. **Force-Directed Layout**
+
 Interactive physics-based network visualization with ultimate UI!
+
 ```bash
 devcompass graph --layout force --open
 ```
+
 - ✅ Best for: Exploring complex relationships
 - ✅ Drag individual nodes to reposition
 - ✅ Natural clustering of related packages
@@ -87,35 +101,67 @@ devcompass graph --layout force --open
 - ✅ Modern dark theme
 - ✅ Interactive and engaging
 
-#### 3. **Radial/Circular Layout** 🆕
+#### 3. **Radial/Circular Layout** - FIXED in v3.1.2! 🆕
+
 Concentric circles based on dependency depth.
+
 ```bash
 devcompass graph --layout radial
 ```
+
 - ✅ Best for: Understanding dependency levels
 - ✅ Root package at center
 - ✅ Dependencies radiating outward
-- ✅ Clear depth visualization
-- ✅ Beautiful circular design
+- ✅ **FIXED:** Labels positioned OUTSIDE nodes
+- ✅ **FIXED:** Smart text-anchor based on angle
+- ✅ **FIXED:** Long names truncated (15 char max)
+- ✅ **FIXED:** Staggered angles to avoid overlap
+- ✅ Concentric depth circles visible
 
-#### 4. **Conflict-Only View** 🆕
+#### 4. **Conflict-Only View** - IMPROVED in v3.1.2! 🆕
+
 Shows only packages with issues - instantly identify problems!
+
 ```bash
 devcompass graph --layout conflict --open
 ```
+
 - ✅ Best for: Quick issue identification
 - ✅ Filters out healthy dependencies automatically
-- ✅ Organized by severity (Critical, High, Medium, Low)
-- ✅ Shows "No conflicts" when all packages are healthy
+- ✅ **IMPROVED:** Card-based layout organized by severity
+- ✅ **IMPROVED:** Collapsible sections
+- ✅ **IMPROVED:** Summary cards with counts
+- ✅ **IMPROVED:** Beautiful 'No Conflicts' success state
 - ✅ Color-coded by severity level
+
+### 🔄 Dynamic Issue Detection (NEW in v3.1.2!) 🆕
+
+DevCompass now detects issues in **real-time** for ANY package!
+
+```bash
+# Replaces hardcoded issues-db.json
+devcompass analyze
+```
+
+**Sources:**
+- 🔐 **npm audit** - Real security vulnerabilities
+- 📦 **npm registry** - Deprecation status
+- 📅 **npm registry** - Maintenance status (unmaintained if 2+ years)
+
+**Before v3.1.2:** Only detected issues for 5 hardcoded packages (axios, lodash, moment, request, express)
+
+**After v3.1.2:** Detects issues for ALL packages dynamically!
 
 ### 📤 Export Formats
 
 #### HTML Export (Default)
+
 Interactive D3.js visualization with all features.
+
 ```bash
 devcompass graph --output my-graph.html --open
 ```
+
 - ✅ Full interactivity
 - ✅ Zoom, pan, and explore
 - ✅ Hover tooltips
@@ -124,16 +170,19 @@ devcompass graph --output my-graph.html --open
 - ✅ All layout options
 
 #### JSON Export
+
 Complete graph data structure for programmatic access.
+
 ```bash
 devcompass graph --format json --output graph.json
 ```
+
 - ✅ Full graph data (nodes + links)
 - ✅ Programmatic access
 - ✅ Integration with custom tools
 - ✅ Lightweight and fast
 
-### 🔍 Search & Filter 🆕
+### 🔍 Search & Filter
 
 **Real-time Search:**
 - 🔍 Instant package name search (Press F to focus)
@@ -191,6 +240,34 @@ devcompass graph --format json --output graph.json
 
 ## 🎉 Recent Updates
 
+### v3.1.2 (2026-04-17) - Graph Layout Fixes & Dynamic Issues
+
+**Major layout fixes and dynamic issue detection!** This release fixes critical graph layout issues and adds real-time vulnerability detection.
+
+**Layout Fixes:**
+- ✅ **Tree layout horizontal spreading** - Proper D3.js d3.tree() implementation
+- ✅ **Tree layout curved links** - Using d3.linkHorizontal() for beautiful connections
+- ✅ **Tree layout sibling separation** - Nodes properly spaced vertically
+- ✅ **Radial layout labels** - Positioned outside nodes, no overlap
+- ✅ **Radial layout text truncation** - 15 character max with ellipsis
+- ✅ **Panel separation** - Controls/Statistics in right-sidebar with flexbox
+
+**New Features:**
+- ✅ **Dynamic Issues Analyzer** - Real-time npm audit integration
+- ✅ **Live deprecation detection** - Checks npm registry for deprecated packages
+- ✅ **Maintenance status** - Identifies unmaintained packages (2+ years)
+- ✅ **Works for ANY package** - No more hardcoded issues-db.json
+- ✅ **Unified visualizer** - Single entry point for all layout types
+- ✅ **Async graph generation** - Proper await handling
+
+**Files Updated (6):**
+- `src/graph/layouts/tree.js` - Complete rewrite with proper D3.js tree
+- `src/graph/layouts/radial.js` - Fixed label positioning
+- `src/graph/generator.js` - Async + dynamic issues + boolean flags
+- `src/alerts/index.js` - Dynamic alerts for any package
+- `src/commands/graph.js` - Await fix + enrichWithIssues option
+- `src/analyzers/issues.js` - NEW dynamic issues analyzer
+
 ### v3.1.1 (2026-04-14) - Production Safety & Stability
 
 **Comprehensive bug fixes and production hardening!** This patch release fixes critical bugs and adds 100+ validation checks for production stability.
@@ -204,17 +281,6 @@ devcompass graph --format json --output graph.json
 - ✅ **Added null-safe operations** - Optional chaining throughout
 - ✅ **Enhanced error handling** - Try-catch wrappers for external calls
 - ✅ **Added graceful fallbacks** - Safe degradation for all operations
-
-**Files Hardened (9):**
-- `src/alerts/github-tracker.js`
-- `src/analyzers/package-quality.js`
-- `src/analyzers/unused-deps.js`
-- `src/commands/analyze.js`
-- `src/commands/fix.js`
-- `src/graph/layouts/force.js`
-- `src/utils/batch-executor.js` (verified safe)
-- `src/utils/quality-fixer.js` (verified safe)
-- `src/commands/backup.js` (verified safe)
 
 ### v3.1.0 (2026-04-08) - Advanced Graph Visualization
 
@@ -236,75 +302,15 @@ devcompass graph --format json --output graph.json
 
 **Modern tooling for better accuracy!** This release replaces the stale `depcheck` package with `knip`, providing faster and more accurate unused dependency detection.
 
-**What's New:**
-- ✅ Replaced depcheck with knip (actively maintained)
-- ✅ Faster unused dependency detection
-- ✅ More accurate results with modern algorithms
-- ✅ Full TypeScript support
-- ✅ 0 security vulnerabilities (fixed all 3)
-- ✅ Health score: 7.4/10 (excellent)
-
-### v3.0.1 (2026-04-07) - Critical Bug Fix
-
-**Bug fixes and improvements!** This patch release fixes the broken JSON output mode from v3.0.0 and removes unused dependencies.
-
-**What's Fixed:**
-- ✅ JSON output mode now works correctly
-- ✅ Removed 3 unused dependencies (canvas, d3, jsdom)
-- ✅ Fixed 4 security vulnerabilities
-- ✅ Package size reduced by 32%
-
-### v3.0.0 (2026-04-07) - Dependency Graph Visualization
-
-**Interactive dependency graph visualization with D3.js!** DevCompass now generates beautiful, interactive dependency graphs with health-based color coding, zoom/pan controls, and multiple export formats.
-
-**What's New in v3.0.0:**
-- 📊 **Interactive Dependency Graphs** - Beautiful D3.js tree visualizations
-- 🎨 **Health-Based Color Coding** - Visual indicators from excellent to critical
-- 🔍 **Interactive Controls** - Zoom, pan, reset, and tooltips
-- 📤 **Multiple Export Formats** - HTML (interactive), JSON (data)
-- 📏 **Depth Limiting** - Focus on specific dependency levels
-- ⚡ **Fast Generation** - <1 second for 300+ nodes
-- 🎯 **Smart Layout** - Hierarchical tree layout with D3.js
-- 💡 **Hover Tooltips** - Package details on hover
-- 🌐 **Browser Integration** - Auto-open in browser
-
----
-
-## 🎉 Previous Updates
-
-### v2.8.5 - Batch Fix Modes
-
-**Granular control over which fix categories to apply!** DevCompass now includes comprehensive batch mode with interactive selection, preset modes, and category filtering.
-
-### v2.8.4 - Backup & Rollback
-
-**Complete backup management system for safe dependency fixes!** DevCompass includes comprehensive backup and restore functionality.
-
-### v2.8.3 - Package Quality Auto-Fix
-
-**Automatic replacement of abandoned, deprecated, and stale packages!** DevCompass automatically replaces unmaintained packages with modern alternatives.
-
-### v2.8.2 - License Conflict Auto-Fix
-
-**Automatic replacement of GPL/AGPL packages with MIT/Apache alternatives!** DevCompass automatically resolves license conflicts.
-
-### v2.8.1 - Supply Chain Auto-Fix
-
-**Automatic removal of malicious packages and typosquatting fixes!** DevCompass automatically fixes supply chain security issues.
-
-### v2.8.0 - Enhanced Fix Command
-
-**Major improvements to the fix command!** DevCompass includes dry-run mode, progress tracking, automatic backups, and detailed fix reports.
-
 ---
 
 ## ✨ Features
 
+- 🎯 **Graph Layout Fixes** (v3.1.2) - Tree/Radial layouts properly fixed
+- 🔄 **Dynamic Issue Detection** (v3.1.2) - Real-time npm audit integration
 - 🛡️ **Production Safety & Stability** (v3.1.1) - Comprehensive bug fixes and hardening
 - 🎨 **Advanced Graph Visualization** (v3.1.0) - Multiple layouts, search & filter, interactive UI
 - ✨ **Modern Dependency Analysis** (v3.0.2) - Replaced depcheck with knip for better accuracy
-- 🐛 **Critical Bug Fixes** (v3.0.1) - Fixed broken JSON mode + removed unused deps
 - 📊 **Dependency Graph Visualization** (v3.0.0) - Interactive D3.js graphs with health-based color coding
 - 📦 **Batch Fix Modes** (v2.8.5) - Granular control over which categories to fix
 - 💾 **Backup & Rollback** (v2.8.4) - Complete backup management for safe dependency fixes
@@ -325,29 +331,31 @@ devcompass graph --format json --output graph.json
 - ⚖️ **License Checker** (v2.3) - Detect restrictive licenses (GPL, AGPL)
 - 🚀 **CI/CD Integration** (v2.2) - JSON output, exit codes, and silent mode
 - ⚡ **Smart Caching** (v2.2) - 70% faster on repeated runs
-- 🎛️ **Advanced Filtering** (v2.2) - Control alerts by severity level
-- 🚨 **Ecosystem Intelligence** (v2.0) - Detect known issues before they break production
 
 ## 🚀 Installation
 
 **Global installation (recommended):**
+
 ```bash
-npm install -g devcompass@3.1.1
+npm install -g devcompass@3.1.2
 ```
 
 **Local installation:**
+
 ```bash
-npm install --save-dev devcompass@3.1.1
+npm install --save-dev devcompass@3.1.2
 ```
 
 **One-time use (no installation):**
+
 ```bash
-npx devcompass@3.1.1 analyze
+npx devcompass@3.1.2 analyze
 ```
 
 **Upgrade from previous versions:**
+
 ```bash
-npm install -g devcompass@3.1.1
+npm install -g devcompass@3.1.2
 ```
 
 **No additional dependencies needed!** All features work out of the box. 🎉
@@ -355,26 +363,27 @@ npm install -g devcompass@3.1.1
 ## 📖 Usage
 
 ### Basic Commands
+
 ```bash
 # Analyze your project
 devcompass analyze
 
 # Generate dependency graph with different layouts (v3.1.0+)
-devcompass graph                                # Tree layout (default)
+devcompass graph                                # Tree layout (default) - FIXED in v3.1.2!
 devcompass graph --layout force --open          # Interactive force-directed
-devcompass graph --layout radial                # Circular/radial view
-devcompass graph --layout conflict              # Show only issues
+devcompass graph --layout radial                # Circular/radial view - FIXED in v3.1.2!
+devcompass graph --layout conflict              # Show only issues - IMPROVED in v3.1.2!
 
-# Export to different formats (v3.1.0+)
+# Export to different formats
 devcompass graph --format json                  # JSON data
 devcompass graph --format html --open           # Interactive HTML
 
-# Search and filter (v3.1.0+)
+# Search and filter
 devcompass graph --filter vulnerable            # Vulnerable packages only
 devcompass graph --filter outdated              # Outdated packages only
 devcompass graph --filter conflict              # Packages with issues
 
-# Combined options (v3.1.0+)
+# Combined options
 devcompass graph --layout force --filter conflict --open
 devcompass graph --layout radial --depth 2 --output radial-depth2.html
 
@@ -403,7 +412,7 @@ devcompass backup restore --name <backup-name>
 devcompass backup info --name <backup-name>
 devcompass backup clean
 
-# JSON output (for CI/CD) - Fixed in v3.0.1, Hardened in v3.1.1!
+# JSON output (for CI/CD)
 devcompass analyze --json
 
 # CI mode (exit code 1 if score < threshold)
@@ -413,13 +422,14 @@ devcompass analyze --ci
 devcompass analyze --silent
 ```
 
-## 📊 Graph Visualization Commands (v3.1.0)
+## 📊 Graph Visualization Commands (v3.1.2)
 
 ### Layout Options
 
-#### Tree Layout (Default)
+#### Tree Layout (Default) - FIXED! 🆕
+
 ```bash
-# Basic tree layout
+# Basic tree layout - now with proper horizontal spreading!
 devcompass graph
 
 # With depth limit
@@ -429,7 +439,8 @@ devcompass graph --depth 2
 devcompass graph --open
 ```
 
-#### Force-Directed Layout 🆕
+#### Force-Directed Layout
+
 ```bash
 # Interactive physics simulation with ultimate UI
 devcompass graph --layout force --open
@@ -441,18 +452,20 @@ devcompass graph --layout force --width 1920 --height 1080
 devcompass graph --layout force --filter conflict --open
 ```
 
-#### Radial Layout 🆕
+#### Radial Layout - FIXED! 🆕
+
 ```bash
-# Circular visualization
+# Circular visualization - labels now outside nodes!
 devcompass graph --layout radial --open
 
 # With depth limit
 devcompass graph --layout radial --depth 3
 ```
 
-#### Conflict View 🆕
+#### Conflict View - IMPROVED! 🆕
+
 ```bash
-# Show only problematic packages
+# Card-based UI organized by severity
 devcompass graph --layout conflict --open
 
 # Combined with filter
@@ -462,6 +475,7 @@ devcompass graph --layout conflict --filter vulnerable
 ### Export Options
 
 #### HTML Export (Interactive)
+
 ```bash
 # Default - interactive HTML
 devcompass graph --output my-graph.html
@@ -474,6 +488,7 @@ devcompass graph --filter conflict --output conflicts.html
 ```
 
 #### JSON Export
+
 ```bash
 # Complete graph data
 devcompass graph --format json --output graph.json
@@ -482,7 +497,8 @@ devcompass graph --format json --output graph.json
 devcompass graph --filter vulnerable --format json --output vulnerable.json
 ```
 
-### Filter Options 🆕
+### Filter Options
+
 ```bash
 # Show only vulnerable packages
 devcompass graph --filter vulnerable
@@ -501,18 +517,19 @@ devcompass graph --filter all
 ```
 
 ### Advanced Examples
+
 ```bash
 # Force layout with vulnerable packages only
 devcompass graph --layout force --filter vulnerable --open
 
-# Radial layout, depth 2
+# Radial layout, depth 2 - with fixed label positioning!
 devcompass graph --layout radial --depth 2 --open
 
-# Quick conflict check
+# Quick conflict check - card-based UI!
 devcompass graph --layout conflict --open
 
 # Complete workflow
-devcompass analyze                              # Analyze health
+devcompass analyze                              # Analyze health (with dynamic issues!)
 devcompass graph --layout conflict --open       # Visualize issues
 devcompass fix --batch-mode high                # Fix critical issues
 devcompass graph --layout force --open          # Verify improvements
@@ -526,7 +543,8 @@ devcompass graph --layout force --open
 # Then: Click Fullscreen button or press F11
 ```
 
-### Command Options (v3.1.0)
+### Command Options (v3.1.2)
+
 ```bash
 -p, --path <path>       # Project path (default: current directory)
 -o, --output <file>     # Output file (default: dependency-graph.html)
@@ -579,12 +597,14 @@ DevCompass organizes fixes into **7 priority-ordered categories**:
 ### Batch Mode Commands:
 
 #### 1. Interactive Batch Mode
+
 ```bash
 devcompass fix --batch
 devcompass fix --batch --dry-run
 ```
 
 #### 2. Preset Batch Modes
+
 ```bash
 # Critical only
 devcompass fix --batch-mode critical
@@ -597,6 +617,7 @@ devcompass fix --batch-mode all
 ```
 
 #### 3. Category-Specific Fixes
+
 ```bash
 # Fix only quality issues
 devcompass fix --only quality
@@ -609,6 +630,7 @@ devcompass fix --only security,quality
 ```
 
 #### 4. Skip Categories
+
 ```bash
 # Fix everything except updates
 devcompass fix --skip updates
@@ -624,6 +646,7 @@ devcompass fix --skip ecosystem,updates
 DevCompass includes **comprehensive backup management** for safe dependency fixes!
 
 ### Backup Commands:
+
 ```bash
 # List all backups
 devcompass backup list
@@ -646,6 +669,7 @@ devcompass backup clean --keep 3
 ## 🎯 Configuration
 
 Create `devcompass.config.json` in your project root:
+
 ```json
 {
   "ignore": ["package-name"],
@@ -657,6 +681,7 @@ Create `devcompass.config.json` in your project root:
 ```
 
 ### Configuration Options:
+
 - **ignore** - Array of package names to ignore
 - **ignoreSeverity** - Array of severity levels to ignore (low/medium/high/critical)
 - **minSeverity** - Minimum severity to display (low/medium/high/critical)
@@ -667,28 +692,37 @@ Create `devcompass.config.json` in your project root:
 
 ## 🐛 Troubleshooting
 
+### Graph Layout Issues (Fixed in v3.1.2!)
+
+All graph layout issues have been resolved:
+
+```bash
+# Verify you're on v3.1.2+
+devcompass --version
+# Should show: 3.1.2 or higher
+
+# Test tree layout - should spread horizontally!
+devcompass graph --layout tree --open
+
+# Test radial layout - labels should be outside nodes!
+devcompass graph --layout radial --open
+
+# Test conflict layout - card-based UI!
+devcompass graph --layout conflict --open
+```
+
 ### JSON Mode (Fixed in v3.1.1!)
+
 All JSON mode issues have been resolved:
+
 ```bash
 # Verify you're on v3.1.1+
 devcompass --version
-# Should show: 3.1.1 or higher
+# Should show: 3.1.2 or higher
 
 # Test JSON mode
 devcompass analyze --json
 # Should work perfectly with no errors!
-```
-
-### Unused Dependency Detection
-DevCompass v3.0.2+ uses **knip** for modern, accurate unused dependency detection:
-```bash
-# Verify you're on v3.0.2+
-devcompass --version
-# Should show: 3.1.1 or higher
-
-# Run analysis
-devcompass analyze
-# knip provides better accuracy than the old depcheck
 ```
 
 ### Common Issues:
@@ -696,7 +730,7 @@ devcompass analyze
 **Issue:** "Command not found: devcompass"
 ```bash
 # Solution: Install globally
-npm install -g devcompass@3.1.1
+npm install -g devcompass@3.1.2
 ```
 
 **Issue:** Old version installed
@@ -705,12 +739,25 @@ npm install -g devcompass@3.1.1
 npm update -g devcompass
 ```
 
-**Issue:** Graphs not showing properly
+**Issue:** Tree layout shows vertical line (OLD BUG - FIXED!)
 ```bash
-# Solution: Open HTML files in modern browser
-firefox graph.html
-# or
-google-chrome graph.html
+# Solution: Upgrade to v3.1.2
+npm install -g devcompass@3.1.2
+# Tree layout now spreads horizontally with proper D3.js tree
+```
+
+**Issue:** Radial labels overlapping nodes (OLD BUG - FIXED!)
+```bash
+# Solution: Upgrade to v3.1.2
+npm install -g devcompass@3.1.2
+# Radial labels now positioned outside nodes with smart anchoring
+```
+
+**Issue:** Controls/Statistics panels overlapping (OLD BUG - FIXED!)
+```bash
+# Solution: Upgrade to v3.1.2
+npm install -g devcompass@3.1.2
+# Panels now in right-sidebar with flexbox layout
 ```
 
 **Issue:** Force layout nodes clustered
@@ -725,12 +772,6 @@ google-chrome graph.html
 {
   "ignore": ["package-name"]
 }
-```
-
-**Issue:** Fullscreen not working in Firefox/Safari
-```bash
-# Solution: Upgrade to v3.1.1 for cross-browser fullscreen support
-npm install -g devcompass@3.1.1
 ```
 
 ---
@@ -756,6 +797,7 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 ## 🌟 What's Next?
 
 ### Roadmap
+
 - [x] ~~Automatic fix command~~ ✅ **Added in v2.1!**
 - [x] ~~CI/CD integration with JSON output~~ ✅ **Added in v2.2!**
 - [x] ~~Smart caching system~~ ✅ **Added in v2.2!**
@@ -785,6 +827,11 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 - [x] ~~Search and filter in graphs~~ ✅ **Added in v3.1.0!**
 - [x] ~~Interactive UI enhancements~~ ✅ **Added in v3.1.0!**
 - [x] ~~Production safety & stability~~ ✅ **Added in v3.1.1!**
+- [x] ~~Tree layout horizontal spreading fix~~ ✅ **Fixed in v3.1.2!**
+- [x] ~~Radial layout label positioning fix~~ ✅ **Fixed in v3.1.2!**
+- [x] ~~Dynamic issue detection~~ ✅ **Added in v3.1.2!**
+- [x] ~~Panel layout separation~~ ✅ **Fixed in v3.1.2!**
+- [ ] Graph filters with analysis results (v3.1.3)
 - [ ] Web dashboard for team health monitoring (v3.2.0)
 - [ ] Monorepo support with knip (v3.2.0)
 - [ ] Historical tracking (v3.2.0)

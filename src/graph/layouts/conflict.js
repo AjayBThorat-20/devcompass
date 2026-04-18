@@ -1,647 +1,545 @@
 // src/graph/layouts/conflict.js
+// Conflict-only view - shows packages with issues organized by severity
+
 /**
- * Conflict-only view for dependency graphs
- * Shows only packages with issues (vulnerabilities, outdated, deprecated)
+ * Generate conflict layout HTML
+ * Shows only packages with issues, organized by severity
  */
+function generateConflictLayoutHTML(graphData, options = {}) {
+  const projectName = options.projectName || 'Project';
+  const projectVersion = options.projectVersion || '1.0.0';
 
-function generateConflictLayout(graphData, options = {}) {
-  const {
-    width = 1200,
-    height = 800,
-    nodeRadius = 8
-  } = options;
+  // Validate input
+  const nodes = Array.isArray(graphData.nodes) ? graphData.nodes : [];
+  const links = Array.isArray(graphData.links) ? graphData.links : [];
 
-  const { nodes, links } = graphData;
+  // Filter to only nodes with issues or low health scores
+  const conflictNodes = nodes.filter(n => {
+    if (n.type === 'root') return true; // Always show root
+    const hasIssues = Array.isArray(n.issues) && n.issues.length > 0;
+    const lowHealth = (n.healthScore || 10) < 7;
+    return hasIssues || lowHealth;
+  });
 
-  // Filter nodes with issues
-  const conflictNodes = nodes.filter(node => hasConflict(node));
-  
-  if (conflictNodes.length === 0) {
-    return {
-      type: 'conflict',
-      width,
-      height,
-      nodes: [],
-      links: [],
-      message: 'No conflicts found! All dependencies are healthy.',
-      metadata: {
-        totalNodes: nodes.length,
-        conflictNodes: 0,
-        healthyNodes: nodes.length
-      }
-    };
+  // If no conflicts, show success message
+  if (conflictNodes.length <= 1) {
+    return generateNoConflictsHTML(projectName, projectVersion, nodes.length);
   }
 
-  // Create set of conflict node IDs for quick lookup
-  const conflictIds = new Set(conflictNodes.map(n => n.id));
-
-  // Filter links that connect conflict nodes
-  const conflictLinks = links.filter(link => 
-    conflictIds.has(link.source) && conflictIds.has(link.target)
-  );
-
-  // Group nodes by severity
-  const nodesBySeverity = {
+  // Categorize by severity
+  const categorized = {
     critical: [],
     high: [],
     medium: [],
-    low: []
+    low: [],
+    root: []
   };
 
   conflictNodes.forEach(node => {
-    const severity = getNodeSeverity(node);
-    nodesBySeverity[severity].push(node);
+    if (node.type === 'root') {
+      categorized.root.push(node);
+    } else {
+      const score = node.healthScore || 8;
+      if (score < 3) categorized.critical.push(node);
+      else if (score < 5) categorized.high.push(node);
+      else if (score < 7) categorized.medium.push(node);
+      else categorized.low.push(node);
+    }
   });
 
-  // Position nodes by severity in columns
-  const columnWidth = width / 4;
-  const positionedNodes = [];
-
-  Object.keys(nodesBySeverity).forEach((severity, colIndex) => {
-    const nodesInColumn = nodesBySeverity[severity];
-    const x = columnWidth * (colIndex + 0.5);
-    const spacing = height / (nodesInColumn.length + 1);
-
-    nodesInColumn.forEach((node, rowIndex) => {
-      positionedNodes.push({
-        ...node,
-        x: x,
-        y: spacing * (rowIndex + 1),
-        radius: getNodeRadius(node, nodeRadius),
-        color: getNodeColor(node),
-        severity: severity
-      });
-    });
+  const graphDataJSON = JSON.stringify({ 
+    nodes: conflictNodes, 
+    links,
+    categorized 
   });
 
-  return {
-    type: 'conflict',
-    width,
-    height,
-    nodes: positionedNodes,
-    links: conflictLinks,
-    metadata: {
-      totalNodes: nodes.length,
-      conflictNodes: conflictNodes.length,
-      healthyNodes: nodes.length - conflictNodes.length,
-      bySeverity: {
-        critical: nodesBySeverity.critical.length,
-        high: nodesBySeverity.high.length,
-        medium: nodesBySeverity.medium.length,
-        low: nodesBySeverity.low.length
-      }
-    }
-  };
-}
-
-function hasConflict(node) {
-  if (!node.issues || node.issues.length === 0) return false;
-  
-  // Check for various types of conflicts
-  const hasVulnerability = node.issues.some(i => 
-    i.type === 'security' || i.type === 'vulnerability'
-  );
-  const isOutdated = node.issues.some(i => i.type === 'outdated');
-  const isDeprecated = node.issues.some(i => i.type === 'deprecated');
-  const hasLicenseIssue = node.issues.some(i => i.type === 'license');
-  const isUnused = node.issues.some(i => i.type === 'unused');
-  
-  return hasVulnerability || isOutdated || isDeprecated || hasLicenseIssue || isUnused;
-}
-
-function getNodeSeverity(node) {
-  const issues = node.issues || [];
-  
-  // Check for critical issues
-  if (issues.some(i => i.severity === 'critical')) return 'critical';
-  if (issues.some(i => i.severity === 'high')) return 'high';
-  if (issues.some(i => i.severity === 'medium' || i.severity === 'moderate')) return 'medium';
-  
-  // Check health score
-  if (node.healthScore < 3) return 'critical';
-  if (node.healthScore < 5) return 'high';
-  if (node.healthScore < 7) return 'medium';
-  
-  return 'low';
-}
-
-function getNodeRadius(node, baseRadius) {
-  const issueCount = node.issues?.length || 0;
-  return baseRadius + Math.min(issueCount * 2, 12);
-}
-
-function getNodeColor(node) {
-  const severity = getNodeSeverity(node);
-  
-  switch (severity) {
-    case 'critical': return '#f56565';
-    case 'high': return '#ed8936';
-    case 'medium': return '#ecc94b';
-    case 'low': return '#a0aec0';
-    default: return '#48bb78';
-  }
-}
-
-function generateConflictHTML(layoutData) {
-  const { width, height, nodes, links, metadata, message } = layoutData;
-  
-  if (nodes.length === 0) {
-    return `
-<!DOCTYPE html>
-<html>
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>DevCompass - Conflict View</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #1a202c;
-      color: #e2e8f0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-    }
-    
-    .success-message {
-      text-align: center;
-      background: #2d3748;
-      padding: 48px;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-      max-width: 600px;
-    }
-    
-    .success-icon {
-      font-size: 64px;
-      margin-bottom: 24px;
-    }
-    
-    .success-title {
-      font-size: 32px;
-      font-weight: 700;
-      color: #48bb78;
-      margin-bottom: 16px;
-    }
-    
-    .success-text {
-      font-size: 18px;
-      color: #a0aec0;
-      line-height: 1.6;
-    }
-    
-    .stats {
-      margin-top: 32px;
-      padding-top: 32px;
-      border-top: 1px solid #4a5568;
-    }
-    
-    .stat {
-      display: inline-block;
-      margin: 0 24px;
-    }
-    
-    .stat-value {
-      font-size: 36px;
-      font-weight: 700;
-      color: #48bb78;
-    }
-    
-    .stat-label {
-      font-size: 14px;
-      color: #a0aec0;
-      margin-top: 8px;
-    }
-  </style>
-</head>
-<body>
-  <div class="success-message">
-    <div class="success-icon">✅</div>
-    <div class="success-title">No Conflicts Found!</div>
-    <div class="success-text">${message}</div>
-    <div class="stats">
-      <div class="stat">
-        <div class="stat-value">${metadata.totalNodes}</div>
-        <div class="stat-label">Total Packages</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">${metadata.healthyNodes}</div>
-        <div class="stat-label">Healthy</div>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-    `.trim();
-  }
-  
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DevCompass - Conflict View</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --border-color: #475569;
+      --critical: #ef4444;
+      --high: #f97316;
+      --medium: #eab308;
+      --low: #84cc16;
+      --root-color: #60a5fa;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      margin: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      color: var(--text-primary);
+      min-height: 100vh;
       padding: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #1a202c;
-      color: #e2e8f0;
     }
-    
-    #graph-container {
-      background: #2d3748;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-      overflow: hidden;
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
     }
-    
-    .node {
-      cursor: pointer;
-      stroke: #1a202c;
-      stroke-width: 2px;
-      transition: all 0.3s ease;
+
+    /* Header */
+    .header {
+      text-align: center;
+      padding: 30px;
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 30px;
+      backdrop-filter: blur(12px);
     }
-    
-    .node:hover {
-      stroke: #fff;
-      stroke-width: 3px;
-    }
-    
-    .link {
-      stroke: #4a5568;
-      stroke-opacity: 0.4;
-      stroke-width: 1.5px;
-    }
-    
-    .node-label {
-      font-size: 11px;
-      fill: #e2e8f0;
-      text-anchor: middle;
-      pointer-events: none;
-      user-select: none;
-    }
-    
-    .column-label {
-      font-size: 18px;
-      font-weight: 600;
-      fill: #e2e8f0;
-      text-anchor: middle;
-    }
-    
-    .column-count {
-      font-size: 14px;
-      fill: #a0aec0;
-      text-anchor: middle;
-    }
-    
-    .tooltip {
-      position: absolute;
-      padding: 12px;
-      background: rgba(26, 32, 44, 0.95);
-      border: 1px solid #4a5568;
-      border-radius: 6px;
-      pointer-events: none;
-      font-size: 13px;
-      max-width: 300px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-      z-index: 1000;
-    }
-    
-    .tooltip-title {
-      font-weight: 600;
+
+    .header-title {
+      font-size: 28px;
+      font-weight: 700;
       margin-bottom: 8px;
-      color: #4299e1;
-      font-size: 14px;
-    }
-    
-    .tooltip-section {
-      margin: 12px 0;
-      padding-top: 8px;
-      border-top: 1px solid #4a5568;
-    }
-    
-    .tooltip-section:first-child {
-      border-top: none;
-      padding-top: 0;
-    }
-    
-    .tooltip-row {
-      margin: 4px 0;
-      display: flex;
-      justify-content: space-between;
-    }
-    
-    .tooltip-label {
-      color: #a0aec0;
-      margin-right: 12px;
-    }
-    
-    .tooltip-value {
-      color: #e2e8f0;
-      font-weight: 500;
-    }
-    
-    .issue-item {
-      margin: 6px 0;
-      padding: 6px;
-      background: rgba(74, 85, 104, 0.3);
-      border-radius: 4px;
-      font-size: 12px;
-    }
-    
-    .issue-type {
-      font-weight: 600;
-      text-transform: uppercase;
-      font-size: 10px;
-      letter-spacing: 0.5px;
-    }
-    
-    .issue-critical { color: #f56565; }
-    .issue-high { color: #ed8936; }
-    .issue-medium { color: #ecc94b; }
-    .issue-low { color: #a0aec0; }
-    
-    .stats {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #2d3748;
-      padding: 16px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-      z-index: 100;
-      min-width: 200px;
-    }
-    
-    .stats-title {
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: #e2e8f0;
-      font-size: 14px;
-    }
-    
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      margin: 8px 0;
-      font-size: 13px;
-    }
-    
-    .stat-label {
-      color: #a0aec0;
-    }
-    
-    .stat-value {
-      font-weight: 600;
-      color: #e2e8f0;
-    }
-    
-    .legend {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #2d3748;
-      padding: 16px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-      font-size: 12px;
-    }
-    
-    .legend-title {
-      font-weight: 600;
-      margin-bottom: 10px;
-      color: #e2e8f0;
-    }
-    
-    .legend-item {
       display: flex;
       align-items: center;
-      margin: 6px 0;
+      justify-content: center;
+      gap: 12px;
     }
-    
-    .legend-color {
+
+    .header-subtitle {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .header-meta {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .header-meta span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Summary Cards */
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+
+    .summary-card {
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      padding: 20px;
+      text-align: center;
+      backdrop-filter: blur(12px);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .summary-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .summary-count {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .summary-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .summary-card.critical .summary-count { color: var(--critical); }
+    .summary-card.high .summary-count { color: var(--high); }
+    .summary-card.medium .summary-count { color: var(--medium); }
+    .summary-card.low .summary-count { color: var(--low); }
+
+    /* Severity Sections */
+    .severity-section {
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 20px;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+
+    .severity-header {
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .severity-header:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .severity-indicator {
       width: 16px;
       height: 16px;
       border-radius: 50%;
-      margin-right: 10px;
-      border: 2px solid #1a202c;
+    }
+
+    .severity-title {
+      font-weight: 600;
+      font-size: 15px;
+      flex: 1;
+    }
+
+    .severity-count {
+      background: var(--bg-tertiary);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .severity-toggle {
+      color: var(--text-muted);
+      font-size: 18px;
+      transition: transform 0.2s;
+    }
+
+    .severity-section.collapsed .severity-toggle {
+      transform: rotate(-90deg);
+    }
+
+    .severity-section.collapsed .severity-content {
+      display: none;
+    }
+
+    .severity-content {
+      padding: 16px;
+    }
+
+    /* Package Cards */
+    .package-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+
+    .package-card {
+      background: var(--bg-tertiary);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .package-card:hover {
+      transform: translateX(4px);
+      border-color: var(--accent-cyan);
+    }
+
+    .package-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--accent-cyan);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .package-version {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .package-issues {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .issue-tag {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-secondary);
+    }
+
+    .issue-tag.security { background: rgba(239, 68, 68, 0.2); color: var(--critical); }
+    .issue-tag.outdated { background: rgba(249, 115, 22, 0.2); color: var(--high); }
+    .issue-tag.deprecated { background: rgba(234, 179, 8, 0.2); color: var(--medium); }
+
+    .package-score {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+
+    .score-label { color: var(--text-secondary); }
+    .score-value { font-weight: 600; }
+
+    /* Empty state for sections */
+    .empty-section {
+      padding: 30px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: var(--text-muted);
+      font-size: 12px;
     }
   </style>
 </head>
 <body>
-  <div id="graph-container"></div>
-  
-  <div class="stats">
-    <div class="stats-title">Conflict Summary</div>
-    <div class="stat-row">
-      <span class="stat-label">Total Packages:</span>
-      <span class="stat-value">${metadata.totalNodes}</span>
+  <div class="container">
+    <div class="header">
+      <div class="header-title">
+        ⚠️ Dependency Conflict View
+      </div>
+      <div class="header-subtitle">
+        Packages requiring attention, organized by severity
+      </div>
+      <div class="header-meta">
+        <span><strong>Project:</strong> ${projectName}</span>
+        <span><strong>Version:</strong> ${projectVersion}</span>
+        <span><strong>Total Deps:</strong> ${nodes.length}</span>
+        <span><strong>With Issues:</strong> ${conflictNodes.length - 1}</span>
+      </div>
     </div>
-    <div class="stat-row">
-      <span class="stat-label">With Issues:</span>
-      <span class="stat-value" style="color: #f56565;">${metadata.conflictNodes}</span>
+
+    <div class="summary">
+      <div class="summary-card critical">
+        <div class="summary-count" id="critical-count">0</div>
+        <div class="summary-label">Critical</div>
+      </div>
+      <div class="summary-card high">
+        <div class="summary-count" id="high-count">0</div>
+        <div class="summary-label">High</div>
+      </div>
+      <div class="summary-card medium">
+        <div class="summary-count" id="medium-count">0</div>
+        <div class="summary-label">Medium</div>
+      </div>
+      <div class="summary-card low">
+        <div class="summary-count" id="low-count">0</div>
+        <div class="summary-label">Low</div>
+      </div>
     </div>
-    <div class="stat-row">
-      <span class="stat-label">Healthy:</span>
-      <span class="stat-value" style="color: #48bb78;">${metadata.healthyNodes}</span>
-    </div>
-    <div style="border-top: 1px solid #4a5568; margin: 12px 0; padding-top: 12px;">
-      <div class="stat-row">
-        <span class="stat-label">Critical:</span>
-        <span class="stat-value" style="color: #f56565;">${metadata.bySeverity.critical}</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-label">High:</span>
-        <span class="stat-value" style="color: #ed8936;">${metadata.bySeverity.high}</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-label">Medium:</span>
-        <span class="stat-value" style="color: #ecc94b;">${metadata.bySeverity.medium}</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-label">Low:</span>
-        <span class="stat-value" style="color: #a0aec0;">${metadata.bySeverity.low}</span>
-      </div>
+
+    <div id="sections"></div>
+
+    <div class="footer">
+      Generated by DevCompass • ${new Date().toLocaleString()}
     </div>
   </div>
-  
-  <div class="legend">
-    <div class="legend-title">Severity Levels</div>
-    <div class="legend-item">
-      <div class="legend-color" style="background: #f56565;"></div>
-      <span>Critical</span>
-    </div>
-    <div class="legend-item">
-      <div class="legend-color" style="background: #ed8936;"></div>
-      <span>High</span>
-    </div>
-    <div class="legend-item">
-      <div class="legend-color" style="background: #ecc94b;"></div>
-      <span>Medium</span>
-    </div>
-    <div class="legend-item">
-      <div class="legend-color" style="background: #a0aec0;"></div>
-      <span>Low</span>
-    </div>
-  </div>
-  
-  <div class="tooltip" id="tooltip" style="display: none;"></div>
 
   <script>
-    const nodes = ${JSON.stringify(nodes)};
-    const links = ${JSON.stringify(links)};
-    const width = ${width};
-    const height = ${height};
-    const metadata = ${JSON.stringify(metadata)};
-    
-    // Create node map
-    const nodeMap = new Map(nodes.map(n => [n.id, n]));
-    
-    // Create SVG
-    const svg = d3.select("#graph-container")
-      .append("svg")
-      .attr("width", width)
-      .attr("height", height)
-      .attr("viewBox", [0, 0, width, height])
-      .call(d3.zoom()
-        .scaleExtent([0.1, 4])
-        .on("zoom", (event) => {
-          g.attr("transform", event.transform);
-        }));
-    
-    const g = svg.append("g");
-    
-    // Add column labels
-    const columnWidth = width / 4;
-    const columns = [
-      { label: 'CRITICAL', count: metadata.bySeverity.critical, color: '#f56565' },
-      { label: 'HIGH', count: metadata.bySeverity.high, color: '#ed8936' },
-      { label: 'MEDIUM', count: metadata.bySeverity.medium, color: '#ecc94b' },
-      { label: 'LOW', count: metadata.bySeverity.low, color: '#a0aec0' }
+    const graphData = ${graphDataJSON};
+    const categorized = graphData.categorized;
+
+    // Update counts
+    document.getElementById('critical-count').textContent = categorized.critical.length;
+    document.getElementById('high-count').textContent = categorized.high.length;
+    document.getElementById('medium-count').textContent = categorized.medium.length;
+    document.getElementById('low-count').textContent = categorized.low.length;
+
+    // Generate sections
+    const sections = [
+      { key: 'critical', title: 'Critical Issues', color: 'var(--critical)' },
+      { key: 'high', title: 'High Priority', color: 'var(--high)' },
+      { key: 'medium', title: 'Medium Priority', color: 'var(--medium)' },
+      { key: 'low', title: 'Low Priority', color: 'var(--low)' }
     ];
-    
-    columns.forEach((col, i) => {
-      const x = columnWidth * (i + 0.5);
-      
-      g.append("text")
-        .attr("class", "column-label")
-        .attr("x", x)
-        .attr("y", 30)
-        .attr("fill", col.color)
-        .text(col.label);
-      
-      g.append("text")
-        .attr("class", "column-count")
-        .attr("x", x)
-        .attr("y", 50)
-        .text(\`(\${col.count} packages)\`);
+
+    const container = document.getElementById('sections');
+
+    sections.forEach(section => {
+      const packages = categorized[section.key];
+      if (packages.length === 0) return;
+
+      const sectionEl = document.createElement('div');
+      sectionEl.className = 'severity-section';
+      sectionEl.innerHTML = \`
+        <div class="severity-header" onclick="this.parentElement.classList.toggle('collapsed')">
+          <div class="severity-indicator" style="background: \${section.color};"></div>
+          <div class="severity-title">\${section.title}</div>
+          <div class="severity-count">\${packages.length} package\${packages.length !== 1 ? 's' : ''}</div>
+          <div class="severity-toggle">▼</div>
+        </div>
+        <div class="severity-content">
+          <div class="package-grid">
+            \${packages.map(pkg => renderPackageCard(pkg, section.color)).join('')}
+          </div>
+        </div>
+      \`;
+      container.appendChild(sectionEl);
     });
-    
-    // Create links
-    const link = g.append("g")
-      .selectAll("line")
-      .data(links)
-      .join("line")
-      .attr("class", "link")
-      .attr("x1", d => {
-        const source = nodeMap.get(d.source);
-        return source ? source.x : 0;
-      })
-      .attr("y1", d => {
-        const source = nodeMap.get(d.source);
-        return source ? source.y : 0;
-      })
-      .attr("x2", d => {
-        const target = nodeMap.get(d.target);
-        return target ? target.x : 0;
-      })
-      .attr("y2", d => {
-        const target = nodeMap.get(d.target);
-        return target ? target.y : 0;
-      });
-    
-    // Create nodes
-    const node = g.append("g")
-      .selectAll("circle")
-      .data(nodes)
-      .join("circle")
-      .attr("class", "node")
-      .attr("cx", d => d.x)
-      .attr("cy", d => d.y)
-      .attr("r", d => d.radius)
-      .attr("fill", d => d.color)
-      .on("mouseover", showTooltip)
-      .on("mouseout", hideTooltip);
-    
-    // Create labels
-    const label = g.append("g")
-      .selectAll("text")
-      .data(nodes)
-      .join("text")
-      .attr("class", "node-label")
-      .attr("x", d => d.x)
-      .attr("y", d => d.y + d.radius + 15)
-      .text(d => d.name);
-    
-    // Tooltip functions
-    function showTooltip(event, d) {
-      const tooltip = document.getElementById('tooltip');
-      const issues = d.issues || [];
+
+    function renderPackageCard(pkg, color) {
+      const issues = pkg.issues || [];
+      const score = pkg.healthScore || 5;
       
-      let html = \`<div class="tooltip-title">\${d.name}@\${d.version}</div>\`;
-      
-      html += '<div class="tooltip-section">';
-      html += \`<div class="tooltip-row">
-        <span class="tooltip-label">Health Score:</span>
-        <span class="tooltip-value">\${d.healthScore}/10</span>
-      </div>\`;
-      html += \`<div class="tooltip-row">
-        <span class="tooltip-label">Severity:</span>
-        <span class="tooltip-value issue-\${d.severity}">\${d.severity.toUpperCase()}</span>
-      </div>\`;
-      html += \`<div class="tooltip-row">
-        <span class="tooltip-label">Issues:</span>
-        <span class="tooltip-value">\${issues.length}</span>
-      </div>\`;
-      html += '</div>';
-      
-      if (issues.length > 0) {
-        html += '<div class="tooltip-section">';
-        issues.slice(0, 5).forEach(issue => {
-          html += \`<div class="issue-item">
-            <div class="issue-type issue-\${issue.severity || 'low'}">\${issue.type || 'ISSUE'}</div>
-            <div>\${issue.message || issue.description || 'No description'}</div>
-          </div>\`;
-        });
-        if (issues.length > 5) {
-          html += \`<div style="margin-top: 8px; color: #a0aec0; font-size: 11px;">
-            +\${issues.length - 5} more issues
-          </div>\`;
-        }
-        html += '</div>';
-      }
-      
-      tooltip.innerHTML = html;
-      tooltip.style.display = 'block';
-      tooltip.style.left = (event.pageX + 15) + 'px';
-      tooltip.style.top = (event.pageY + 15) + 'px';
-    }
-    
-    function hideTooltip() {
-      document.getElementById('tooltip').style.display = 'none';
+      return \`
+        <div class="package-card">
+          <div class="package-name">
+            <span style="color: \${color};">●</span>
+            \${pkg.name || pkg.id}
+          </div>
+          <div class="package-version">v\${pkg.version || 'unknown'}</div>
+          <div class="package-issues">
+            \${issues.map(i => \`<span class="issue-tag \${i.type || ''}">\${i.title || i.type || 'Issue'}</span>\`).join('')}
+            \${issues.length === 0 ? '<span class="issue-tag">Low health score</span>' : ''}
+          </div>
+          <div class="package-score">
+            <span class="score-label">Health Score</span>
+            <span class="score-value" style="color: \${color};">\${score}/10</span>
+          </div>
+        </div>
+      \`;
     }
   </script>
 </body>
-</html>
-  `.trim();
+</html>`;
+}
+
+/**
+ * Generate HTML for when no conflicts are found
+ */
+function generateNoConflictsHTML(projectName, projectVersion, totalDeps) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevCompass - No Conflicts</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .success-card {
+      text-align: center;
+      padding: 60px 80px;
+      background: rgba(30, 41, 59, 0.95);
+      border-radius: 24px;
+      border: 1px solid #475569;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .success-icon {
+      font-size: 80px;
+      margin-bottom: 24px;
+      animation: bounce 2s ease-in-out infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .success-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #10b981;
+    }
+
+    .success-subtitle {
+      font-size: 16px;
+      color: #94a3b8;
+      margin-bottom: 30px;
+    }
+
+    .stats {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      padding-top: 24px;
+      border-top: 1px solid #475569;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #06b6d4;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="success-card">
+    <div class="success-icon">🎉</div>
+    <div class="success-title">No Conflicts Found!</div>
+    <div class="success-subtitle">
+      All dependencies in ${projectName} v${projectVersion} are healthy
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value">${totalDeps}</div>
+        <div class="stat-label">Dependencies</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">0</div>
+        <div class="stat-label">Issues</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">✓</div>
+        <div class="stat-label">All Healthy</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
 }
 
 module.exports = {
-  generateConflictLayout,
-  generateConflictHTML
+  generateConflictLayoutHTML
 };

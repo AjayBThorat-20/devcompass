@@ -1,388 +1,137 @@
 // src/graph/layouts/force.js
-/**
- * Force-directed network layout for dependency graphs
- * Enhanced with better viewport coverage and spacing
- */
+// Force-directed layout with D3.js physics simulation
 
-function generateForceLayout(graphData, options = {}) {
-  // ✅ FIXED: Validate input
-  if (!graphData || typeof graphData !== 'object') {
-    throw new Error('Invalid graph data provided');
-  }
 
-  const {
-    width = 1200,
-    height = 800,
-    nodeRadius = 6,
-    linkDistance = 150,        // INCREASED for better spacing
-    chargeStrength = -400,     // INCREASED for more repulsion
-    centerStrength = 0.05      // DECREASED for less center pull
-  } = options;
+function generateForceLayoutHTML(graphData, options = {}) {
+  const width = options.width || 1400;
+  const height = options.height || 900;
+  const projectName = options.projectName || 'Project';
+  const projectVersion = options.projectVersion || '1.0.0';
 
-  // ✅ FIXED: Ensure nodes and links are arrays
+  // Validate input
   const nodes = Array.isArray(graphData.nodes) ? graphData.nodes : [];
   const links = Array.isArray(graphData.links) ? graphData.links : [];
 
-  // ✅ FIXED: Handle empty graph
   if (nodes.length === 0) {
-    return {
-      type: 'force',
-      width,
-      height,
-      simulation: {
-        nodes: [],
-        links: [],
-        forces: {
-          charge: chargeStrength,
-          link: linkDistance,
-          center: centerStrength,
-          collision: true,
-          forceX: 0.05,
-          forceY: 0.05
-        }
-      },
-      metadata: {
-        nodeCount: 0,
-        linkCount: 0,
-        avgDegree: 0
-      }
-    };
+    return generateEmptyStateHTML(projectName, projectVersion);
   }
 
-  // Better initial positioning - spread across viewport
-  nodes.forEach((node, i) => {
-    // ✅ FIXED: Validate node object
-    if (!node || typeof node !== 'object') return;
-    
-    if (!node.x || !node.y) {
-      // Spread nodes in a circle initially for better distribution
-      const angle = (i / nodes.length) * 2 * Math.PI;
-      const radius = Math.min(width, height) * 0.35;
-      node.x = width / 2 + Math.cos(angle) * radius + (Math.random() - 0.5) * 100;
-      node.y = height / 2 + Math.sin(angle) * radius + (Math.random() - 0.5) * 100;
-    }
-  });
+  // Calculate max depth
+  const maxDepth = Math.max(...nodes.map(n => n.depth || 0), 0);
 
-  // D3 force simulation configuration
-  const simulation = {
-    nodes: nodes.map(n => {
-      // ✅ FIXED: Safe node mapping with validation
-      if (!n || typeof n !== 'object') {
-        return {
-          id: 'invalid',
-          radius: nodeRadius,
-          color: '#64748b'
-        };
-      }
-      
-      return {
-        ...n,
-        radius: getNodeRadius(n, nodeRadius),
-        color: getNodeColor(n)
-      };
-    }),
-    links: links.map(l => {
-      // ✅ FIXED: Safe link mapping with validation
-      if (!l || typeof l !== 'object') {
-        return {
-          source: 'invalid',
-          target: 'invalid',
-          strength: 0.4
-        };
-      }
-      
-      return {
-        source: l.source,
-        target: l.target,
-        strength: getLinkStrength(l)
-      };
-    }),
-    forces: {
-      charge: chargeStrength,
-      link: linkDistance,
-      center: centerStrength,
-      collision: true,
-      forceX: 0.05,  // ADD: spread horizontally
-      forceY: 0.05   // ADD: spread vertically
-    }
-  };
+  const graphDataJSON = JSON.stringify({ nodes, links });
 
-  // ✅ FIXED: Safe average degree calculation
-  const avgDegree = nodes.length > 0 ? (links.length * 2) / nodes.length : 0;
-
-  return {
-    type: 'force',
-    width,
-    height,
-    simulation,
-    metadata: {
-      nodeCount: nodes.length,
-      linkCount: links.length,
-      avgDegree: Number(avgDegree.toFixed(2))
-    }
-  };
-}
-
-function getNodeRadius(node, baseRadius) {
-  // ✅ FIXED: Validate inputs
-  if (!node || typeof node !== 'object') {
-    return baseRadius;
-  }
-
-  const validBaseRadius = typeof baseRadius === 'number' && baseRadius > 0 ? baseRadius : 6;
-  
-  if (node.type === 'root') return validBaseRadius * 2.5;
-  
-  const issueCount = Array.isArray(node.issues) ? node.issues.length : 0;
-  if (issueCount > 5) return validBaseRadius * 2;
-  if (issueCount > 0) return validBaseRadius * 1.5;
-  
-  return validBaseRadius;
-}
-
-function getNodeColor(node) {
-  // ✅ FIXED: Validate input
-  if (!node || typeof node !== 'object') {
-    return '#64748b'; // Default gray color
-  }
-  
-  if (node.type === 'root') return '#60a5fa';
-  
-  const score = typeof node.healthScore === 'number' ? node.healthScore : 10;
-  if (score < 3) return '#ef4444';
-  if (score < 5) return '#f97316';
-  if (score < 7) return '#eab308';
-  if (score < 9) return '#84cc16';
-  return '#10b981';
-}
-
-function getLinkStrength(link) {
-  // ✅ FIXED: Validate input
-  if (!link || typeof link !== 'object') {
-    return 0.4;
-  }
-  
-  return link.depth === 1 ? 0.8 : 0.4;  // ADJUSTED: weaker links
-}
-
-function generateForceHTML(layoutData, graphData) {
-  // ✅ FIXED: Validate inputs
-  if (!layoutData || typeof layoutData !== 'object') {
-    throw new Error('Invalid layout data provided');
-  }
-
-  if (!graphData || typeof graphData !== 'object') {
-    throw new Error('Invalid graph data provided');
-  }
-
-  const { width = 1200, height = 800, simulation } = layoutData;
-  
-  // ✅ FIXED: Validate simulation data
-  if (!simulation || typeof simulation !== 'object') {
-    throw new Error('Invalid simulation data');
-  }
-
-  const nodes = Array.isArray(simulation.nodes) ? simulation.nodes : [];
-  const links = Array.isArray(simulation.links) ? simulation.links : [];
-
-  // ✅ FIXED: Safe JSON stringification with error handling
-  let simulationJSON;
-  try {
-    simulationJSON = JSON.stringify(simulation);
-  } catch (error) {
-    console.error('Failed to stringify simulation data:', error.message);
-    simulationJSON = JSON.stringify({ nodes: [], links: [], forces: {} });
-  }
-  
-  return `
-<!DOCTYPE html>
-<html>
+  return `<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DevCompass - Interactive Force Graph</title>
+  <title>DevCompass - Force Graph</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --border-color: #475569;
+      --health-excellent: #10b981;
+      --health-good: #84cc16;
+      --health-caution: #eab308;
+      --health-warning: #f97316;
+      --health-critical: #ef4444;
+      --root-color: #60a5fa;
     }
-    
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      color: var(--text-primary);
+      min-height: 100vh;
       overflow: hidden;
     }
-    
-    #graph-container {
+
+    #container {
       width: 100vw;
       height: 100vh;
       position: relative;
     }
-    
+
     svg {
       width: 100%;
       height: 100%;
-    }
-    
-    /* Enhanced Node Styles */
-    .node {
       cursor: grab;
-      stroke: #1e293b;
-      stroke-width: 2.5px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
     }
-    
-    .node:hover {
-      stroke: #fff;
-      stroke-width: 4px;
-      filter: drop-shadow(0 4px 12px rgba(96, 165, 250, 0.6));
-    }
-    
-    .node:active {
-      cursor: grabbing;
-    }
-    
-    .node.selected {
-      stroke: #fbbf24;
-      stroke-width: 4px;
-      filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.8));
-    }
-    
-    .node.dimmed {
-      opacity: 0.2;
-    }
-    
-    /* Enhanced Link Styles */
-    .link {
-      stroke: #475569;
-      stroke-opacity: 0.4;
-      stroke-width: 1.5px;
-      transition: all 0.3s ease;
-    }
-    
-    .link:hover {
-      stroke: #60a5fa;
-      stroke-opacity: 0.8;
-      stroke-width: 2.5px;
-    }
-    
-    .link.highlighted {
-      stroke: #fbbf24;
-      stroke-opacity: 1;
-      stroke-width: 3px;
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    
-    .link.dimmed {
-      opacity: 0.1;
-    }
-    
-    @keyframes pulse {
-      0%, 100% { stroke-opacity: 0.6; }
-      50% { stroke-opacity: 1; }
-    }
-    
-    /* Node Labels */
-    .node-label {
-      font-size: 11px;
-      font-weight: 500;
-      fill: #e2e8f0;
-      text-anchor: middle;
-      pointer-events: none;
-      user-select: none;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-    }
-    
-    .node-label.dimmed {
-      opacity: 0.2;
-    }
-    
-    /* Modern Tooltip */
-    .tooltip {
-      position: absolute;
-      padding: 16px 20px;
-      background: rgba(15, 23, 42, 0.98);
-      border: 1px solid #475569;
-      border-radius: 12px;
-      pointer-events: none;
-      font-size: 13px;
-      max-width: 350px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
-      z-index: 1000;
+
+    svg:active { cursor: grabbing; }
+
+    /* Header */
+    .header {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(30, 41, 59, 0.95);
+      padding: 16px 24px;
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
       backdrop-filter: blur(12px);
-      transform: translateY(-10px);
-      opacity: 0;
-      transition: opacity 0.2s, transform 0.2s;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      z-index: 100;
     }
-    
-    .tooltip.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    
-    .tooltip-header {
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #334155;
+      gap: 10px;
     }
-    
-    .tooltip-icon {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    
-    .tooltip-title {
-      font-weight: 600;
-      font-size: 15px;
-      color: #60a5fa;
-    }
-    
-    .tooltip-section {
-      margin: 10px 0;
-    }
-    
-    .tooltip-row {
-      display: flex;
-      justify-content: space-between;
-      margin: 6px 0;
-      align-items: center;
-    }
-    
-    .tooltip-label {
-      color: #94a3b8;
-      font-size: 12px;
-    }
-    
-    .tooltip-value {
-      color: #e2e8f0;
-      font-weight: 600;
-    }
-    
-    .tooltip-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 6px;
+
+    .header-subtitle {
       font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-top: 4px;
     }
-    
-    .badge-critical { background: #ef4444; color: white; }
-    .badge-warning { background: #f97316; color: white; }
-    .badge-caution { background: #eab308; color: #1e293b; }
-    .badge-healthy { background: #10b981; color: white; }
-    
-    /* Modern Control Panel */
+
+    /* Search */
+    .search-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+    }
+
+    .search-input {
+      width: 320px;
+      padding: 12px 20px;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid var(--border-color);
+      border-radius: 25px;
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+      backdrop-filter: blur(12px);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Controls Panel */
     .controls {
       position: fixed;
       top: 20px;
@@ -390,1054 +139,750 @@ function generateForceHTML(layoutData, graphData) {
       background: rgba(30, 41, 59, 0.95);
       padding: 20px;
       border-radius: 16px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-      z-index: 100;
+      border: 1px solid var(--border-color);
       backdrop-filter: blur(12px);
-      border: 1px solid #334155;
-      min-width: 220px;
-      max-height: calc(100vh - 40px);
-      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      z-index: 100;
+      min-width: 200px;
     }
-    
-    .controls::-webkit-scrollbar {
-      width: 6px;
-    }
-    
-    .controls::-webkit-scrollbar-track {
-      background: #1e293b;
-      border-radius: 3px;
-    }
-    
-    .controls::-webkit-scrollbar-thumb {
-      background: #475569;
-      border-radius: 3px;
-    }
-    
+
     .controls-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
+      color: var(--text-primary);
       margin-bottom: 16px;
-      color: #f1f5f9;
       display: flex;
       align-items: center;
       gap: 8px;
     }
-    
+
     .controls-section {
-      margin: 20px 0;
-      padding-top: 16px;
-      border-top: 1px solid #334155;
+      margin-bottom: 16px;
     }
-    
-    .controls-section:first-child {
-      margin-top: 0;
-      padding-top: 0;
-      border-top: none;
-    }
-    
-    .section-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: #94a3b8;
-      margin-bottom: 12px;
+
+    .controls-section-title {
+      font-size: 10px;
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      margin-bottom: 8px;
     }
-    
-    .control-button {
+
+    .control-btn {
       display: flex;
       align-items: center;
       gap: 10px;
       width: 100%;
-      padding: 12px 16px;
-      margin: 6px 0;
-      background: linear-gradient(135deg, #334155 0%, #475569 100%);
-      color: #f1f5f9;
-      border: 1px solid #475569;
+      padding: 10px 14px;
+      margin: 4px 0;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
       border-radius: 10px;
       cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .control-button:hover {
-      background: linear-gradient(135deg, #475569 0%, #64748b 100%);
-      border-color: #60a5fa;
-      transform: translateX(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-    
-    .control-button:active {
-      transform: translateX(0);
-    }
-    
-    .control-button.primary {
-      background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
-      border-color: #60a5fa;
-    }
-    
-    .control-button.primary:hover {
-      background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
-    }
-    
-    .control-button.danger {
-      background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
-      border-color: #ef4444;
-    }
-    
-    .control-button.danger:hover {
-      background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
-    }
-    
-    .control-icon {
-      font-size: 16px;
-    }
-    
-    /* Zoom Controls */
-    .zoom-controls {
-      position: fixed;
-      bottom: 20px;
-      right: 240px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      z-index: 100;
-    }
-    
-    .zoom-button {
-      width: 48px;
-      height: 48px;
-      background: rgba(30, 41, 59, 0.95);
-      border: 1px solid #475569;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: #f1f5f9;
-      font-size: 20px;
-      font-weight: 700;
-      transition: all 0.3s;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    }
-    
-    .zoom-button:hover {
-      background: rgba(59, 130, 246, 0.95);
-      border-color: #60a5fa;
-      transform: scale(1.1);
-      box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4);
-    }
-    
-    .zoom-button:active {
-      transform: scale(0.95);
-    }
-    
-    .zoom-level {
-      width: 48px;
-      padding: 8px;
-      background: rgba(30, 41, 59, 0.95);
-      border: 1px solid #475569;
-      border-radius: 12px;
-      text-align: center;
-      color: #60a5fa;
-      font-size: 11px;
-      font-weight: 700;
-      backdrop-filter: blur(12px);
-    }
-    
-    /* Search Box */
-    .search-box {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(30, 41, 59, 0.95);
-      padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-      z-index: 100;
-      backdrop-filter: blur(12px);
-      border: 1px solid #334155;
-      min-width: 400px;
-    }
-    
-    .search-input {
-      width: 100%;
-      padding: 12px 16px;
-      background: #1e293b;
-      border: 2px solid #475569;
-      border-radius: 10px;
-      color: #e2e8f0;
-      font-size: 14px;
-      outline: none;
-      transition: all 0.3s;
-    }
-    
-    .search-input:focus {
-      border-color: #60a5fa;
-      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
-    }
-    
-    .search-input::placeholder {
-      color: #64748b;
-    }
-    
-    /* Stats Panel */
-    .stats {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: rgba(30, 41, 59, 0.95);
-      padding: 20px;
-      border-radius: 16px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-      z-index: 100;
-      backdrop-filter: blur(12px);
-      border: 1px solid #334155;
-      min-width: 220px;
-    }
-    
-    .stats-title {
-      font-size: 14px;
-      font-weight: 700;
-      margin-bottom: 16px;
-      color: #f1f5f9;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .stat-item {
-      display: flex;
-      justify-content: space-between;
-      margin: 10px 0;
-      padding: 8px 0;
-      border-bottom: 1px solid #334155;
-    }
-    
-    .stat-item:last-child {
-      border-bottom: none;
-    }
-    
-    .stat-label {
-      color: #94a3b8;
       font-size: 12px;
       font-weight: 500;
+      transition: all 0.2s ease;
     }
-    
-    .stat-value {
-      color: #60a5fa;
+
+    .control-btn:hover {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+    }
+
+    .control-btn.primary {
+      background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-cyan) 100%);
+      border-color: var(--accent-blue);
+    }
+
+    .control-btn.active {
+      background: var(--accent-cyan);
+      border-color: var(--accent-cyan);
+    }
+
+    /* Filter Dropdowns */
+    .filter-select {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+      margin: 4px 0;
+    }
+
+    .filter-select:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    /* Statistics Panel */
+    .stats {
+      position: fixed;
+      bottom: 100px;
+      right: 20px;
+      background: rgba(30, 41, 59, 0.95);
+      padding: 16px 20px;
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      z-index: 100;
+      min-width: 160px;
+    }
+
+    .stats-title {
+      font-size: 13px;
       font-weight: 700;
-      font-size: 14px;
+      color: var(--text-primary);
+      margin-bottom: 12px;
     }
-    
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 6px 0;
+      font-size: 12px;
+    }
+
+    .stat-label { color: var(--text-secondary); }
+    .stat-value { color: var(--accent-cyan); font-weight: 700; }
+
     /* Legend */
     .legend {
       position: fixed;
       bottom: 20px;
       left: 20px;
       background: rgba(30, 41, 59, 0.95);
-      padding: 20px;
+      padding: 16px 20px;
       border-radius: 16px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-      z-index: 100;
+      border: 1px solid var(--border-color);
       backdrop-filter: blur(12px);
-      border: 1px solid #334155;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      z-index: 100;
     }
-    
-    .legend.collapsed {
-      padding: 12px;
-    }
-    
-    .legend.collapsed .legend-items {
-      display: none;
-    }
-    
+
     .legend-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
-      margin-bottom: 16px;
-      color: #f1f5f9;
+      color: var(--text-primary);
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      user-select: none;
+      gap: 6px;
     }
-    
-    .legend.collapsed .legend-title {
-      margin-bottom: 0;
-    }
-    
+
     .legend-item {
       display: flex;
       align-items: center;
-      margin: 10px 0;
-      gap: 12px;
+      gap: 10px;
+      margin: 6px 0;
+      font-size: 11px;
+      color: var(--text-secondary);
     }
-    
-    .legend-color {
-      width: 20px;
-      height: 20px;
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      border: 2px solid #1e293b;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       flex-shrink: 0;
     }
-    
-    .legend-text {
-      color: #cbd5e1;
-      font-size: 13px;
-      font-weight: 500;
-    }
-    
-    /* Header */
-    .header {
+
+    /* Zoom Controls */
+    .zoom-controls {
       position: fixed;
-      top: 20px;
-      left: 20px;
-      background: rgba(30, 41, 59, 0.95);
-      padding: 20px 24px;
-      border-radius: 16px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       z-index: 100;
-      backdrop-filter: blur(12px);
-      border: 1px solid #334155;
     }
-    
-    .header-title {
+
+    .zoom-btn {
+      width: 44px;
+      height: 44px;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: var(--text-primary);
       font-size: 20px;
       font-weight: 700;
-      color: #f1f5f9;
+      cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(12px);
     }
-    
-    .header-subtitle {
-      font-size: 13px;
-      color: #94a3b8;
-      margin-top: 4px;
+
+    .zoom-btn:hover {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      transform: scale(1.1);
     }
-    
-    /* Fullscreen Mode */
-    body.fullscreen .header,
-    body.fullscreen .search-box {
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
-    }
-    
-    body.fullscreen:hover .header,
-    body.fullscreen:hover .search-box {
-      opacity: 1;
-      pointer-events: all;
-    }
-    
-    /* Loading Animation */
-    .loading {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+
+    .zoom-level {
+      width: 44px;
+      padding: 8px;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
       text-align: center;
+      color: var(--accent-cyan);
+      font-size: 10px;
+      font-weight: 700;
+      backdrop-filter: blur(12px);
+    }
+
+    /* Tooltip */
+    .tooltip {
+      position: absolute;
+      padding: 14px 18px;
+      background: rgba(15, 23, 42, 0.98);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      font-size: 12px;
+      max-width: 280px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.2s, transform 0.2s;
       z-index: 1000;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
     }
-    
-    .loading-spinner {
-      width: 60px;
-      height: 60px;
-      border: 4px solid #334155;
-      border-top-color: #60a5fa;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
+
+    .tooltip.visible {
+      opacity: 1;
+      transform: translateY(0);
     }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    .loading-text {
-      color: #60a5fa;
-      font-size: 16px;
-      font-weight: 600;
-    }
-    
-    /* Filter Dropdown */
-    .filter-group {
-      margin: 12px 0;
-    }
-    
-    .filter-label {
-      display: block;
-      font-size: 11px;
-      color: #94a3b8;
+
+    .tooltip-title {
+      font-weight: 700;
+      color: var(--accent-cyan);
       margin-bottom: 8px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .filter-select {
-      width: 100%;
-      padding: 10px 12px;
-      background: #1e293b;
-      border: 2px solid #475569;
-      border-radius: 8px;
-      color: #e2e8f0;
       font-size: 13px;
+    }
+
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 4px 0;
+    }
+
+    .tooltip-label { color: var(--text-secondary); }
+    .tooltip-value { color: var(--text-primary); font-weight: 600; }
+
+    /* Node styles */
+    .node circle {
+      stroke: var(--bg-primary);
+      stroke-width: 2px;
       cursor: pointer;
-      outline: none;
-      transition: all 0.3s;
+      transition: all 0.2s ease;
     }
-    
-    .filter-select:focus {
-      border-color: #60a5fa;
+
+    .node circle:hover {
+      stroke: var(--text-primary);
+      stroke-width: 3px;
+      filter: drop-shadow(0 0 10px currentColor);
     }
-    
-    .filter-select:hover {
-      border-color: #60a5fa;
+
+    .node.selected circle {
+      stroke: var(--accent-cyan);
+      stroke-width: 4px;
     }
-    
-    /* Responsive */
-    @media (max-width: 768px) {
-      .controls, .stats, .legend {
-        padding: 12px;
-        min-width: 150px;
-      }
-      
-      .header {
-        padding: 12px 16px;
-      }
-      
-      .header-title {
-        font-size: 16px;
-      }
-      
-      .search-box {
-        min-width: 280px;
-      }
-      
-      .zoom-controls {
-        right: 20px;
-      }
+
+    .node-label {
+      font-size: 10px;
+      fill: var(--text-secondary);
+      pointer-events: none;
+      font-weight: 500;
     }
+
+    .node-label.hidden { display: none; }
+
+    /* Link styles */
+    .link {
+      stroke: var(--border-color);
+      stroke-width: 1.5px;
+      stroke-opacity: 0.4;
+    }
+
+    .link.highlighted {
+      stroke: var(--accent-cyan);
+      stroke-opacity: 0.8;
+      stroke-width: 2.5px;
+    }
+
+    .link.hidden { display: none; }
   </style>
 </head>
 <body>
-  <div id="graph-container">
-    <div class="loading">
-      <div class="loading-spinner"></div>
-      <div class="loading-text">Initializing Force Simulation...</div>
-    </div>
-  </div>
-  
+  <div id="container"></div>
+
   <div class="header">
-    <div class="header-title">🧭 Force Graph</div>
+    <div class="header-title">
+      ⚡ Force Graph
+    </div>
     <div class="header-subtitle">Interactive Physics Simulation</div>
   </div>
-  
-  <div class="search-box">
-    <input 
-      type="text" 
-      class="search-input" 
-      id="search-input"
-      placeholder="🔍 Search packages..."
-      autocomplete="off"
-    />
+
+  <div class="search-container">
+    <input type="text" class="search-input" id="search" placeholder="🔍 Search packages..." />
   </div>
-  
+
   <div class="controls">
     <div class="controls-title">⚙️ Controls</div>
     
     <div class="controls-section">
-      <div class="section-title">View</div>
-      <button class="control-button primary" onclick="resetSimulation()">
-        <span class="control-icon">↻</span>
-        <span>Reset Layout</span>
-      </button>
-      <button class="control-button" onclick="centerView()">
-        <span class="control-icon">🎯</span>
-        <span>Center View</span>
-      </button>
-      <button class="control-button" onclick="fitToScreen()">
-        <span class="control-icon">⛶</span>
-        <span>Fit to Screen</span>
-      </button>
-      <button class="control-button" onclick="toggleFullscreen()">
-        <span class="control-icon">⛶</span>
-        <span id="fullscreen-text">Fullscreen</span>
-      </button>
+      <div class="controls-section-title">VIEW</div>
+      <button class="control-btn primary" onclick="resetLayout()">↻ Reset Layout</button>
+      <button class="control-btn" onclick="centerView()">◎ Center View</button>
+      <button class="control-btn" onclick="fitToScreen()">⛶ Fit to Screen</button>
+      <button class="control-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
     </div>
-    
+
     <div class="controls-section">
-      <div class="section-title">Display</div>
-      <button class="control-button" onclick="toggleLabels()">
-        <span class="control-icon">🏷️</span>
-        <span id="label-btn-text">Hide Labels</span>
-      </button>
-      <button class="control-button" onclick="toggleLinks()">
-        <span class="control-icon">🔗</span>
-        <span id="link-btn-text">Hide Links</span>
-      </button>
+      <div class="controls-section-title">DISPLAY</div>
+      <button class="control-btn active" id="btn-labels" onclick="toggleLabels()">🏷️ Hide Labels</button>
+      <button class="control-btn active" id="btn-links" onclick="toggleLinks()">🔗 Hide Links</button>
     </div>
-    
+
     <div class="controls-section">
-      <div class="section-title">Filter</div>
-      <div class="filter-group">
-        <label class="filter-label">Health Score</label>
-        <select class="filter-select" id="health-filter" onchange="applyFilters()">
-          <option value="all">All Packages</option>
-          <option value="critical">Critical (&lt;3)</option>
-          <option value="warning">Warning (3-5)</option>
-          <option value="caution">Caution (5-7)</option>
-          <option value="healthy">Healthy (&gt;7)</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label class="filter-label">Package Type</label>
-        <select class="filter-select" id="type-filter" onchange="applyFilters()">
-          <option value="all">All Types</option>
-          <option value="root">Root Only</option>
-          <option value="dependency">Dependencies</option>
-        </select>
-      </div>
-    </div>
-    
-    <div class="controls-section">
-      <div class="section-title">Actions</div>
-      <button class="control-button danger" onclick="clearSelection()">
-        <span class="control-icon">✕</span>
-        <span>Clear Selection</span>
-      </button>
+      <div class="controls-section-title">FILTER</div>
+      <div class="controls-section-title">HEALTH SCORE</div>
+      <select class="filter-select" id="health-filter" onchange="applyFilters()">
+        <option value="all">All Packages</option>
+        <option value="excellent">Excellent (9-10)</option>
+        <option value="good">Good (7-8)</option>
+        <option value="caution">Caution (5-7)</option>
+        <option value="warning">Warning (3-5)</option>
+        <option value="critical">Critical (&lt;3)</option>
+      </select>
     </div>
   </div>
-  
-  <div class="zoom-controls">
-    <button class="zoom-button" onclick="zoomIn()" title="Zoom In">+</button>
-    <div class="zoom-level" id="zoom-level">100%</div>
-    <button class="zoom-button" onclick="zoomOut()" title="Zoom Out">−</button>
-    <button class="zoom-button" onclick="resetZoom()" title="Reset Zoom">⟲</button>
-  </div>
-  
+
   <div class="stats">
     <div class="stats-title">📊 Statistics</div>
-    <div class="stat-item">
+    <div class="stat-row">
       <span class="stat-label">Total Nodes</span>
       <span class="stat-value" id="total-nodes">${nodes.length}</span>
     </div>
-    <div class="stat-item">
+    <div class="stat-row">
       <span class="stat-label">Visible Nodes</span>
       <span class="stat-value" id="visible-nodes">${nodes.length}</span>
     </div>
-    <div class="stat-item">
+    <div class="stat-row">
       <span class="stat-label">Links</span>
-      <span class="stat-value" id="link-count">${links.length}</span>
+      <span class="stat-value" id="total-links">${links.length}</span>
     </div>
-    <div class="stat-item">
+    <div class="stat-row">
       <span class="stat-label">Selected</span>
       <span class="stat-value" id="selected-count">0</span>
     </div>
-    <div class="stat-item">
+    <div class="stat-row">
       <span class="stat-label">Zoom</span>
       <span class="stat-value" id="zoom-stat">100%</span>
     </div>
   </div>
-  
+
   <div class="legend">
-    <div class="legend-title" onclick="toggleLegend()">
-      🎨 Health Status
-      <span style="margin-left: auto; font-size: 12px;">▼</span>
+    <div class="legend-title">🎨 Health Status ▾</div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--health-excellent);"></div>
+      <span>Excellent (9-10)</span>
     </div>
-    <div class="legend-items">
-      <div class="legend-item">
-        <div class="legend-color" style="background: #10b981;"></div>
-        <span class="legend-text">Excellent (9-10)</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color" style="background: #84cc16;"></div>
-        <span class="legend-text">Good (7-8)</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color" style="background: #eab308;"></div>
-        <span class="legend-text">Caution (5-7)</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color" style="background: #f97316;"></div>
-        <span class="legend-text">Warning (3-5)</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color" style="background: #ef4444;"></div>
-        <span class="legend-text">Critical (&lt;3)</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color" style="background: #60a5fa; border-width: 3px;"></div>
-        <span class="legend-text">Root Package</span>
-      </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--health-good);"></div>
+      <span>Good (7-8)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--health-caution);"></div>
+      <span>Caution (5-7)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--health-warning);"></div>
+      <span>Warning (3-5)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--health-critical);"></div>
+      <span>Critical (&lt;3)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background: var(--root-color);"></div>
+      <span>Root Package</span>
     </div>
   </div>
-  
+
+  <div class="zoom-controls">
+    <button class="zoom-btn" onclick="zoomIn()">+</button>
+    <div class="zoom-level" id="zoom-level">100%</div>
+    <button class="zoom-btn" onclick="zoomOut()">−</button>
+    <button class="zoom-btn" onclick="resetLayout()">⟲</button>
+  </div>
+
   <div class="tooltip" id="tooltip"></div>
 
   <script>
-    // ✅ FIXED: Safe data parsing with error handling
-    let graphData;
-    try {
-      graphData = ${simulationJSON};
-      // ✅ FIXED: Validate parsed data
-      if (!graphData || typeof graphData !== 'object') {
-        throw new Error('Invalid graph data');
-      }
-      if (!Array.isArray(graphData.nodes)) {
-        graphData.nodes = [];
-      }
-      if (!Array.isArray(graphData.links)) {
-        graphData.links = [];
-      }
-    } catch (error) {
-      console.error('Failed to parse graph data:', error);
-      graphData = { nodes: [], links: [], forces: {} };
-    }
-
-    const width = window.innerWidth;   // USE FULL WINDOW WIDTH
-    const height = window.innerHeight;  // USE FULL WINDOW HEIGHT
+    const graphData = ${graphDataJSON};
+    const width = window.innerWidth;
+    const height = window.innerHeight;
     
     let showLabels = true;
     let showLinks = true;
-    let selectedNode = null;
     let currentZoom = 1;
-    let searchTerm = '';
-    let healthFilter = 'all';
-    let typeFilter = 'all';
-    
-    // Remove loading
-    setTimeout(() => {
-      const loading = document.querySelector('.loading');
-      if (loading) loading.remove();
-    }, 500);
-    
-    // ✅ FIXED: Check if D3 is loaded
-    if (typeof d3 === 'undefined') {
-      console.error('D3.js failed to load');
-      document.querySelector('.loading-text').textContent = 'Error: D3.js library failed to load';
-      throw new Error('D3.js not loaded');
+    let selectedNode = null;
+
+    // Get color based on health score
+    function getHealthColor(node) {
+      if (node.type === 'root') return 'var(--root-color)';
+      const score = node.healthScore || 8;
+      if (score >= 9) return 'var(--health-excellent)';
+      if (score >= 7) return 'var(--health-good)';
+      if (score >= 5) return 'var(--health-caution)';
+      if (score >= 3) return 'var(--health-warning)';
+      return 'var(--health-critical)';
     }
 
-    // Create SVG with full viewport
-    const svg = d3.select("#graph-container")
+    // Get node radius based on type/depth
+    function getNodeRadius(node) {
+      if (node.type === 'root') return 20;
+      if (node.depth === 1) return 12;
+      if (node.depth === 2) return 8;
+      return 6;
+    }
+
+    // Create SVG
+    const svg = d3.select("#container")
       .append("svg")
-      .attr("width", "100%")
-      .attr("height", "100%")
-      .attr("viewBox", [0, 0, width, height]);
-    
+      .attr("width", width)
+      .attr("height", height);
+
+    // Zoom behavior
     const zoom = d3.zoom()
-      .scaleExtent([0.1, 8])
+      .scaleExtent([0.1, 4])
       .on("zoom", (event) => {
         g.attr("transform", event.transform);
         currentZoom = event.transform.k;
         updateZoomDisplay();
       });
-    
-    svg.call(zoom);
-    
-    const g = svg.append("g");
-    
-    // ✅ FIXED: Safe force configuration extraction
-    const forces = graphData.forces || {};
-    const linkDistance = forces.link || 150;
-    const chargeStrength = forces.charge || -400;
-    const centerStrength = forces.center || 0.05;
-    const forceXStrength = forces.forceX || 0.05;
-    const forceYStrength = forces.forceY || 0.05;
 
-    // Create force simulation with better spacing
+    svg.call(zoom);
+
+    const g = svg.append("g");
+
+    // Create force simulation
     const simulation = d3.forceSimulation(graphData.nodes)
       .force("link", d3.forceLink(graphData.links)
         .id(d => d.id)
-        .distance(linkDistance)
-        .strength(d => d.strength || 0.4))
-      .force("charge", d3.forceManyBody()
-        .strength(chargeStrength))
-      .force("center", d3.forceCenter(width / 2, height / 2)
-        .strength(centerStrength))
-      .force("collision", d3.forceCollide()
-        .radius(d => (d.radius || 6) + 12))
-      .force("x", d3.forceX(width / 2).strength(forceXStrength))
-      .force("y", d3.forceY(height / 2).strength(forceYStrength))
-      .alphaDecay(0.02);
-    
-    // Create links
+        .distance(d => {
+          const sourceDepth = d.source.depth || 0;
+          const targetDepth = d.target.depth || 0;
+          return 50 + Math.abs(sourceDepth - targetDepth) * 30;
+        }))
+      .force("charge", d3.forceManyBody().strength(-200))
+      .force("center", d3.forceCenter(width / 2, height / 2))
+      .force("collision", d3.forceCollide().radius(d => getNodeRadius(d) + 10));
+
+    // Draw links
     const link = g.append("g")
+      .attr("class", "links")
       .selectAll("line")
       .data(graphData.links)
       .join("line")
       .attr("class", "link");
-    
-    // Create nodes
+
+    // Draw nodes
     const node = g.append("g")
-      .selectAll("circle")
+      .attr("class", "nodes")
+      .selectAll("g")
       .data(graphData.nodes)
-      .join("circle")
+      .join("g")
       .attr("class", "node")
-      .attr("r", d => d.radius || 6)
-      .attr("fill", d => d.color || '#64748b')
-      .call(drag(simulation))
-      .on("click", handleNodeClick)
-      .on("mouseover", showTooltip)
-      .on("mouseout", hideTooltip);
-    
-    // Create labels
-    const label = g.append("g")
-      .selectAll("text")
-      .data(graphData.nodes)
-      .join("text")
+      .call(d3.drag()
+        .on("start", dragStarted)
+        .on("drag", dragged)
+        .on("end", dragEnded))
+      .on("mouseover", handleMouseOver)
+      .on("mouseout", handleMouseOut)
+      .on("click", handleClick);
+
+    // Add circles
+    node.append("circle")
+      .attr("r", d => getNodeRadius(d))
+      .attr("fill", d => getHealthColor(d));
+
+    // Add labels
+    node.append("text")
       .attr("class", "node-label")
-      .attr("dy", d => (d.radius || 6) + 15)
-      .text(d => d.name || 'unknown');
-    
-    // Update positions on tick
+      .attr("dy", d => getNodeRadius(d) + 12)
+      .attr("text-anchor", "middle")
+      .text(d => {
+        const name = d.name || d.id;
+        return name.length > 20 ? name.substring(0, 17) + '...' : name;
+      });
+
+    // Simulation tick
     simulation.on("tick", () => {
       link
-        .attr("x1", d => d.source.x || 0)
-        .attr("y1", d => d.source.y || 0)
-        .attr("x2", d => d.target.x || 0)
-        .attr("y2", d => d.target.y || 0);
-      
-      node
-        .attr("cx", d => d.x || 0)
-        .attr("cy", d => d.y || 0);
-      
-      label
-        .attr("x", d => d.x || 0)
-        .attr("y", d => d.y || 0);
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y);
+
+      node.attr("transform", d => "translate(" + d.x + "," + d.y + ")");
     });
-    
-    // Drag behavior
-    function drag(simulation) {
-      function dragstarted(event) {
-        if (!event.active) simulation.alphaTarget(0.3).restart();
-        event.subject.fx = event.subject.x;
-        event.subject.fy = event.subject.y;
-        d3.select(this).style("cursor", "grabbing");
-      }
-      
-      function dragged(event) {
-        event.subject.fx = event.x;
-        event.subject.fy = event.y;
-      }
-      
-      function dragended(event) {
-        if (!event.active) simulation.alphaTarget(0);
-        event.subject.fx = null;
-        event.subject.fy = null;
-        d3.select(this).style("cursor", "grab");
-      }
-      
-      return d3.drag()
-        .on("start", dragstarted)
-        .on("drag", dragged)
-        .on("end", dragended);
+
+    // Drag functions
+    function dragStarted(event) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      event.subject.fx = event.subject.x;
+      event.subject.fy = event.subject.y;
     }
-    
-    // Node click handler
-    function handleNodeClick(event, d) {
-      event.stopPropagation();
-      
-      if (selectedNode?.id !== d.id) {
-        selectedNode = d;
-        highlightConnections(d);
-        document.getElementById('selected-count').textContent = '1';
-      } else {
-        clearSelection();
-      }
+
+    function dragged(event) {
+      event.subject.fx = event.x;
+      event.subject.fy = event.y;
     }
-    
-    function highlightConnections(d) {
-      const connectedNodes = new Set([d.id]);
-      const connectedLinks = new Set();
-      
-      graphData.links.forEach(l => {
-        // ✅ FIXED: Safe property access
-        const sourceId = l.source?.id || l.source;
-        const targetId = l.target?.id || l.target;
-        
-        if (sourceId === d.id) {
-          connectedNodes.add(targetId);
-          connectedLinks.add(l);
-        }
-        if (targetId === d.id) {
-          connectedNodes.add(sourceId);
-          connectedLinks.add(l);
-        }
-      });
-      
-      node.classed("selected", n => n.id === d.id)
-          .classed("dimmed", n => !connectedNodes.has(n.id));
-      
-      link.classed("highlighted", l => connectedLinks.has(l))
-          .classed("dimmed", l => !connectedLinks.has(l));
-      
-      label.classed("dimmed", n => !connectedNodes.has(n.id));
+
+    function dragEnded(event) {
+      if (!event.active) simulation.alphaTarget(0);
+      event.subject.fx = null;
+      event.subject.fy = null;
     }
-    
-    // Click outside to deselect
-    svg.on("click", clearSelection);
-    
-    // Enhanced tooltip
-    function showTooltip(event, d) {
+
+    // Tooltip functions
+    function handleMouseOver(event, d) {
+      // Highlight connected links
+      link.classed("highlighted", l => 
+        l.source.id === d.id || l.target.id === d.id
+      );
+
+      // Show tooltip
       const tooltip = document.getElementById('tooltip');
-      // ✅ FIXED: Safe property access
-      const issues = Array.isArray(d.issues) ? d.issues : [];
-      const score = typeof d.healthScore === 'number' ? d.healthScore : 10;
+      const score = d.healthScore || 8;
       
-      let badgeClass = 'badge-healthy';
-      if (score < 3) badgeClass = 'badge-critical';
-      else if (score < 5) badgeClass = 'badge-warning';
-      else if (score < 7) badgeClass = 'badge-caution';
+      tooltip.innerHTML = 
+        '<div class="tooltip-title">' + (d.name || d.id) + '</div>' +
+        '<div class="tooltip-row"><span class="tooltip-label">Version</span><span class="tooltip-value">' + (d.version || 'N/A') + '</span></div>' +
+        '<div class="tooltip-row"><span class="tooltip-label">Health Score</span><span class="tooltip-value">' + score + '/10</span></div>' +
+        '<div class="tooltip-row"><span class="tooltip-label">Depth</span><span class="tooltip-value">' + (d.depth || 0) + '</span></div>' +
+        '<div class="tooltip-row"><span class="tooltip-label">Type</span><span class="tooltip-value">' + (d.type || 'dependency') + '</span></div>';
       
-      let html = \`
-        <div class="tooltip-header">
-          <div class="tooltip-icon" style="background: \${d.color || '#64748b'};"></div>
-          <div class="tooltip-title">\${d.name || 'unknown'}@\${d.version || '?'}</div>
-        </div>
-        <div class="tooltip-section">
-          <div class="tooltip-row">
-            <span class="tooltip-label">Health Score</span>
-            <span class="tooltip-badge \${badgeClass}">\${score}/10</span>
-          </div>
-          <div class="tooltip-row">
-            <span class="tooltip-label">Type</span>
-            <span class="tooltip-value">\${d.type || 'unknown'}</span>
-          </div>
-          <div class="tooltip-row">
-            <span class="tooltip-label">Depth</span>
-            <span class="tooltip-value">\${d.depth || 0}</span>
-          </div>
-      \`;
-      
-      if (issues.length > 0) {
-        html += \`
-          <div class="tooltip-row">
-            <span class="tooltip-label">Issues</span>
-            <span class="tooltip-value" style="color: #ef4444;">\${issues.length}</span>
-          </div>
-        \`;
-      }
-      
-      html += '</div>';
-      
-      tooltip.innerHTML = html;
       tooltip.classList.add('visible');
       
-      const x = Math.min(event.pageX + 20, window.innerWidth - 370);
-      const y = event.pageY + 20;
-      
+      const x = Math.min(event.pageX + 15, window.innerWidth - 300);
+      const y = event.pageY - 10;
       tooltip.style.left = x + 'px';
       tooltip.style.top = y + 'px';
     }
-    
-    function hideTooltip() {
-      const tooltip = document.getElementById('tooltip');
-      tooltip.classList.remove('visible');
+
+    function handleMouseOut() {
+      link.classed("highlighted", false);
+      document.getElementById('tooltip').classList.remove('visible');
     }
-    
-    // Search functionality
-    document.getElementById('search-input').addEventListener('input', (e) => {
-      searchTerm = e.target.value.toLowerCase();
-      applyFilters();
-    });
-    
+
+    function handleClick(event, d) {
+      // Toggle selection
+      if (selectedNode === d) {
+        selectedNode = null;
+        node.classed("selected", false);
+        document.getElementById('selected-count').textContent = '0';
+      } else {
+        selectedNode = d;
+        node.classed("selected", n => n === d);
+        document.getElementById('selected-count').textContent = '1';
+      }
+    }
+
     // Control functions
-    function resetSimulation() {
+    function resetLayout() {
       simulation.alpha(1).restart();
-    }
-    
-    function toggleLabels() {
-      showLabels = !showLabels;
-      label.style("display", showLabels ? "block" : "none");
-      document.getElementById('label-btn-text').textContent = showLabels ? "Hide Labels" : "Show Labels";
-    }
-    
-    function toggleLinks() {
-      showLinks = !showLinks;
-      link.style("display", showLinks ? "block" : "none");
-      document.getElementById('link-btn-text').textContent = showLinks ? "Hide Links" : "Show Links";
-    }
-    
-    function centerView() {
       svg.transition().duration(750).call(
         zoom.transform,
-        d3.zoomIdentity.translate(width / 2, height / 2).scale(1)
+        d3.zoomIdentity
       );
     }
-    
-    function fitToScreen() {
-      // Let simulation settle first
-      simulation.alpha(0.3).restart();
-      
-      setTimeout(() => {
-        // ✅ FIXED: Safe bbox access
-        try {
-          const bounds = g.node().getBBox();
-          const fullWidth = width;
-          const fullHeight = height;
-          const midX = bounds.x + bounds.width / 2;
-          const midY = bounds.y + bounds.height / 2;
-          
-          const scale = 0.8 / Math.max(bounds.width / fullWidth, bounds.height / fullHeight);
-          const translate = [fullWidth / 2 - scale * midX, fullHeight / 2 - scale * midY];
-          
-          svg.transition().duration(750).call(
-            zoom.transform,
-            d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
-          );
-        } catch (error) {
-          console.error('Failed to fit to screen:', error);
-        }
-      }, 1000);
+
+    function centerView() {
+      svg.transition().duration(500).call(
+        zoom.transform,
+        d3.zoomIdentity.translate(width / 2, height / 2).scale(currentZoom).translate(-width / 2, -height / 2)
+      );
     }
-    
+
+    function fitToScreen() {
+      const bounds = g.node().getBBox();
+      const fullWidth = width;
+      const fullHeight = height;
+      const midX = bounds.x + bounds.width / 2;
+      const midY = bounds.y + bounds.height / 2;
+      const scale = 0.8 / Math.max(bounds.width / fullWidth, bounds.height / fullHeight);
+      
+      svg.transition().duration(750).call(
+        zoom.transform,
+        d3.zoomIdentity.translate(fullWidth / 2 - scale * midX, fullHeight / 2 - scale * midY).scale(scale)
+      );
+    }
+
     function toggleFullscreen() {
-      // ✅ FIXED: Add browser compatibility for fullscreen
+      const elem = document.documentElement;
       if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        const elem = document.documentElement;
         if (elem.requestFullscreen) {
           elem.requestFullscreen();
         } else if (elem.webkitRequestFullscreen) {
           elem.webkitRequestFullscreen();
         }
-        document.getElementById('fullscreen-text').textContent = 'Exit Fullscreen';
-        document.body.classList.add('fullscreen');
       } else {
         if (document.exitFullscreen) {
           document.exitFullscreen();
         } else if (document.webkitExitFullscreen) {
           document.webkitExitFullscreen();
         }
-        document.getElementById('fullscreen-text').textContent = 'Fullscreen';
-        document.body.classList.remove('fullscreen');
       }
     }
-    
-    function toggleLegend() {
-      document.querySelector('.legend').classList.toggle('collapsed');
+
+    function toggleLabels() {
+      showLabels = !showLabels;
+      d3.selectAll('.node-label').classed('hidden', !showLabels);
+      document.getElementById('btn-labels').textContent = showLabels ? '🏷️ Hide Labels' : '🏷️ Show Labels';
+      document.getElementById('btn-labels').classList.toggle('active', showLabels);
     }
-    
-    function clearSelection() {
-      selectedNode = null;
-      node.classed("selected", false).classed("dimmed", false);
-      link.classed("highlighted", false).classed("dimmed", false);
-      label.classed("dimmed", false);
-      document.getElementById('selected-count').textContent = '0';
+
+    function toggleLinks() {
+      showLinks = !showLinks;
+      d3.selectAll('.link').classed('hidden', !showLinks);
+      document.getElementById('btn-links').textContent = showLinks ? '🔗 Hide Links' : '🔗 Show Links';
+      document.getElementById('btn-links').classList.toggle('active', showLinks);
     }
-    
-    // Zoom controls
+
+    function applyFilters() {
+      const healthFilter = document.getElementById('health-filter').value;
+      let visibleCount = 0;
+
+      node.style('display', d => {
+        let show = true;
+
+        if (healthFilter !== 'all') {
+          const score = d.healthScore || 8;
+          switch (healthFilter) {
+            case 'excellent': show = score >= 9; break;
+            case 'good': show = score >= 7 && score < 9; break;
+            case 'caution': show = score >= 5 && score < 7; break;
+            case 'warning': show = score >= 3 && score < 5; break;
+            case 'critical': show = score < 3; break;
+          }
+        }
+
+        if (show) visibleCount++;
+        return show ? 'block' : 'none';
+      });
+
+      document.getElementById('visible-nodes').textContent = visibleCount;
+    }
+
     function zoomIn() {
       svg.transition().duration(300).call(zoom.scaleBy, 1.3);
     }
-    
+
     function zoomOut() {
       svg.transition().duration(300).call(zoom.scaleBy, 0.7);
     }
-    
-    function resetZoom() {
-      svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
-    }
-    
+
     function updateZoomDisplay() {
-      const zoomPercent = Math.round(currentZoom * 100);
-      document.getElementById('zoom-level').textContent = zoomPercent + '%';
-      document.getElementById('zoom-stat').textContent = zoomPercent + '%';
+      const zoomPercent = Math.round(currentZoom * 100) + '%';
+      document.getElementById('zoom-level').textContent = zoomPercent;
+      document.getElementById('zoom-stat').textContent = zoomPercent;
     }
-    
-    // Filter functionality
-    function applyFilters() {
-      healthFilter = document.getElementById('health-filter').value;
-      typeFilter = document.getElementById('type-filter').value;
-      
+
+    // Search functionality
+    document.getElementById('search').addEventListener('input', (e) => {
+      const searchTerm = e.target.value.toLowerCase();
       let visibleCount = 0;
-      
-      node.style("display", function(d) {
-        let visible = true;
-        
-        // ✅ FIXED: Safe name access
-        const name = (d.name || '').toLowerCase();
-        if (searchTerm && !name.includes(searchTerm)) {
-          visible = false;
-        }
-        
-        if (healthFilter !== 'all') {
-          const score = typeof d.healthScore === 'number' ? d.healthScore : 10;
-          if (healthFilter === 'critical' && score >= 3) visible = false;
-          if (healthFilter === 'warning' && (score < 3 || score >= 5)) visible = false;
-          if (healthFilter === 'caution' && (score < 5 || score >= 7)) visible = false;
-          if (healthFilter === 'healthy' && score < 7) visible = false;
-        }
-        
-        if (typeFilter !== 'all' && d.type !== typeFilter) {
-          visible = false;
-        }
-        
-        if (visible) visibleCount++;
-        return visible ? "block" : "none";
+
+      node.style('display', d => {
+        const name = (d.name || d.id).toLowerCase();
+        const match = !searchTerm || name.includes(searchTerm);
+        if (match) visibleCount++;
+        return match ? 'block' : 'none';
       });
-      
-      label.style("display", function(d) {
-        if (!showLabels) return "none";
-        const nodeVisible = node.filter(n => n.id === d.id).style("display") === "block";
-        return nodeVisible ? "block" : "none";
-      });
-      
+
       document.getElementById('visible-nodes').textContent = visibleCount;
-    }
-    
+    });
+
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'f' && !e.target.matches('input')) {
-        e.preventDefault();
-        document.getElementById('search-input').focus();
-      }
+      if (e.target.tagName === 'INPUT') return;
+      
+      if (e.key === '+' || e.key === '=') zoomIn();
+      if (e.key === '-') zoomOut();
+      if (e.key === 'r' || e.key === 'R') resetLayout();
+      if (e.key === 'f' || e.key === 'F') document.getElementById('search').focus();
+      if (e.key === 'l' || e.key === 'L') toggleLabels();
       if (e.key === 'Escape') {
-        clearSelection();
-        document.getElementById('search-input').blur();
-      }
-      if (e.key === 'r' && !e.target.matches('input')) {
-        e.preventDefault();
-        resetSimulation();
-      }
-      if (e.key === 'c' && !e.target.matches('input')) {
-        e.preventDefault();
-        centerView();
-      }
-      if (e.key === '+' || e.key === '=') {
-        e.preventDefault();
-        zoomIn();
-      }
-      if (e.key === '-' || e.key === '_') {
-        e.preventDefault();
-        zoomOut();
+        selectedNode = null;
+        node.classed("selected", false);
+        document.getElementById('selected-count').textContent = '0';
       }
     });
-    
-    // Auto fit after initial load
-    setTimeout(() => {
-      fitToScreen();
-    }, 2000);
-    
-    // Initialize
-    updateZoomDisplay();
   </script>
 </body>
-</html>
-  `.trim();
+</html>`;
+}
+
+/**
+ * Generate empty state HTML
+ */
+function generateEmptyStateHTML(projectName, projectVersion) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DevCompass - No Dependencies</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+    }
+    .message {
+      text-align: center;
+      padding: 40px;
+      background: rgba(30, 41, 59, 0.95);
+      border-radius: 20px;
+      border: 1px solid #475569;
+    }
+    .icon { font-size: 64px; margin-bottom: 20px; }
+    h1 { margin: 0 0 10px; font-size: 24px; }
+    p { color: #94a3b8; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="message">
+    <div class="icon">📦</div>
+    <h1>No Dependencies Found</h1>
+    <p>${projectName} v${projectVersion} has no dependencies to visualize.</p>
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * Legacy function for backward compatibility
+ */
+function generateForceLayout(graphData, options = {}) {
+  return generateForceLayoutHTML(graphData, options);
 }
 
 module.exports = {
   generateForceLayout,
-  generateForceHTML
+  generateForceLayoutHTML
 };
