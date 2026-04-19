@@ -8,57 +8,39 @@
 
 Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 500+ packages**, **visualize dependency graphs with multiple interactive layouts**, **search and filter packages**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
-> **✨ LATEST v3.1.2:** Graph Layout Fixes & Dynamic Issues - Tree/Radial layouts fixed, real-time vulnerability detection! 🎯  
-> **🛡️ PREVIOUS v3.1.1:** Production Safety & Stability - Comprehensive bug fixes and hardening! 🛡️  
-> **🎨 v3.1.0:** Advanced Graph Visualization - Force-directed layouts, radial views, search & filter! 🎨
+> **✨ LATEST v3.1.3:** Cleanup & Code Improvements - Removed unused dependencies, added analyzeProject export! 🧹  
+> **🎯 PREVIOUS v3.1.2:** Graph Layout Fixes & Dynamic Issues - Tree/Radial layouts fixed, real-time vulnerability detection! 🎯  
+> **🛡️ v3.1.1:** Production Safety & Stability - Comprehensive bug fixes and hardening! 🛡️
 
-## 🎉 Latest Release: v3.1.2 (2026-04-17)
+## 🎉 Latest Release: v3.1.3 (2026-04-18)
 
-**Graph layout fixes and dynamic issue detection!**
+**Cleanup and code improvements!**
 
-### What's New in v3.1.2:
+### What's New in v3.1.3:
 
-- 🌳 **Tree Layout Fix** - Proper horizontal spreading (was vertical line)
-- 🎯 **Radial Layout Fix** - Labels positioned outside nodes (no overlap)
-- 📊 **Panel Separation** - Controls/Statistics panels no longer overlap
-- 🔄 **Dynamic Issues Analyzer** - Real-time npm audit integration (replaces hardcoded issues-db.json)
-- ⚡ **Async Graph Generation** - Proper async/await handling
-- 🎨 **Conflict Layout Improved** - Card-based UI organized by severity
-- 🔗 **Unified Visualizer** - Single entry point for all layout types
+- 🧹 **Removed Unused Dependencies** - Removed `semver` from package.json (not used)
+- 📦 **Reduced Package Size** - Smaller install footprint
+- 🔧 **Added analyzeProject() Export** - Cleaner graph enrichment architecture
+- 📝 **Improved Code Organization** - Better documentation in analyze.js
 
-### Critical Fixes:
+### No Functional Changes:
 
-```bash
-# v3.1.1 (Had Layout Issues)
-❌ Tree layout: All nodes in single vertical line
-❌ Radial layout: Labels overlapping nodes
-❌ Tree layout: Controls/Statistics panels overlapping
-❌ Issues: Hardcoded issues-db.json (only 5 packages)
-❌ Graph generation: Missing await on async generate()
-
-# v3.1.2 (All Fixed) ⭐
-✅ Tree layout: Proper horizontal spreading with D3.js d3.tree()
-✅ Tree layout: Curved links with d3.linkHorizontal()
-✅ Tree layout: Correct sibling separation
-✅ Radial layout: Smart label positioning outside nodes
-✅ Radial layout: Text truncation (15 char max)
-✅ Radial layout: Staggered angles per depth level
-✅ Panel layout: Right-sidebar with flexbox (16px gap)
-✅ Dynamic issues: Real-time npm audit + registry checks
-✅ Dynamic issues: Works for ANY package (not just hardcoded list)
-✅ Conflict layout: Card-based UI with collapsible sections
-✅ Async fix: Proper await on generator.generate()
-```
+All v3.1.2 features remain intact:
+- ✅ Tree layout horizontal spreading
+- ✅ Radial layout label positioning
+- ✅ Panel separation (right-sidebar)
+- ✅ Graph filters (vulnerable/outdated/unused/deprecated)
+- ✅ Dynamic Issues Analyzer
 
 ### Upgrade Now:
 
 ```bash
-npm install -g devcompass@3.1.2
+npm install -g devcompass@3.1.3
 ```
 
-### Migration from v3.1.1:
+### Migration from v3.1.2:
 
-**No changes required - drop-in replacement!** All existing functionality works exactly the same, with fixed layouts and dynamic issue detection.
+**No changes required - drop-in replacement!** All existing functionality works exactly the same.
 
 ---
 
@@ -240,6 +222,18 @@ devcompass graph --format json --output graph.json
 
 ## 🎉 Recent Updates
 
+### v3.1.3 (2026-04-18) - Cleanup & Code Improvements
+
+**Minor maintenance release with code cleanup and dependency optimization!**
+
+**Changes:**
+- ✅ **Removed unused semver** - Removed from package.json (not used)
+- ✅ **Reduced package size** - Smaller install footprint
+- ✅ **Added analyzeProject() export** - Cleaner graph enrichment architecture
+- ✅ **Improved code organization** - Better documentation in analyze.js
+
+**No Functional Changes** - All v3.1.2 features remain intact.
+
 ### v3.1.2 (2026-04-17) - Graph Layout Fixes & Dynamic Issues
 
 **Major layout fixes and dynamic issue detection!** This release fixes critical graph layout issues and adds real-time vulnerability detection.
@@ -306,6 +300,7 @@ devcompass graph --format json --output graph.json
 
 ## ✨ Features
 
+- 🧹 **Cleanup & Code Improvements** (v3.1.3) - Removed unused dependencies, cleaner architecture
 - 🎯 **Graph Layout Fixes** (v3.1.2) - Tree/Radial layouts properly fixed
 - 🔄 **Dynamic Issue Detection** (v3.1.2) - Real-time npm audit integration
 - 🛡️ **Production Safety & Stability** (v3.1.1) - Comprehensive bug fixes and hardening
@@ -337,25 +332,25 @@ devcompass graph --format json --output graph.json
 **Global installation (recommended):**
 
 ```bash
-npm install -g devcompass@3.1.2
+npm install -g devcompass@3.1.3
 ```
 
 **Local installation:**
 
 ```bash
-npm install --save-dev devcompass@3.1.2
+npm install --save-dev devcompass@3.1.3
 ```
 
 **One-time use (no installation):**
 
 ```bash
-npx devcompass@3.1.2 analyze
+npx devcompass@3.1.3 analyze
 ```
 
 **Upgrade from previous versions:**
 
 ```bash
-npm install -g devcompass@3.1.2
+npm install -g devcompass@3.1.3
 ```
 
 **No additional dependencies needed!** All features work out of the box. 🎉
@@ -422,7 +417,7 @@ devcompass analyze --ci
 devcompass analyze --silent
 ```
 
-## 📊 Graph Visualization Commands (v3.1.2)
+## 📊 Graph Visualization Commands (v3.1.3)
 
 ### Layout Options
 
@@ -543,7 +538,7 @@ devcompass graph --layout force --open
 # Then: Click Fullscreen button or press F11
 ```
 
-### Command Options (v3.1.2)
+### Command Options (v3.1.3)
 
 ```bash
 -p, --path <path>       # Project path (default: current directory)
@@ -697,9 +692,9 @@ Create `devcompass.config.json` in your project root:
 All graph layout issues have been resolved:
 
 ```bash
-# Verify you're on v3.1.2+
+# Verify you're on v3.1.3
 devcompass --version
-# Should show: 3.1.2 or higher
+# Should show: 3.1.3
 
 # Test tree layout - should spread horizontally!
 devcompass graph --layout tree --open
@@ -716,9 +711,9 @@ devcompass graph --layout conflict --open
 All JSON mode issues have been resolved:
 
 ```bash
-# Verify you're on v3.1.1+
+# Verify you're on v3.1.3
 devcompass --version
-# Should show: 3.1.2 or higher
+# Should show: 3.1.3
 
 # Test JSON mode
 devcompass analyze --json
@@ -730,7 +725,7 @@ devcompass analyze --json
 **Issue:** "Command not found: devcompass"
 ```bash
 # Solution: Install globally
-npm install -g devcompass@3.1.2
+npm install -g devcompass@3.1.3
 ```
 
 **Issue:** Old version installed
@@ -741,22 +736,22 @@ npm update -g devcompass
 
 **Issue:** Tree layout shows vertical line (OLD BUG - FIXED!)
 ```bash
-# Solution: Upgrade to v3.1.2
-npm install -g devcompass@3.1.2
+# Solution: Upgrade to v3.1.3
+npm install -g devcompass@3.1.3
 # Tree layout now spreads horizontally with proper D3.js tree
 ```
 
 **Issue:** Radial labels overlapping nodes (OLD BUG - FIXED!)
 ```bash
-# Solution: Upgrade to v3.1.2
-npm install -g devcompass@3.1.2
+# Solution: Upgrade to v3.1.3
+npm install -g devcompass@3.1.3
 # Radial labels now positioned outside nodes with smart anchoring
 ```
 
 **Issue:** Controls/Statistics panels overlapping (OLD BUG - FIXED!)
 ```bash
-# Solution: Upgrade to v3.1.2
-npm install -g devcompass@3.1.2
+# Solution: Upgrade to v3.1.3
+npm install -g devcompass@3.1.3
 # Panels now in right-sidebar with flexbox layout
 ```
 
@@ -831,7 +826,7 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 - [x] ~~Radial layout label positioning fix~~ ✅ **Fixed in v3.1.2!**
 - [x] ~~Dynamic issue detection~~ ✅ **Added in v3.1.2!**
 - [x] ~~Panel layout separation~~ ✅ **Fixed in v3.1.2!**
-- [ ] Graph filters with analysis results (v3.1.3)
+- [x] ~~Code cleanup and dependency optimization~~ ✅ **Added in v3.1.3!**
 - [ ] Web dashboard for team health monitoring (v3.2.0)
 - [ ] Monorepo support with knip (v3.2.0)
 - [ ] Historical tracking (v3.2.0)

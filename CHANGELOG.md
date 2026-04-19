@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.3] - 2026-04-18
+
+### 🧹 Cleanup & Code Improvements
+
+Minor maintenance release with code cleanup and dependency optimization.
+
+### Changed
+
+#### Dependencies
+- Removed unused `semver` dependency from package.json
+- Reduced package size
+
+#### Code Improvements
+- Added `analyzeProject()` function for cleaner graph enrichment
+- Exported `analyzeProject` for internal use by graph command
+- Improved code organization in analyze.js
+- Added documentation comments
+
+### No Functional Changes
+
+All v3.1.2 features remain intact:
+- Tree layout horizontal spreading ✅
+- Radial layout label positioning ✅
+- Panel separation (right-sidebar) ✅
+- Graph filters (vulnerable/outdated/unused/deprecated) ✅
+- Dynamic Issues Analyzer ✅
+
+### Test Results
+
+All 54 tests passing:
+- `--filter vulnerable`: 14 packages ✅
+- `--filter outdated`: 4 packages ✅
+- `--filter unused`: 5 packages ✅
+- `--filter deprecated`: 2 packages ✅
+
+---
+
 ## [3.1.2] - 2026-04-17
 
 ### 🎯 Major Fix: Graph Layout Fixes & Dynamic Issues
@@ -3667,6 +3704,7 @@ No migration needed. All features are opt-in via flags or config.
 
 ---
 
+[3.1.3]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.3
 [3.1.2]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.2
 [3.1.1]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.1
 [3.1.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.0
