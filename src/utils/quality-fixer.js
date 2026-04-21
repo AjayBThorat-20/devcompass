@@ -1,250 +1,174 @@
 // src/utils/quality-fixer.js
-const fs = require('fs');
-const path = require('path');
+// v3.1.4 - Quality issue fixer with dynamic alternatives
+
+const { execSync } = require('child_process');
 const chalk = require('chalk');
+const { analyzer } = require('../services');
 
 class QualityFixer {
   constructor() {
-    this.fixesApplied = [];
-    this.fixesSkipped = [];
-    this.alternatives = null;
+    this.fixes = [];
+    this.skipped = [];
+    this.errors = [];
   }
-
+  
   /**
-   * Load quality alternatives database
+   * Find alternative for a package (dynamic lookup)
    */
-  loadAlternatives() {
-    if (this.alternatives) {
-      return this.alternatives;
-    }
-
+  async findAlternative(packageName) {
     try {
-      const alternativesPath = path.join(__dirname, '../../data/quality-alternatives.json');
-      this.alternatives = JSON.parse(fs.readFileSync(alternativesPath, 'utf8'));
-      return this.alternatives;
+      const result = await analyzer.quality.analyzePackage(packageName);
+      
+      if (result.alternative) {
+        return {
+          recommended: result.alternative,
+          reason: result.deprecationMessage || 'Package has quality issues',
+          migration_guide: null // Could be enhanced with migration guides
+        };
+      }
+      
+      return null;
     } catch (error) {
-      console.error(chalk.yellow('⚠️  Could not load quality alternatives database'));
-      this.alternatives = {
-        abandoned_alternatives: {},
-        stale_alternatives: {},
-        migration_guides: {}
-      };
-      return this.alternatives;
+      return null;
     }
   }
-
-  async fixWarning(warning, dryRun = false) {
-    this.loadAlternatives();
-
-    const { package: pkgName, status, healthScore } = warning;
-
-    // Determine fix action based on status
-    if (status === 'ABANDONED' || status === 'DEPRECATED') {
-      return this.replacePackage(pkgName, warning, dryRun);
-    } else if (status === 'STALE') {
-      return this.replacePackage(pkgName, warning, dryRun);
-    } else if (status === 'NEEDS_ATTENTION') {
-      // For packages that need attention but aren't abandoned, just review
-      return this.reviewPackage(pkgName, warning, dryRun);
-    }
-
-    return {
-      success: false,
-      action: 'skipped',
-      reason: 'No fix available for this status'
-    };
-  }
-
+  
   /**
-   * Replace package with modern alternative
+   * Fix a quality warning
    */
-  async replacePackage(pkgName, warning, dryRun = false) {
-    const alternative = this.findAlternative(pkgName);
-
-    if (!alternative) {
-      this.fixesSkipped.push({
-        package: pkgName,
-        reason: 'No alternative found in database',
-        status: warning.status
+  async fixWarning(pkg, dryRun = false) {
+    const packageName = pkg.name || pkg.package;
+    
+    try {
+      // Get dynamic alternative
+      const alternative = await this.findAlternative(packageName);
+      
+      if (alternative) {
+        if (!dryRun) {
+          // Uninstall old package
+          try {
+            execSync(`npm uninstall ${packageName}`, {
+              stdio: 'pipe',
+              cwd: process.cwd()
+            });
+          } catch (error) {
+            // Ignore uninstall errors
+          }
+          
+          // Install alternative
+          execSync(`npm install ${alternative.recommended}`, {
+            stdio: 'pipe',
+            cwd: process.cwd()
+          });
+        }
+        
+        this.fixes.push({
+          package: packageName,
+          action: 'replaced',
+          replacement: alternative.recommended,
+          reason: alternative.reason,
+          status: pkg.status
+        });
+        
+        return {
+          success: true,
+          action: 'replaced',
+          metadata: {
+            from: packageName,
+            to: alternative.recommended,
+            reason: alternative.reason
+          }
+        };
+      } else {
+        // No alternative available - requires manual review
+        this.skipped.push({
+          package: packageName,
+          reason: 'No alternative available - requires manual review',
+          status: pkg.status
+        });
+        
+        return {
+          success: false,
+          action: 'review',
+          reason: 'No alternative available'
+        };
+      }
+      
+    } catch (error) {
+      this.errors.push({
+        package: packageName,
+        error: error.message
       });
-
+      
       return {
         success: false,
-        action: 'skipped',
-        reason: 'No alternative available'
+        action: 'error',
+        reason: error.message
       };
     }
-
-    const fix = {
-      package: pkgName,
-      action: 'Replace with modern alternative',
-      alternative: alternative.recommended,
-      allAlternatives: alternative.alternatives,
-      reason: alternative.reason,
-      migrationGuide: alternative.migration_guide,
-      status: warning.status
-    };
-
-    if (dryRun) {
-      return {
-        success: true,
-        action: 'planned',
-        fix
-      };
-    }
-
-    // Record the fix
-    this.fixesApplied.push(fix);
-
-    return {
-      success: true,
-      action: 'replaced',
-      fix,
-      command: `npm uninstall ${pkgName} && npm install ${alternative.recommended}`
-    };
   }
-
+  
   /**
-   * Review package (no automatic fix)
-   */
-  async reviewPackage(pkgName, warning, dryRun = false) {
-    const fix = {
-      package: pkgName,
-      action: 'Review and monitor',
-      healthScore: warning.healthScore,
-      lastUpdate: warning.lastUpdate,
-      reason: 'Package needs attention but is not abandoned',
-      status: warning.status
-    };
-
-    if (dryRun) {
-      return {
-        success: true,
-        action: 'review',
-        fix
-      };
-    }
-
-    this.fixesSkipped.push(fix);
-
-    return {
-      success: false,
-      action: 'review',
-      reason: 'Manual review required',
-      fix
-    };
-  }
-
-  /**
-   * Remove package without replacement
-   */
-  async removePackage(pkgName, warning, dryRun = false) {
-    const fix = {
-      package: pkgName,
-      action: 'Remove package',
-      reason: warning.reason || 'Package is obsolete',
-      status: warning.status
-    };
-
-    if (dryRun) {
-      return {
-        success: true,
-        action: 'planned',
-        fix
-      };
-    }
-
-    this.fixesApplied.push(fix);
-
-    return {
-      success: true,
-      action: 'removed',
-      fix,
-      command: `npm uninstall ${pkgName}`
-    };
-  }
-
-  /**
-   * Find alternative for a package
-   */
-  findAlternative(pkgName) {
-    this.loadAlternatives();
-
-    // Check abandoned packages first
-    if (this.alternatives.abandoned_alternatives[pkgName]) {
-      return this.alternatives.abandoned_alternatives[pkgName];
-    }
-
-    // Check stale packages
-    if (this.alternatives.stale_alternatives[pkgName]) {
-      return this.alternatives.stale_alternatives[pkgName];
-    }
-
-    return null;
-  }
-
-  /**
-   * Get migration guide URL
-   */
-  getMigrationGuide(from, to) {
-    this.loadAlternatives();
-    const key = `${from}_to_${to}`;
-    return this.alternatives.migration_guides[key] || null;
-  }
-
-  /**
-   * Get summary of fixes
-   */
-  getSummary() {
-    const abandonedFixed = this.fixesApplied.filter(f => 
-      f.status === 'ABANDONED' || f.status === 'DEPRECATED'
-    ).length;
-
-    const staleFixed = this.fixesApplied.filter(f => 
-      f.status === 'STALE'
-    ).length;
-
-    return {
-      total: this.fixesApplied.length,
-      abandoned: abandonedFixed,
-      stale: staleFixed,
-      skipped: this.fixesSkipped.length,
-      fixes: this.fixesApplied,
-      skippedItems: this.fixesSkipped
-    };
-  }
-
-  /**
-   * Display summary in terminal
+   * Display summary of quality fixes
    */
   displaySummary() {
-    const summary = this.getSummary();
-
-    if (summary.total === 0) {
-      return;
-    }
-
-    console.log('\n' + chalk.green('✓ Package Quality Fixes Applied: ') + chalk.bold(summary.total));
+    console.log(chalk.bold.cyan('\n📦 QUALITY FIXES SUMMARY\n'));
     
-    if (summary.abandoned > 0) {
-      console.log(chalk.gray('  • Abandoned/deprecated packages replaced: ') + chalk.bold(summary.abandoned));
-    }
-    
-    if (summary.stale > 0) {
-      console.log(chalk.gray('  • Stale packages replaced: ') + chalk.bold(summary.stale));
+    if (this.fixes.length > 0) {
+      console.log(chalk.green(`✓ ${this.fixes.length} package(s) replaced:\n`));
+      
+      this.fixes.forEach(fix => {
+        console.log(`  ${chalk.cyan(fix.package)} → ${chalk.green(fix.replacement)}`);
+        console.log(`    ${chalk.gray('Reason:')} ${fix.reason}`);
+      });
+      
+      console.log('');
     }
     
-    if (summary.skipped > 0) {
-      console.log(chalk.gray('  • Packages skipped (no alternative): ') + chalk.bold(summary.skipped));
+    if (this.skipped.length > 0) {
+      console.log(chalk.yellow(`⚠️  ${this.skipped.length} package(s) require manual review:\n`));
+      
+      this.skipped.forEach(skip => {
+        console.log(`  ${chalk.yellow(skip.package)}`);
+        console.log(`    ${chalk.gray('Reason:')} ${skip.reason}`);
+      });
+      
+      console.log('');
+    }
+    
+    if (this.errors.length > 0) {
+      console.log(chalk.red(`✗ ${this.errors.length} error(s) occurred:\n`));
+      
+      this.errors.forEach(err => {
+        console.log(`  ${chalk.red(err.package)}`);
+        console.log(`    ${chalk.gray('Error:')} ${err.error}`);
+      });
+      
+      console.log('');
     }
   }
-
+  
   /**
-   * Reset fixes tracking
+   * Get summary statistics
+   */
+  getSummary() {
+    return {
+      totalFixes: this.fixes.length,
+      totalSkipped: this.skipped.length,
+      totalErrors: this.errors.length,
+      fixes: this.fixes,
+      skipped: this.skipped,
+      errors: this.errors
+    };
+  }
+  
+  /**
+   * Reset fixer state
    */
   reset() {
-    this.fixesApplied = [];
-    this.fixesSkipped = [];
+    this.fixes = [];
+    this.skipped = [];
+    this.errors = [];
   }
 }
 

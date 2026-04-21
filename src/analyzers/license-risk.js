@@ -1,293 +1,180 @@
 // src/analyzers/license-risk.js
-const fs = require('fs');
-const path = require('path');
+// v3.1.4 - Dynamic license risk analysis using npm registry
 
-/**
- * License risk levels and compatibility
- */
-const LICENSE_RISKS = {
-  // High Risk - Restrictive/Copyleft
-  'GPL-1.0': { risk: 'high', type: 'copyleft', business: 'Requires source disclosure' },
-  'GPL-2.0': { risk: 'high', type: 'copyleft', business: 'Requires source disclosure' },
-  'GPL-3.0': { risk: 'high', type: 'copyleft', business: 'Requires source disclosure' },
-  'AGPL-1.0': { risk: 'critical', type: 'copyleft', business: 'Network copyleft - very restrictive' },
-  'AGPL-3.0': { risk: 'critical', type: 'copyleft', business: 'Network copyleft - very restrictive' },
-  'LGPL-2.0': { risk: 'medium', type: 'weak-copyleft', business: 'Limited copyleft obligations' },
-  'LGPL-2.1': { risk: 'medium', type: 'weak-copyleft', business: 'Limited copyleft obligations' },
-  'LGPL-3.0': { risk: 'medium', type: 'weak-copyleft', business: 'Limited copyleft obligations' },
-  
-  // Medium Risk
-  'MPL-1.0': { risk: 'medium', type: 'weak-copyleft', business: 'File-level copyleft' },
-  'MPL-1.1': { risk: 'medium', type: 'weak-copyleft', business: 'File-level copyleft' },
-  'MPL-2.0': { risk: 'medium', type: 'weak-copyleft', business: 'File-level copyleft' },
-  'EPL-1.0': { risk: 'medium', type: 'weak-copyleft', business: 'Module-level copyleft' },
-  'EPL-2.0': { risk: 'medium', type: 'weak-copyleft', business: 'Module-level copyleft' },
-  'CDDL-1.0': { risk: 'medium', type: 'weak-copyleft', business: 'File-level copyleft' },
-  
-  // Low Risk - Permissive
-  'MIT': { risk: 'low', type: 'permissive', business: 'Very permissive' },
-  'Apache-2.0': { risk: 'low', type: 'permissive', business: 'Permissive with patent grant' },
-  'BSD-2-Clause': { risk: 'low', type: 'permissive', business: 'Very permissive' },
-  'BSD-3-Clause': { risk: 'low', type: 'permissive', business: 'Very permissive' },
-  'ISC': { risk: 'low', type: 'permissive', business: 'Very permissive' },
-  'CC0-1.0': { risk: 'low', type: 'public-domain', business: 'Public domain' },
-  'Unlicense': { risk: 'low', type: 'public-domain', business: 'Public domain' },
-  '0BSD': { risk: 'low', type: 'permissive', business: 'Very permissive' },
-  
-  // Unknown/Special
-  'UNLICENSED': { risk: 'critical', type: 'unknown', business: 'No license - all rights reserved' },
-  'SEE LICENSE IN': { risk: 'high', type: 'unknown', business: 'Custom license - review required' },
-  'CUSTOM': { risk: 'high', type: 'unknown', business: 'Custom license - review required' }
-};
+const { analyzer } = require('../services');
 
-/**
- * License compatibility matrix
- * Can license A be combined with license B?
- */
-const LICENSE_COMPATIBILITY = {
-  'MIT': ['MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'GPL-2.0', 'GPL-3.0', 'LGPL-2.1', 'LGPL-3.0'],
-  'Apache-2.0': ['Apache-2.0', 'GPL-3.0', 'LGPL-3.0'],
-  'GPL-2.0': ['GPL-2.0', 'MIT', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC'],
-  'GPL-3.0': ['GPL-3.0', 'MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC'],
-  'LGPL-2.1': ['LGPL-2.1', 'MIT', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'GPL-2.0'],
-  'LGPL-3.0': ['LGPL-3.0', 'MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'GPL-3.0']
-};
-
-/**
- * Normalize license name
- */
-function normalizeLicense(license) {
-  if (!license) return 'UNLICENSED';
-  
-  const normalized = license
-    .replace(/\s+/g, '-')
-    .replace(/[()]/g, '')
-    .toUpperCase();
-  
-  // Handle common variations
-  if (normalized.includes('MIT')) return 'MIT';
-  if (normalized.includes('APACHE-2')) return 'Apache-2.0';
-  if (normalized.includes('BSD-2')) return 'BSD-2-Clause';
-  if (normalized.includes('BSD-3')) return 'BSD-3-Clause';
-  if (normalized.includes('ISC')) return 'ISC';
-  if (normalized.includes('GPL-2')) return 'GPL-2.0';
-  if (normalized.includes('GPL-3')) return 'GPL-3.0';
-  if (normalized.includes('LGPL-2')) return 'LGPL-2.1';
-  if (normalized.includes('LGPL-3')) return 'LGPL-3.0';
-  if (normalized.includes('AGPL')) return 'AGPL-3.0';
-  if (normalized.includes('MPL')) return 'MPL-2.0';
-  if (normalized.includes('SEE LICENSE')) return 'SEE LICENSE IN';
-  if (normalized === 'UNLICENSED') return 'UNLICENSED';
-  
-  return license;
-}
-
-/**
- * Get license risk information
- */
-function getLicenseRisk(license) {
-  const normalized = normalizeLicense(license);
-  return LICENSE_RISKS[normalized] || {
-    risk: 'high',
-    type: 'unknown',
-    business: 'Unknown license - review required'
-  };
-}
-
-/**
- * Load package alternatives database
- */
-function loadAlternatives() {
+async function analyzeLicenseRisks(projectPath, licenses = []) {
   try {
-    const alternativesPath = path.join(__dirname, '../../data/package-alternatives.json');
-    if (fs.existsSync(alternativesPath)) {
-      return JSON.parse(fs.readFileSync(alternativesPath, 'utf8'));
-    }
-    return null;
-  } catch (error) {
-    return null;
-  }
-}
-
-/**
- * Find alternative package for license conflict
- */
-function findAlternative(packageName, license) {
-  const alternatives = loadAlternatives();
-  if (!alternatives) return null;
-
-  const pkgName = packageName.split('@')[0];
-  
-  // Check GPL alternatives
-  if (license.includes('GPL') && !license.includes('LGPL')) {
-    const gplAlts = alternatives.gpl_alternatives[pkgName];
-    if (gplAlts && gplAlts.alternatives.length > 0) {
-      return gplAlts.alternatives[0];
-    }
-  }
-
-  // Check AGPL alternatives
-  if (license.includes('AGPL')) {
-    const agplAlts = alternatives.agpl_alternatives[pkgName];
-    if (agplAlts && agplAlts.alternatives.length > 0) {
-      return agplAlts.alternatives[0];
-    }
-  }
-
-  // Check LGPL alternatives
-  if (license.includes('LGPL')) {
-    const lgplAlts = alternatives.lgpl_alternatives[pkgName];
-    if (lgplAlts && lgplAlts.alternatives.length > 0) {
-      return lgplAlts.alternatives[0];
-    }
-  }
-
-  return null;
-}
-
-/**
- * Check license compatibility
- */
-function checkLicenseCompatibility(projectLicense, dependencyLicenses) {
-  const conflicts = [];
-  const normalized = normalizeLicense(projectLicense);
-  const compatible = LICENSE_COMPATIBILITY[normalized] || [];
-  
-  for (const [pkg, license] of Object.entries(dependencyLicenses)) {
-    const depNormalized = normalizeLicense(license);
-    const depRisk = getLicenseRisk(license);
+    // Extract package names from licenses
+    const packageNames = licenses.map(l => l.package);
     
-    // Check if copyleft license conflicts with permissive project
-    if (depRisk.type === 'copyleft' && !compatible.includes(depNormalized)) {
-      const alternative = findAlternative(pkg, license);
-      
-      conflicts.push({
-        package: pkg,
-        license: license,
-        projectLicense: projectLicense,
-        severity: 'high',
-        issue: 'License incompatibility',
-        message: `${license} dependency may conflict with ${projectLicense} project license`,
-        recommendation: alternative 
-          ? `Replace with ${alternative.name} (${alternative.license})`
-          : 'Review license compatibility with legal team',
-        autoFixable: alternative ? true : false,
-        autoFixAction: alternative ? 'replace' : 'review',
-        suggestedAlternative: alternative,
-        requiresConfirmation: true
-      });
-    }
-  }
-  
-  return conflicts;
-}
-
-/**
- * Analyze license risks for all dependencies
- */
-async function analyzeLicenseRisks(projectPath, licenses) {
-  const warnings = [];
-  const stats = {
-    total: 0,
-    critical: 0,
-    high: 0,
-    medium: 0,
-    low: 0,
-    copyleft: 0,
-    permissive: 0,
-    unknown: 0
-  };
-  
-  // Get project license
-  let projectLicense = 'MIT'; // Default
-  try {
-    const projectPkgPath = path.join(projectPath, 'package.json');
-    if (fs.existsSync(projectPkgPath)) {
-      const projectPkg = JSON.parse(fs.readFileSync(projectPkgPath, 'utf8'));
-      projectLicense = projectPkg.license || 'MIT';
-    }
-  } catch (error) {
-    // Use default
-  }
-  
-  const dependencyLicenses = {};
-  
-  // Analyze each license
-  for (const pkg of licenses) {
-    stats.total++;
-    
-    const risk = getLicenseRisk(pkg.license);
-    dependencyLicenses[pkg.package] = pkg.license;
-    
-    // Count by type
-    if (risk.type === 'copyleft' || risk.type === 'weak-copyleft') {
-      stats.copyleft++;
-    } else if (risk.type === 'permissive' || risk.type === 'public-domain') {
-      stats.permissive++;
-    } else {
-      stats.unknown++;
+    if (packageNames.length === 0) {
+      return {
+        warnings: [],
+        stats: {
+          total: 0,
+          critical: 0,
+          high: 0,
+          medium: 0,
+          low: 0,
+          clean: 0
+        },
+        projectLicense: getProjectLicense(projectPath)
+      };
     }
     
-    // Add warnings for high-risk licenses
-    if (risk.risk === 'critical' || risk.risk === 'high') {
-      stats[risk.risk]++;
-      
-      const alternative = findAlternative(pkg.package, pkg.license);
-      
+    // Get project license
+    const projectLicense = getProjectLicense(projectPath);
+    
+    // Analyze license conflicts dynamically
+    const conflicts = await analyzer.license.getLicenseConflicts(
+      packageNames,
+      projectLicense
+    );
+    
+    const warnings = [];
+    
+    // Process critical conflicts (AGPL, etc.)
+    for (const conflict of conflicts.critical) {
       warnings.push({
-        package: pkg.package,
-        license: pkg.license,
-        severity: risk.risk,
-        type: risk.type,
-        issue: 'High-risk license',
-        message: `${pkg.license}: ${risk.business}`,
-        recommendation: alternative
-          ? `Replace with ${alternative.name} (${alternative.license})`
-          : risk.risk === 'critical' 
-            ? 'Replace with permissive alternative immediately'
-            : 'Consider replacing with MIT/Apache alternative',
-        autoFixable: alternative ? true : false,
-        autoFixAction: alternative ? 'replace' : 'review',
-        suggestedAlternative: alternative,
-        requiresConfirmation: true
+        package: conflict.package,
+        license: conflict.license,
+        severity: 'critical',
+        message: conflict.message,
+        risk: 'Viral copyleft - requires entire codebase to be open source',
+        recommendation: conflict.alternative 
+          ? `Replace with ${conflict.alternative}` 
+          : 'Find permissive alternative',
+        suggestedAlternative: conflict.alternative ? {
+          name: conflict.alternative,
+          license: 'MIT' // Most alternatives are MIT
+        } : null,
+        autoFixable: conflict.alternative ? true : false
       });
-    } else if (risk.risk === 'medium') {
-      stats.medium++;
-    } else {
-      stats.low++;
     }
+    
+    // Process high-risk conflicts (GPL, etc.)
+    for (const conflict of conflicts.high) {
+      warnings.push({
+        package: conflict.package,
+        license: conflict.license,
+        severity: 'high',
+        message: conflict.message,
+        risk: 'Strong copyleft - derivative works must be GPL licensed',
+        recommendation: conflict.alternative
+          ? `Replace with ${conflict.alternative}`
+          : 'Consider permissive alternative',
+        suggestedAlternative: conflict.alternative ? {
+          name: conflict.alternative,
+          license: 'MIT'
+        } : null,
+        autoFixable: conflict.alternative ? true : false
+      });
+    }
+    
+    // Process medium-risk conflicts (LGPL, MPL, etc.)
+    for (const conflict of conflicts.medium) {
+      warnings.push({
+        package: conflict.package,
+        license: conflict.license,
+        severity: 'medium',
+        message: conflict.message,
+        risk: 'Weak copyleft - modifications must be shared',
+        recommendation: conflict.alternative
+          ? `Consider replacing with ${conflict.alternative}`
+          : 'Review license compatibility',
+        suggestedAlternative: conflict.alternative ? {
+          name: conflict.alternative,
+          license: 'MIT'
+        } : null,
+        autoFixable: false // Medium risk - manual review needed
+      });
+    }
+    
+    // Process unknown licenses
+    for (const conflict of conflicts.unknown) {
+      warnings.push({
+        package: conflict.package,
+        license: conflict.license,
+        severity: 'medium',
+        message: conflict.message,
+        risk: 'Unknown license - cannot determine compatibility',
+        recommendation: 'Review license manually',
+        suggestedAlternative: null,
+        autoFixable: false
+      });
+    }
+    
+    return {
+      warnings,
+      stats: {
+        total: packageNames.length,
+        critical: conflicts.critical.length,
+        high: conflicts.high.length,
+        medium: conflicts.medium.length,
+        low: 0,
+        clean: conflicts.clean
+      },
+      projectLicense,
+      conflicts: {
+        critical: conflicts.critical,
+        high: conflicts.high,
+        medium: conflicts.medium,
+        unknown: conflicts.unknown
+      }
+    };
+    
+  } catch (error) {
+    console.error('[license-risk] Analysis failed:', error.message);
+    return {
+      warnings: [],
+      stats: {
+        total: 0,
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+        clean: 0
+      },
+      projectLicense: 'MIT'
+    };
   }
-  
-  // Check license compatibility
-  const conflicts = checkLicenseCompatibility(projectLicense, dependencyLicenses);
-  warnings.push(...conflicts);
-  
-  return {
-    warnings,
-    stats,
-    projectLicense
-  };
 }
 
-/**
- * Get license risk score (0-10)
- */
-function getLicenseRiskScore(stats) {
-  let score = 10;
+function getProjectLicense(projectPath) {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const packageJsonPath = path.join(projectPath, 'package.json');
+    
+    if (fs.existsSync(packageJsonPath)) {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      return packageJson.license || 'MIT';
+    }
+  } catch (error) {
+    // Ignore errors
+  }
   
-  score -= stats.critical * 3;
-  score -= stats.high * 2;
-  score -= stats.medium * 0.5;
+  return 'MIT'; // Default assumption
+}
+
+function getLicenseRiskScore(licenseRiskData) {
+  if (!licenseRiskData || !licenseRiskData.stats) {
+    return 0;
+  }
   
-  return Math.max(0, score);
+  const { critical, high, medium } = licenseRiskData.stats;
+  
+  // Penalty calculation
+  let penalty = 0;
+  penalty += critical * 3; // Critical = -3 points each
+  penalty += high * 2;     // High = -2 points each
+  penalty += medium * 1;   // Medium = -1 point each
+  
+  return Math.min(10, penalty); // Cap at 10 points penalty
 }
 
 module.exports = {
   analyzeLicenseRisks,
-  getLicenseRisk,
-  checkLicenseCompatibility,
-  normalizeLicense,
-  getLicenseRiskScore,
-  findAlternative,
-  LICENSE_RISKS
+  getLicenseRiskScore
 };

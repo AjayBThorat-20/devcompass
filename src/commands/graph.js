@@ -1,5 +1,6 @@
 // src/commands/graph.js
-// v3.1.3 - Fixed analyzeProject import and graph filter enrichment
+// v3.1.4 - Unified graph with dynamic layout/filter controls
+
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
@@ -8,7 +9,7 @@ const GraphGenerator = require('../graph/generator');
 const GraphExporter = require('../graph/exporter');
 
 /**
- * Graph command
+ * Graph command - Generate unified interactive dependency visualization
  */
 async function graphCommand(options) {
   const {
@@ -25,20 +26,14 @@ async function graphCommand(options) {
 
   console.log(chalk.bold('\n📊 DevCompass - Dependency Graph\n'));
 
-  // Validate layout option
-  const validLayouts = ['tree', 'force', 'radial', 'conflict'];
-  if (!validLayouts.includes(layout)) {
-    console.error(chalk.red(`✗ Invalid layout: ${layout}`));
-    console.log(chalk.gray(`  Valid options: ${validLayouts.join(', ')}`));
-    return;
-  }
-
-  // Validate filter option
-  const validFilters = ['all', 'vulnerable', 'outdated', 'unused', 'conflict', 'deprecated'];
-  if (!validFilters.includes(filter)) {
-    console.error(chalk.red(`✗ Invalid filter: ${filter}`));
-    console.log(chalk.gray(`  Valid options: ${validFilters.join(', ')}`));
-    return;
+  // For JSON export, use traditional single-layout approach
+  const isJSONExport = format === 'json' || output.endsWith('.json');
+  
+  if (!isJSONExport) {
+    console.log(chalk.cyan('💡 Generating unified interactive graph with:'));
+    console.log(chalk.gray('   • All layouts (Tree, Force, Radial, Conflict)'));
+    console.log(chalk.gray('   • All filters (Vulnerable, Outdated, Unused, Deprecated)'));
+    console.log(chalk.gray('   • Dynamic controls (no page reload needed)\n'));
   }
 
   const spinner = ora('Generating dependency graph...').start();
@@ -51,11 +46,9 @@ async function graphCommand(options) {
     let analysisLoaded = false;
     let analysisResults = null;
     
-    // v3.1.3 - FIXED: Import analyzeProject correctly
     try {
       const analyzeModule = require('./analyze');
       
-      // Check if analyzeProject exists (v3.1.3+)
       if (typeof analyzeModule.analyzeProject === 'function') {
         spinner.text = 'Running analysis for graph enrichment...';
         analysisResults = await analyzeModule.analyzeProject(projectPath, { silent: true });
@@ -63,36 +56,18 @@ async function graphCommand(options) {
         if (analysisResults) {
           generator.setAnalysisResults(analysisResults);
           analysisLoaded = true;
-          
-          // Debug: log what we got
-          if (process.env.DEBUG) {
-            console.log('\n[graph] Analysis results loaded:');
-            console.log('  - Security vulnerabilities:', analysisResults.security?.vulnerabilities?.length || 0);
-            console.log('  - Outdated packages:', analysisResults.outdatedPackages?.length || 0);
-            console.log('  - Unused dependencies:', analysisResults.unusedDependencies?.length || 0);
-            console.log('  - Ecosystem alerts:', analysisResults.ecosystemAlerts?.length || 0);
-          }
-        }
-      } else {
-        // Fallback for older versions without analyzeProject
-        if (process.env.DEBUG) {
-          console.log('[graph] analyzeProject not available, skipping enrichment');
         }
       }
     } catch (error) {
       // Analysis not available, continue without enrichment
-      if (process.env.DEBUG) {
-        console.log('[graph] Analysis failed:', error.message);
-      }
     }
 
     spinner.text = 'Building dependency graph...';
     
-    // v3.1.3 - generator.generate() is async, must use await
     const graphData = await generator.generate({
       maxDepth: depth !== Infinity ? parseInt(depth) : Infinity,
       filter,
-      enrichWithIssues: false  // Dynamic npm fetching disabled for speed
+      enrichWithIssues: false
     });
 
     if (!graphData) {
@@ -100,15 +75,20 @@ async function graphCommand(options) {
       return;
     }
 
-    // v3.1.3 - Show enrichment status in spinner
-    if (analysisLoaded) {
-      const issueCount = graphData.nodes.filter(n => n.issues && n.issues.length > 0).length;
-      spinner.succeed(`Generated graph with ${graphData.nodes.length} nodes (${issueCount} with issues)`);
-    } else {
-      spinner.succeed(`Generated graph with ${graphData.nodes.length} nodes`);
-    }
+    // Add metadata for unified HTML
+    graphData.metadata = graphData.metadata || {};
+    graphData.metadata.availableLayouts = ['tree', 'force', 'radial', 'conflict'];
+    graphData.metadata.availableFilters = ['all', 'vulnerable', 'outdated', 'unused', 'deprecated', 'conflict'];
+    graphData.metadata.defaultLayout = layout;
+    graphData.metadata.defaultFilter = filter;
+    graphData.metadata.defaultDepth = depth !== Infinity ? depth : 10;
+    graphData.metadata.width = width;
+    graphData.metadata.height = height;
 
-    // Detect format from output filename if not specified
+    const issueCount = graphData.nodes.filter(n => n.issues && n.issues.length > 0).length;
+    spinner.succeed(`Generated graph with ${chalk.cyan(graphData.nodes.length)} nodes${issueCount > 0 ? ` (${chalk.yellow(issueCount)} with issues)` : ''}`);
+
+    // Detect format
     let detectedFormat = format;
     if (!detectedFormat) {
       const ext = path.extname(output).toLowerCase();
@@ -121,7 +101,8 @@ async function graphCommand(options) {
       layout,
       width: parseInt(width),
       height: parseInt(height),
-      filter
+      filter,
+      unified: detectedFormat === 'html' // Enable unified mode for HTML
     });
 
     // Ensure output path has correct extension
@@ -137,69 +118,10 @@ async function graphCommand(options) {
       exportSpinner.succeed(`Graph exported: ${chalk.cyan(result.path)}`);
 
       // Display summary
-      console.log('\n' + chalk.gray('─'.repeat(70)));
-      console.log(chalk.bold('\n📈 GRAPH SUMMARY\n'));
-      console.log(`  ${chalk.gray('Format:')}        ${result.format.toUpperCase()}`);
-      console.log(`  ${chalk.gray('Layout:')}        ${layout}`);
-      console.log(`  ${chalk.gray('Total Nodes:')}   ${graphData.nodes.length}`);
-      console.log(`  ${chalk.gray('Total Links:')}   ${graphData.links.length}`);
-      console.log(`  ${chalk.gray('Max Depth:')}     ${graphData.metadata.maxDepth}`);
-      console.log(`  ${chalk.gray('File Size:')}     ${result.fileSize || getFileSize(result.path)}`);
-      
-      if (filter !== 'all') {
-        console.log(`  ${chalk.gray('Filter:')}        ${filter}`);
-        console.log(`  ${chalk.gray('Filtered:')}      ${graphData.metadata.visibleDependencies} / ${graphData.metadata.totalDependencies}`);
-      }
-      
-      // v3.1.3 - Show enrichment status with detailed breakdown
-      if (analysisLoaded) {
-        const issueNodes = graphData.nodes.filter(n => n.issues && n.issues.length > 0).length;
-        const vulnNodes = graphData.nodes.filter(n => n.isVulnerable).length;
-        const outdatedNodes = graphData.nodes.filter(n => n.isOutdated).length;
-        const unusedNodes = graphData.nodes.filter(n => n.isUnused).length;
-        const deprecatedNodes = graphData.nodes.filter(n => n.isDeprecated).length;
-        
-        console.log(`  ${chalk.gray('Enriched:')}      ${chalk.green('✓')} Analysis data applied`);
-        
-        if (issueNodes > 0) {
-          console.log(`  ${chalk.gray('With Issues:')}   ${issueNodes} packages`);
-          if (vulnNodes > 0) console.log(`    ${chalk.gray('Vulnerable:')} ${chalk.red(vulnNodes)}`);
-          if (outdatedNodes > 0) console.log(`    ${chalk.gray('Outdated:')}   ${chalk.yellow(outdatedNodes)}`);
-          if (unusedNodes > 0) console.log(`    ${chalk.gray('Unused:')}     ${chalk.blue(unusedNodes)}`);
-          if (deprecatedNodes > 0) console.log(`    ${chalk.gray('Deprecated:')} ${chalk.magenta(deprecatedNodes)}`);
-        } else {
-          console.log(`  ${chalk.gray('With Issues:')}   ${chalk.green('0 (healthy project)')}`);
-        }
-      } else {
-        console.log(`  ${chalk.gray('Enriched:')}      ${chalk.yellow('✗')} Run 'devcompass analyze' first for full data`);
-      }
-      
-      if (result.method) {
-        console.log(`  ${chalk.gray('Export Method:')} ${result.method}`);
-      }
-      
-      console.log('\n' + chalk.gray('─'.repeat(70)));
-
-      // Show format-specific tips
-      if (result.format === 'html') {
-        console.log(chalk.cyan('\n💡 TIPS:'));
-        console.log(`  • ${chalk.gray('Zoom:')} Mouse wheel or pinch`);
-        console.log(`  • ${chalk.gray('Pan:')} Click and drag`);
-        console.log(`  • ${chalk.gray('Details:')} Hover over nodes`);
-        
-        if (layout === 'force') {
-          console.log(`  • ${chalk.gray('Move nodes:')} Drag individual nodes`);
-          console.log(`  • ${chalk.gray('Reset:')} Use "Reset Layout" button`);
-        }
-        
-        if (options.includeSearch !== false) {
-          console.log(`  • ${chalk.gray('Search:')} Use search panel on left`);
-          console.log(`  • ${chalk.gray('Filter:')} Apply filters to focus on issues`);
-        }
-      }
+      displaySummary(graphData, result, analysisLoaded, options);
 
       // Open in browser if requested
-      if (result.format === 'html' && shouldOpen) {
+      if (result.format === 'HTML' && shouldOpen) {
         try {
           console.log(chalk.cyan('\n🌐 Opening in browser...'));
           const open = require('open');
@@ -210,54 +132,10 @@ async function graphCommand(options) {
         }
       }
 
-      // Show next steps
-      console.log(chalk.bold('\n📋 NEXT STEPS:\n'));
-      
-      if (result.format === 'html') {
-        console.log(`  1. Open in browser: ${chalk.cyan(`file://${path.resolve(result.path)}`)}`);
-        console.log(`  2. Explore dependencies interactively`);
-        console.log(`  3. Use filters to identify issues`);
-      }
-      
-      // v3.1.3 - Show filter suggestions based on analysis
-      if (filter === 'all' && analysisLoaded) {
-        const vulnCount = graphData.nodes.filter(n => n.isVulnerable).length;
-        const outdatedCount = graphData.nodes.filter(n => n.isOutdated).length;
-        const unusedCount = graphData.nodes.filter(n => n.isUnused).length;
-        
-        if (vulnCount > 0) {
-          console.log(`  • Try: ${chalk.cyan(`devcompass graph --filter vulnerable`)} to see ${chalk.red(vulnCount)} vulnerable packages`);
-        }
-        if (outdatedCount > 0) {
-          console.log(`  • Try: ${chalk.cyan(`devcompass graph --filter outdated`)} to see ${chalk.yellow(outdatedCount)} outdated packages`);
-        }
-        if (unusedCount > 0) {
-          console.log(`  • Try: ${chalk.cyan(`devcompass graph --filter unused`)} to see ${chalk.blue(unusedCount)} unused packages`);
-        }
-        if (vulnCount === 0 && outdatedCount === 0 && unusedCount === 0) {
-          console.log(`  • ${chalk.green('✓')} Your project looks healthy! No issues detected.`);
-        }
-      } else if (filter === 'all') {
-        console.log(`  • Try: ${chalk.cyan(`devcompass graph --filter conflict`)} to see only problematic packages`);
-      }
-      
-      if (layout === 'tree') {
-        console.log(`  • Try: ${chalk.cyan(`devcompass graph --layout force`)} for interactive physics layout`);
-        console.log(`  • Try: ${chalk.cyan(`devcompass graph --layout radial`)} for circular visualization`);
-      }
-
       console.log(chalk.green('\n✓ Graph generation complete!\n'));
 
     } else {
       exportSpinner.fail(`Export failed: ${result.error}`);
-      
-      // Show helpful error messages
-      if (result.error.includes('puppeteer') || result.error.includes('canvas')) {
-        console.log(chalk.yellow('\n💡 TIP: For PNG export, install one of:'));
-        console.log(chalk.gray('  npm install -g puppeteer  (recommended, ~300MB)'));
-        console.log(chalk.gray('  npm install -g canvas     (lighter, ~50MB)'));
-        console.log(chalk.gray('\nOr use HTML/SVG formats which require no additional dependencies.'));
-      }
     }
 
   } catch (error) {
@@ -267,16 +145,106 @@ async function graphCommand(options) {
     if (process.env.DEBUG) {
       console.error(chalk.gray(error.stack));
     }
-    
-    // Show troubleshooting tips
-    console.log(chalk.yellow('\n💡 TROUBLESHOOTING:'));
-    console.log(chalk.gray('  • Ensure package.json exists in the project directory'));
-    console.log(chalk.gray('  • Run npm install to generate package-lock.json'));
-    console.log(chalk.gray('  • Check file permissions for output directory'));
-    console.log(chalk.gray(`  • Try: ${chalk.cyan('devcompass graph --format json')} for simpler output`));
   }
 }
 
+/**
+ * Display comprehensive summary
+ */
+function displaySummary(graphData, result, analysisLoaded, options) {
+  const stats = {
+    totalNodes: graphData.nodes.length,
+    totalLinks: graphData.links.length,
+    maxDepth: graphData.metadata.maxDepth,
+    withIssues: graphData.nodes.filter(n => n.issues && n.issues.length > 0).length,
+    vulnerable: graphData.nodes.filter(n => n.isVulnerable).length,
+    deprecated: graphData.nodes.filter(n => n.isDeprecated).length,
+    outdated: graphData.nodes.filter(n => n.isOutdated).length,
+    unused: graphData.nodes.filter(n => n.isUnused).length
+  };
+
+  console.log('\n' + chalk.gray('─'.repeat(70)));
+  console.log(chalk.bold('\n📈 GRAPH SUMMARY\n'));
+  
+  console.log(`  ${chalk.gray('Format:')}        ${result.format}`);
+  
+  if (result.format === 'HTML') {
+    console.log(`  ${chalk.gray('Mode:')}          ${chalk.green('✓ Unified Interactive')}`);
+    console.log(`  ${chalk.gray('Layouts:')}       Tree, Force, Radial, Conflict ${chalk.gray('(switchable)')}`);
+    console.log(`  ${chalk.gray('Filters:')}       All, Vulnerable, Outdated, Unused, Deprecated ${chalk.gray('(switchable)')}`);
+  } else {
+    console.log(`  ${chalk.gray('Layout:')}        ${options.layout || 'tree'}`);
+  }
+  
+  console.log(`  ${chalk.gray('Total Nodes:')}   ${stats.totalNodes}`);
+  console.log(`  ${chalk.gray('Total Links:')}   ${stats.totalLinks}`);
+  console.log(`  ${chalk.gray('Max Depth:')}     ${stats.maxDepth}`);
+  console.log(`  ${chalk.gray('File Size:')}     ${result.fileSize || getFileSize(result.path)}`);
+  
+  if (analysisLoaded) {
+    console.log(`  ${chalk.gray('Enriched:')}      ${chalk.green('✓ Analysis data applied')}`);
+    
+    if (stats.withIssues > 0) {
+      console.log(`  ${chalk.gray('With Issues:')}   ${stats.withIssues} packages`);
+      if (stats.vulnerable > 0) console.log(`    ${chalk.gray('Vulnerable:')} ${chalk.red(stats.vulnerable)}`);
+      if (stats.deprecated > 0) console.log(`    ${chalk.gray('Deprecated:')} ${chalk.magenta(stats.deprecated)}`);
+      if (stats.outdated > 0) console.log(`    ${chalk.gray('Outdated:')}   ${chalk.yellow(stats.outdated)}`);
+      if (stats.unused > 0) console.log(`    ${chalk.gray('Unused:')}     ${chalk.blue(stats.unused)}`);
+    }
+  }
+  
+  console.log('\n' + chalk.gray('─'.repeat(70)));
+
+  if (result.format === 'HTML') {
+    console.log(chalk.bold('\n📋 INTERACTIVE CONTROLS\n'));
+    console.log('  Open the HTML file to access:');
+    console.log(`  ${chalk.cyan('•')} Layout switcher (Tree/Force/Radial/Conflict)`);
+    console.log(`  ${chalk.cyan('•')} Filter controls (Vulnerable/Outdated/Unused/Deprecated)`);
+    console.log(`  ${chalk.cyan('•')} Depth slider (1-10)`);
+    console.log(`  ${chalk.cyan('•')} Search functionality`);
+    console.log(`  ${chalk.cyan('•')} Zoom & pan controls`);
+    console.log(`  ${chalk.cyan('•')} Real-time updates (no page reload)`);
+    
+    console.log(chalk.bold('\n💡 USAGE TIPS\n'));
+    console.log(`  ${chalk.gray('Zoom:')}         Mouse wheel or pinch`);
+    console.log(`  ${chalk.gray('Pan:')}          Click and drag background`);
+    console.log(`  ${chalk.gray('Move nodes:')}   Drag nodes (Force layout)`);
+    console.log(`  ${chalk.gray('Node details:')} Hover over nodes`);
+    console.log(`  ${chalk.gray('Search:')}       Type package name in search box`);
+    
+    console.log(chalk.cyan('\n──────────────────────────────────────────────────────────────────────\n'));
+  }
+
+  // Suggestions
+  if (stats.vulnerable > 0 || stats.deprecated > 0 || stats.outdated > 0) {
+    console.log(chalk.bold('📋 SUGGESTIONS\n'));
+    
+    if (stats.vulnerable > 0) {
+      console.log(chalk.yellow(`  ⚠️  ${stats.vulnerable} vulnerable package(s) detected`));
+      console.log(`     ${chalk.gray('→')} Use ${chalk.cyan('Vulnerable filter')} in the graph UI`);
+      console.log(`     ${chalk.gray('→')} Run: ${chalk.cyan('devcompass fix')} to resolve\n`);
+    }
+    
+    if (stats.deprecated > 0) {
+      console.log(chalk.yellow(`  ⚠️  ${stats.deprecated} deprecated package(s) found`));
+      console.log(`     ${chalk.gray('→')} Use ${chalk.cyan('Deprecated filter')} in the graph UI`);
+      console.log(`     ${chalk.gray('→')} Run: ${chalk.cyan('devcompass fix --only quality')}\n`);
+    }
+    
+    if (stats.outdated > 0) {
+      console.log(chalk.yellow(`  ⚠️  ${stats.outdated} outdated package(s) found`));
+      console.log(`     ${chalk.gray('→')} Use ${chalk.cyan('Outdated filter')} in the graph UI`);
+      console.log(`     ${chalk.gray('→')} Run: ${chalk.cyan('npm update')}\n`);
+    }
+  } else if (analysisLoaded) {
+    console.log(chalk.bold('📋 STATUS\n'));
+    console.log(`  ${chalk.green('✓')} Your project looks healthy! No critical issues detected.\n`);
+  }
+}
+
+/**
+ * Get file size helper
+ */
 function getFileSize(filePath) {
   try {
     const stats = fs.statSync(filePath);

@@ -1,11 +1,10 @@
 // src/graph/exporter.js
-// Graph exporter - generates HTML/JSON output from graph data
-// v3.1.2 - Fixed: module.exports = GraphExporter (not object)
+// v3.1.4 - Unified graph exporter with dynamic controls
 
 const fs = require('fs');
 const path = require('path');
 
-// Import layout generators with safe fallbacks
+// Import layout generators
 let generateTreeLayoutHTML, generateRadialLayoutHTML, generateForceLayoutHTML, generateConflictLayoutHTML;
 
 try {
@@ -37,240 +36,7 @@ try {
 }
 
 /**
- * Fallback HTML generator if layout file fails to load
- */
-function generateFallbackHTML(graphData, options, layoutType) {
-  const nodes = Array.isArray(graphData.nodes) ? graphData.nodes : [];
-  const links = Array.isArray(graphData.links) ? graphData.links : [];
-  const projectName = options.projectName || 'Project';
-  
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DevCompass - Dependency Graph</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    :root {
-      --bg-primary: #0f172a;
-      --bg-secondary: #1e293b;
-      --text-primary: #f1f5f9;
-      --text-secondary: #94a3b8;
-      --accent-blue: #3b82f6;
-      --accent-cyan: #06b6d4;
-      --border-color: #475569;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-      color: var(--text-primary);
-      min-height: 100vh;
-      overflow: hidden;
-    }
-    .header {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(30, 41, 59, 0.95);
-      padding: 16px 32px;
-      border-radius: 16px;
-      border: 1px solid var(--border-color);
-      backdrop-filter: blur(12px);
-      z-index: 100;
-      text-align: center;
-    }
-    .header h1 { font-size: 20px; margin-bottom: 4px; }
-    .header p { font-size: 12px; color: var(--text-secondary); }
-    svg { width: 100vw; height: 100vh; cursor: grab; }
-    svg:active { cursor: grabbing; }
-    .node circle {
-      fill: var(--accent-blue);
-      stroke: var(--bg-primary);
-      stroke-width: 2px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .node circle:hover {
-      stroke: var(--text-primary);
-      filter: drop-shadow(0 0 8px var(--accent-cyan));
-    }
-    .node.root circle { fill: #60a5fa; r: 18; }
-    .node text {
-      fill: var(--text-secondary);
-      font-size: 10px;
-      pointer-events: none;
-    }
-    .link {
-      stroke: var(--border-color);
-      stroke-width: 1.5px;
-      stroke-opacity: 0.5;
-    }
-    .controls {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      z-index: 100;
-    }
-    .controls button {
-      width: 44px;
-      height: 44px;
-      background: rgba(30, 41, 59, 0.95);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      color: var(--text-primary);
-      font-size: 20px;
-      cursor: pointer;
-      backdrop-filter: blur(12px);
-    }
-    .controls button:hover {
-      background: var(--accent-blue);
-      border-color: var(--accent-blue);
-    }
-    .legend {
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      background: rgba(30, 41, 59, 0.95);
-      padding: 16px;
-      border-radius: 16px;
-      border: 1px solid var(--border-color);
-      backdrop-filter: blur(12px);
-      z-index: 100;
-    }
-    .legend-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
-    .legend-item { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 11px; color: var(--text-secondary); }
-    .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
-    .tooltip {
-      position: absolute;
-      padding: 12px 16px;
-      background: rgba(15, 23, 42, 0.98);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      font-size: 12px;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.2s;
-      z-index: 1000;
-      backdrop-filter: blur(12px);
-    }
-    .tooltip.visible { opacity: 1; }
-    .tooltip-title { font-weight: 700; color: var(--accent-cyan); margin-bottom: 6px; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>🧭 DevCompass - ${layoutType} Layout</h1>
-    <p>${nodes.length} packages • ${links.length} dependencies</p>
-  </div>
-  
-  <svg id="graph"></svg>
-  
-  <div class="controls">
-    <button onclick="zoomIn()" title="Zoom In">+</button>
-    <button onclick="zoomOut()" title="Zoom Out">−</button>
-    <button onclick="resetZoom()" title="Reset">⟲</button>
-  </div>
-  
-  <div class="legend">
-    <div class="legend-title">🎨 Health Status</div>
-    <div class="legend-item"><div class="legend-dot" style="background: #10b981;"></div>Healthy (7-10)</div>
-    <div class="legend-item"><div class="legend-dot" style="background: #eab308;"></div>Caution (5-7)</div>
-    <div class="legend-item"><div class="legend-dot" style="background: #f97316;"></div>Warning (3-5)</div>
-    <div class="legend-item"><div class="legend-dot" style="background: #ef4444;"></div>Critical (<3)</div>
-    <div class="legend-item"><div class="legend-dot" style="background: #60a5fa;"></div>Root Package</div>
-  </div>
-  
-  <div class="tooltip" id="tooltip"></div>
-
-  <script>
-    const graphData = ${JSON.stringify({ nodes, links })};
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-
-    function getColor(node) {
-      if (node.type === 'root') return '#60a5fa';
-      const score = node.healthScore || 8;
-      if (score >= 7) return '#10b981';
-      if (score >= 5) return '#eab308';
-      if (score >= 3) return '#f97316';
-      return '#ef4444';
-    }
-
-    function getRadius(node) {
-      if (node.type === 'root') return 18;
-      if (node.depth === 1) return 10;
-      return 6;
-    }
-
-    const svg = d3.select("#graph").attr("width", width).attr("height", height);
-    const g = svg.append("g");
-
-    const zoom = d3.zoom()
-      .scaleExtent([0.1, 4])
-      .on("zoom", (e) => g.attr("transform", e.transform));
-    svg.call(zoom);
-
-    const simulation = d3.forceSimulation(graphData.nodes)
-      .force("link", d3.forceLink(graphData.links).id(d => d.id).distance(60))
-      .force("charge", d3.forceManyBody().strength(-150))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(d => getRadius(d) + 5));
-
-    const link = g.append("g").selectAll("line")
-      .data(graphData.links).join("line").attr("class", "link");
-
-    const node = g.append("g").selectAll("g")
-      .data(graphData.nodes).join("g")
-      .attr("class", d => "node" + (d.type === "root" ? " root" : ""))
-      .call(d3.drag()
-        .on("start", (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-        .on("drag", (e, d) => { d.fx = e.x; d.fy = e.y; })
-        .on("end", (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }))
-      .on("mouseover", showTooltip)
-      .on("mouseout", hideTooltip);
-
-    node.append("circle").attr("r", d => getRadius(d)).attr("fill", d => getColor(d));
-    node.append("text").attr("dy", d => getRadius(d) + 12).attr("text-anchor", "middle")
-      .text(d => (d.name || d.id).substring(0, 20));
-
-    simulation.on("tick", () => {
-      link.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
-          .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
-      node.attr("transform", d => "translate(" + d.x + "," + d.y + ")");
-    });
-
-    function showTooltip(event, d) {
-      const tooltip = document.getElementById('tooltip');
-      tooltip.innerHTML = '<div class="tooltip-title">' + (d.name || d.id) + '</div>' +
-        'Version: ' + (d.version || 'N/A') + '<br>' +
-        'Health: ' + (d.healthScore || 8) + '/10<br>' +
-        'Depth: ' + (d.depth || 0);
-      tooltip.style.left = (event.pageX + 15) + 'px';
-      tooltip.style.top = (event.pageY - 10) + 'px';
-      tooltip.classList.add('visible');
-    }
-
-    function hideTooltip() {
-      document.getElementById('tooltip').classList.remove('visible');
-    }
-
-    window.zoomIn = () => svg.transition().call(zoom.scaleBy, 1.3);
-    window.zoomOut = () => svg.transition().call(zoom.scaleBy, 0.7);
-    window.resetZoom = () => svg.transition().call(zoom.transform, d3.zoomIdentity);
-  </script>
-</body>
-</html>`;
-}
-
-/**
  * GraphExporter - Exports graph data to various formats
- * This class IS the module.exports (not wrapped in object)
  */
 class GraphExporter {
   constructor(graphData, options = {}) {
@@ -282,6 +48,7 @@ class GraphExporter {
       projectName: options.projectName || 'Project',
       projectVersion: options.projectVersion || '1.0.0',
       filter: options.filter || 'all',
+      unified: options.unified !== false, // v3.1.4 - Enable unified mode by default
       ...options
     };
   }
@@ -318,6 +85,7 @@ class GraphExporter {
       case 'vulnerable':
         filteredNodes = nodes.filter(n => 
           n.type === 'root' || 
+          n.isVulnerable === true ||
           (Array.isArray(n.issues) && n.issues.some(i => 
             i.type === 'security' || i.type === 'vulnerability'
           ))
@@ -337,6 +105,14 @@ class GraphExporter {
           n.type === 'root' || 
           n.isUnused === true ||
           (Array.isArray(n.issues) && n.issues.some(i => i.type === 'unused'))
+        );
+        break;
+
+      case 'deprecated':
+        filteredNodes = nodes.filter(n => 
+          n.type === 'root' || 
+          n.isDeprecated === true ||
+          (Array.isArray(n.issues) && n.issues.some(i => i.type === 'deprecated'))
         );
         break;
 
@@ -367,9 +143,30 @@ class GraphExporter {
   }
 
   /**
-   * Generate HTML content based on layout type
+   * Generate unified HTML with dynamic controls (v3.1.4)
    */
-  generateHTML() {
+  generateUnifiedHTML() {
+    const templatePath = path.join(__dirname, 'template.html');
+    
+    try {
+      let template = fs.readFileSync(templatePath, 'utf8');
+      
+      // Inject graph data - replace the placeholder
+      template = template.replace('{{GRAPH_DATA}}', JSON.stringify(this.graphData, null, 2));
+      
+      return template;
+    } catch (error) {
+      console.error('Failed to load unified template:', error.message);
+      console.error('Template path:', templatePath);
+      // Fallback to traditional layout
+      return this.generateTraditionalHTML();
+    }
+  }
+
+  /**
+   * Generate traditional HTML (single layout)
+   */
+  generateTraditionalHTML() {
     const filteredData = this.applyFilter();
     const layout = (this.options.layout || 'tree').toLowerCase();
 
@@ -404,8 +201,67 @@ class GraphExporter {
       console.error(`Layout error (${layout}):`, error.message);
     }
 
-    // Fallback to built-in generator
-    return generateFallbackHTML(filteredData, this.options, layout);
+    // Final fallback
+    return this.generateFallbackHTML(filteredData, layout);
+  }
+
+  /**
+   * Generate HTML content
+   */
+  generateHTML() {
+    // v3.1.4 - Use unified template by default
+    if (this.options.unified) {
+      return this.generateUnifiedHTML();
+    }
+    
+    // Fallback to traditional single-layout mode
+    return this.generateTraditionalHTML();
+  }
+
+  /**
+   * Fallback HTML generator
+   */
+  generateFallbackHTML(graphData, layoutType) {
+    const nodes = Array.isArray(graphData.nodes) ? graphData.nodes : [];
+    const links = Array.isArray(graphData.links) ? graphData.links : [];
+    
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevCompass - Dependency Graph</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #f1f5f9; margin: 0; }
+    svg { width: 100vw; height: 100vh; }
+    .node circle { fill: #3b82f6; stroke: #fff; stroke-width: 2px; }
+    .node text { fill: #94a3b8; font-size: 10px; }
+    .link { stroke: #475569; stroke-width: 1.5px; stroke-opacity: 0.6; }
+  </style>
+</head>
+<body>
+  <svg id="graph"></svg>
+  <script>
+    const data = ${JSON.stringify({ nodes, links })};
+    const svg = d3.select("#graph");
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const simulation = d3.forceSimulation(data.nodes)
+      .force("link", d3.forceLink(data.links).id(d => d.id))
+      .force("charge", d3.forceManyBody().strength(-200))
+      .force("center", d3.forceCenter(width/2, height/2));
+    const link = svg.append("g").selectAll("line").data(data.links).join("line").attr("class", "link");
+    const node = svg.append("g").selectAll("g").data(data.nodes).join("g").attr("class", "node");
+    node.append("circle").attr("r", 8);
+    node.append("text").attr("dy", -12).text(d => d.name);
+    simulation.on("tick", () => {
+      link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+      node.attr("transform", d => \`translate(\${d.x},\${d.y})\`);
+    });
+  </script>
+</body>
+</html>`;
   }
 
   /**
@@ -432,14 +288,14 @@ class GraphExporter {
   }
 
   /**
-   * Export to file (main method called by graph.js)
+   * Export to file (main method)
    */
   export(outputPath) {
     return this.exportToFile(outputPath);
   }
 
   /**
-   * Export to file
+   * Export to file implementation
    */
   exportToFile(outputPath) {
     try {
@@ -498,8 +354,4 @@ class GraphExporter {
   }
 }
 
-// ============================================================================
-// CRITICAL: Export the CLASS DIRECTLY, not wrapped in an object
-// This matches: const GraphExporter = require('../graph/exporter');
-// ============================================================================
 module.exports = GraphExporter;

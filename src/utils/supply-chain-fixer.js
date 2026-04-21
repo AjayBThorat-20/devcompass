@@ -1,216 +1,200 @@
 // src/utils/supply-chain-fixer.js
+// v3.1.4 - Supply chain security fixer with dynamic detection
+
 const { execSync } = require('child_process');
 const chalk = require('chalk');
+const { analyzer } = require('../services');
 
 class SupplyChainFixer {
   constructor() {
-    this.fixesApplied = [];
-    this.fixesSkipped = [];
+    this.fixes = [];
+    this.skipped = [];
     this.errors = [];
   }
-
-  async fixWarning(warning, projectPath, report, progress, skipConfirmation = false) {
+  
+  /**
+   * Fix a supply chain warning
+   */
+  async fixWarning(warning, dryRun = false) {
+    const packageName = warning.package;
+    
     try {
-      switch (warning.autoFixAction) {
-        case 'remove':
-          return await this.removeMaliciousPackage(warning, projectPath, report, progress);
+      if (warning.type === 'typosquatting') {
+        // Verify it's still suspicious with live check
+        const check = analyzer.security.checkTyposquatting(packageName);
         
-        case 'replace':
-          return await this.replaceTyposquatPackage(warning, projectPath, report, progress);
-        
-        case 'review':
-          // Requires manual confirmation due to suspicious scripts
-          if (skipConfirmation || warning.requiresConfirmation === false) {
-            return await this.removeSuspiciousPackage(warning, projectPath, report, progress);
-          } else {
-            this.fixesSkipped.push({
-              package: warning.package,
-              reason: 'Requires manual review (suspicious install script)',
-              warning: warning
+        if (check) {
+          if (!dryRun) {
+            // Remove suspicious package
+            execSync(`npm uninstall ${packageName}`, {
+              stdio: 'pipe',
+              cwd: process.cwd()
             });
-            report.addSkipped(
-              warning.package,
-              'Suspicious install script - requires manual review'
-            );
-            return false;
+            
+            // Install correct package if suggested
+            if (warning.correctPackage) {
+              try {
+                execSync(`npm install ${warning.correctPackage}`, {
+                  stdio: 'pipe',
+                  cwd: process.cwd()
+                });
+              } catch (error) {
+                // If correct package install fails, just remove suspicious one
+              }
+            }
           }
-        
-        default:
-          this.fixesSkipped.push({
-            package: warning.package,
-            reason: 'No auto-fix available',
-            warning: warning
+          
+          this.fixes.push({
+            package: packageName,
+            action: 'removed',
+            correctPackage: warning.correctPackage || null,
+            reason: 'Typosquatting detected',
+            distance: warning.distance
           });
-          return false;
+          
+          return {
+            success: true,
+            action: 'removed',
+            metadata: {
+              package: packageName,
+              correctPackage: warning.correctPackage,
+              reason: 'Typosquatting'
+            }
+          };
+        } else {
+          // No longer flagged as suspicious
+          this.skipped.push({
+            package: packageName,
+            reason: 'No longer flagged as suspicious'
+          });
+          
+          return {
+            success: false,
+            action: 'skip',
+            reason: 'Not suspicious'
+          };
+        }
+      } else if (warning.type === 'vulnerability') {
+        // Security vulnerabilities are handled by npm audit fix
+        if (!dryRun) {
+          execSync('npm audit fix', {
+            stdio: 'pipe',
+            cwd: process.cwd()
+          });
+        }
+        
+        this.fixes.push({
+          package: packageName,
+          action: 'updated',
+          reason: 'Security vulnerability fixed',
+          severity: warning.severity
+        });
+        
+        return {
+          success: true,
+          action: 'updated',
+          metadata: {
+            package: packageName,
+            severity: warning.severity
+          }
+        };
+      } else {
+        // Unknown type - skip
+        this.skipped.push({
+          package: packageName,
+          reason: `Unknown warning type: ${warning.type}`
+        });
+        
+        return {
+          success: false,
+          action: 'skip',
+          reason: 'Unknown type'
+        };
       }
+      
     } catch (error) {
       this.errors.push({
-        package: warning.package,
+        package: packageName,
         error: error.message
       });
-      report.addError(warning.package, error);
-      return false;
+      
+      return {
+        success: false,
+        action: 'error',
+        reason: error.message
+      };
     }
   }
-
+  
   /**
-   * Remove malicious package
+   * Display summary of supply chain fixes
    */
-  async removeMaliciousPackage(warning, projectPath, report, progress) {
-    progress.update(`Removing malicious package: ${warning.package}...`);
-
-    try {
-      execSync(`npm uninstall ${warning.package}`, {
-        cwd: projectPath,
-        stdio: 'pipe'
-      });
-
-      this.fixesApplied.push({
-        type: 'malicious_removed',
-        package: warning.package,
-        action: 'Removed malicious package'
-      });
-
-      report.addFix(
-        'supply-chain',
-        warning.package,
-        'Removed malicious package',
-        { reason: warning.reason }
-      );
-
-      return true;
-    } catch (error) {
-      throw new Error(`Failed to remove ${warning.package}: ${error.message}`);
-    }
-  }
-
-  /**
-   * Replace typosquatting package with correct one
-   */
-  async replaceTyposquatPackage(warning, projectPath, report, progress) {
-    progress.update(`Fixing typosquatting: ${warning.package} → ${warning.replacement}...`);
-
-    try {
-      // Remove typosquat
-      execSync(`npm uninstall ${warning.package}`, {
-        cwd: projectPath,
-        stdio: 'pipe'
-      });
-
-      // Install correct package
-      execSync(`npm install ${warning.replacement}`, {
-        cwd: projectPath,
-        stdio: 'pipe'
-      });
-
-      this.fixesApplied.push({
-        type: 'typosquat_fixed',
-        package: warning.package,
-        replacement: warning.replacement,
-        action: `Replaced with correct package: ${warning.replacement}`
-      });
-
-      report.addFix(
-        'supply-chain',
-        warning.package,
-        `Replaced typosquat with ${warning.replacement}`,
-        {
-          from: warning.package,
-          to: warning.replacement,
-          reason: warning.reason
+  displaySummary() {
+    console.log(chalk.bold.cyan('\n🛡️  SUPPLY CHAIN FIXES SUMMARY\n'));
+    
+    if (this.fixes.length > 0) {
+      console.log(chalk.green(`✓ ${this.fixes.length} issue(s) resolved:\n`));
+      
+      this.fixes.forEach(fix => {
+        if (fix.action === 'removed') {
+          console.log(`  ${chalk.red('✗')} Removed: ${chalk.cyan(fix.package)}`);
+          if (fix.correctPackage) {
+            console.log(`    ${chalk.green('✓')} Installed: ${chalk.green(fix.correctPackage)}`);
+          }
+          console.log(`    ${chalk.gray('Reason:')} ${fix.reason}`);
+        } else if (fix.action === 'updated') {
+          console.log(`  ${chalk.green('↑')} Updated: ${chalk.cyan(fix.package)}`);
+          console.log(`    ${chalk.gray('Reason:')} ${fix.reason}`);
         }
-      );
-
-      return true;
-    } catch (error) {
-      throw new Error(`Failed to replace ${warning.package}: ${error.message}`);
+      });
+      
+      console.log('');
+    }
+    
+    if (this.skipped.length > 0) {
+      console.log(chalk.yellow(`⚠️  ${this.skipped.length} warning(s) skipped:\n`));
+      
+      this.skipped.forEach(skip => {
+        console.log(`  ${chalk.yellow(skip.package)}`);
+        console.log(`    ${chalk.gray('Reason:')} ${skip.reason}`);
+      });
+      
+      console.log('');
+    }
+    
+    if (this.errors.length > 0) {
+      console.log(chalk.red(`✗ ${this.errors.length} error(s) occurred:\n`));
+      
+      this.errors.forEach(err => {
+        console.log(`  ${chalk.red(err.package)}`);
+        console.log(`    ${chalk.gray('Error:')} ${err.error}`);
+      });
+      
+      console.log('');
     }
   }
-
+  
   /**
-   * Remove package with suspicious install scripts
-   */
-  async removeSuspiciousPackage(warning, projectPath, report, progress) {
-    progress.update(`Removing suspicious package: ${warning.package}...`);
-
-    try {
-      execSync(`npm uninstall ${warning.package}`, {
-        cwd: projectPath,
-        stdio: 'pipe'
-      });
-
-      this.fixesApplied.push({
-        type: 'suspicious_removed',
-        package: warning.package,
-        action: 'Removed package with suspicious install script'
-      });
-
-      report.addFix(
-        'supply-chain',
-        warning.package,
-        'Removed package with suspicious install script',
-        {
-          script: warning.script,
-          patterns: warning.patterns,
-          reason: warning.reason
-        }
-      );
-
-      return true;
-    } catch (error) {
-      throw new Error(`Failed to remove ${warning.package}: ${error.message}`);
-    }
-  }
-
-  /**
-   * Get summary of fixes
+   * Get summary statistics
    */
   getSummary() {
     return {
-      applied: this.fixesApplied.length,
-      skipped: this.fixesSkipped.length,
-      errors: this.errors.length,
-      details: {
-        maliciousRemoved: this.fixesApplied.filter(f => f.type === 'malicious_removed').length,
-        typosquatsFixed: this.fixesApplied.filter(f => f.type === 'typosquat_fixed').length,
-        suspiciousRemoved: this.fixesApplied.filter(f => f.type === 'suspicious_removed').length
-      }
+      totalFixes: this.fixes.length,
+      totalSkipped: this.skipped.length,
+      totalErrors: this.errors.length,
+      fixes: this.fixes,
+      skipped: this.skipped,
+      errors: this.errors
     };
   }
-
+  
   /**
-   * Display summary
+   * Reset fixer state
    */
-  displaySummary() {
-    const summary = this.getSummary();
-
-    if (summary.applied > 0) {
-      console.log(chalk.green.bold(`\n✓ Supply Chain Fixes Applied: ${summary.applied}`));
-      
-      if (summary.details.maliciousRemoved > 0) {
-        console.log(chalk.red(`  • Malicious packages removed: ${summary.details.maliciousRemoved}`));
-      }
-      if (summary.details.typosquatsFixed > 0) {
-        console.log(chalk.yellow(`  • Typosquats fixed: ${summary.details.typosquatsFixed}`));
-      }
-      if (summary.details.suspiciousRemoved > 0) {
-        console.log(chalk.yellow(`  • Suspicious packages removed: ${summary.details.suspiciousRemoved}`));
-      }
-    }
-
-    if (summary.skipped > 0) {
-      console.log(chalk.yellow(`\n⊘ Supply Chain Fixes Skipped: ${summary.skipped}`));
-      this.fixesSkipped.forEach(skip => {
-        console.log(chalk.gray(`  • ${skip.package}: ${skip.reason}`));
-      });
-    }
-
-    if (summary.errors > 0) {
-      console.log(chalk.red(`\n✗ Supply Chain Fix Errors: ${summary.errors}`));
-      this.errors.forEach(err => {
-        console.log(chalk.red(`  • ${err.package}: ${err.error}`));
-      });
-    }
+  reset() {
+    this.fixes = [];
+    this.skipped = [];
+    this.errors = [];
   }
 }
 

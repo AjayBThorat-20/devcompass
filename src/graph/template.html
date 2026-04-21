@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{TITLE}} - DevCompass</title>
+  <title>DevCompass - Dependency Graph</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     * {
@@ -11,461 +11,1071 @@
       padding: 0;
       box-sizing: border-box;
     }
-    
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
-      padding: 20px;
-    }
-    
-    .header {
-      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-      margin-bottom: 20px;
-      border: 1px solid #334155;
-    }
-    
-    h1 {
-      font-size: 28px;
-      color: #f1f5f9;
-      margin-bottom: 12px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    
-    h1::before {
-      content: "📊";
-      font-size: 32px;
-    }
-    
-    .metadata {
-      color: #94a3b8;
-      font-size: 14px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 24px;
-    }
-    
-    .metadata-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    
-    .metadata-label {
-      font-weight: 600;
-      color: #cbd5e1;
-    }
-    
-    .controls {
-      background: #1e293b;
-      padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-      margin-bottom: 20px;
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      border: 1px solid #334155;
-    }
-    
-    .controls button {
-      padding: 10px 18px;
-      border: 1px solid #475569;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #334155 0%, #475569 100%);
-      color: #f1f5f9;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .controls button:hover {
-      background: linear-gradient(135deg, #475569 0%, #64748b 100%);
-      border-color: #64748b;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    }
-    
-    .controls button:active {
-      transform: translateY(0);
-    }
-    
-    .controls button::before {
-      font-size: 16px;
-    }
-    
-    .controls button.zoom-in::before { content: "🔍"; }
-    .controls button.zoom-out::before { content: "🔎"; }
-    .controls button.reset::before { content: "↻"; }
-    .controls button.export::before { content: "💾"; }
-    
-    #graph-container {
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-      border-radius: 12px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #0a0e1a;
+      color: #e0e6ed;
       overflow: hidden;
-      border: 1px solid #334155;
+    }
+
+    /* ========== HEADER ========== */
+    .header {
+      background: linear-gradient(135deg, #1a1f35 0%, #0f1219 100%);
+      border-bottom: 1px solid #2a3142;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      position: relative;
+      z-index: 1000;
+    }
+
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header h1 .icon {
+      font-size: 1.5rem;
+    }
+
+    /* ========== CONTROLS PANEL ========== */
+    .controls {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .control-label {
+      font-size: 0.85rem;
+      color: #8b92a7;
+      font-weight: 500;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.25rem;
+      background: #1a1f35;
+      border-radius: 6px;
+      padding: 3px;
+    }
+
+    .btn {
+      padding: 0.4rem 0.9rem;
+      border: none;
+      background: transparent;
+      color: #8b92a7;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+
+    .btn:hover {
+      background: #252b42;
+      color: #fff;
+    }
+
+    .btn.active {
+      background: #3b82f6;
+      color: #fff;
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    input[type="range"] {
+      width: 100px;
+      height: 4px;
+      background: #1a1f35;
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: #3b82f6;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      background: #3b82f6;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+
+    .depth-value {
+      min-width: 30px;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #3b82f6;
+      font-weight: 600;
+    }
+
+    /* ========== SEARCH ========== */
+    .search-container {
       position: relative;
     }
-    
+
+    .search-input {
+      padding: 0.5rem 1rem;
+      background: #1a1f35;
+      border: 1px solid #2a3142;
+      border-radius: 6px;
+      color: #e0e6ed;
+      font-size: 0.85rem;
+      width: 200px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: #3b82f6;
+      background: #252b42;
+    }
+
+    /* ========== MAIN CONTAINER ========== */
+    .container {
+      display: flex;
+      height: calc(100vh - 80px);
+    }
+
+    /* ========== GRAPH AREA ========== */
+    .graph-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
     #graph {
       width: 100%;
-      height: 800px;
+      height: 100%;
     }
-    
-    .legend {
-      background: #1e293b;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-      margin-top: 20px;
-      border: 1px solid #334155;
+
+    /* ========== SIDEBAR ========== */
+    .sidebar {
+      width: 300px;
+      background: #0f1219;
+      border-left: 1px solid #2a3142;
+      overflow-y: auto;
+      padding: 1.5rem;
     }
-    
-    .legend h3 {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 16px;
-      color: #f1f5f9;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+
+    .sidebar h2 {
+      font-size: 1rem;
+      color: #fff;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #2a3142;
     }
-    
-    .legend h3::before {
-      content: "📌";
-      font-size: 18px;
-    }
-    
-    .legend-items {
+
+    .stat-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 16px;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
     }
-    
+
+    .stat-item {
+      background: #1a1f35;
+      padding: 0.75rem;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: #8b92a7;
+    }
+
+    .stat-value {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .stat-value.danger { color: #ef4444; }
+    .stat-value.warning { color: #f59e0b; }
+    .stat-value.success { color: #10b981; }
+
+    /* ========== LEGEND ========== */
+    .legend {
+      margin-top: 1rem;
+    }
+
     .legend-item {
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      color: #cbd5e1;
-      padding: 8px;
-      border-radius: 6px;
-      transition: background 0.2s;
+      gap: 0.5rem;
+      padding: 0.5rem 0;
+      font-size: 0.85rem;
     }
-    
-    .legend-item:hover {
-      background: rgba(51, 65, 85, 0.5);
-    }
-    
+
     .legend-color {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      border: 2px solid #0f172a;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
     }
-    
-    .footer {
-      margin-top: 20px;
-      padding: 16px;
-      text-align: center;
-      color: #64748b;
-      font-size: 13px;
-      background: #1e293b;
-      border-radius: 12px;
-      border: 1px solid #334155;
-    }
-    
-    .footer a {
-      color: #60a5fa;
-      text-decoration: none;
-      font-weight: 500;
-    }
-    
-    .footer a:hover {
-      color: #93c5fd;
-      text-decoration: underline;
-    }
-    
-    /* Node and link styles */
-    .node {
+
+    /* ========== CONTROL BUTTONS ========== */
+    .control-btn {
+      width: 100%;
+      padding: 0.6rem 1rem;
+      background: #1a1f35;
+      border: 1px solid #2a3142;
+      border-radius: 6px;
+      color: #e0e6ed;
+      font-size: 0.85rem;
       cursor: pointer;
-      stroke: #1e293b;
-      stroke-width: 2px;
-      transition: all 0.3s ease;
-    }
-    
-    .node:hover {
-      stroke: #f1f5f9;
-      stroke-width: 3px;
-      filter: brightness(1.2);
-    }
-    
-    .link {
-      stroke: #475569;
-      stroke-opacity: 0.4;
-      stroke-width: 1.5px;
-      fill: none;
-    }
-    
-    .node-label {
-      font-size: 11px;
-      fill: #cbd5e1;
-      text-anchor: middle;
-      pointer-events: none;
-      user-select: none;
+      transition: all 0.2s;
+      text-align: left;
       font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
-    
-    /* Tooltip */
+
+    .control-btn:hover {
+      background: #252b42;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+
+    .control-btn:active {
+      transform: scale(0.98);
+      background: #3b82f6;
+    }
+
+    /* ========== TOOLTIP ========== */
     .tooltip {
       position: absolute;
-      padding: 12px 16px;
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid #475569;
+      background: rgba(15, 18, 25, 0.95);
+      border: 1px solid #3b82f6;
       border-radius: 8px;
+      padding: 1rem;
       pointer-events: none;
-      font-size: 13px;
-      max-width: 320px;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-      z-index: 1000;
-      backdrop-filter: blur(8px);
+      opacity: 0;
+      transition: opacity 0.2s;
+      max-width: 350px;
+      z-index: 10000;
+      backdrop-filter: blur(10px);
     }
-    
+
+    .tooltip.visible {
+      opacity: 1;
+    }
+
     .tooltip-title {
+      font-size: 1rem;
       font-weight: 600;
-      margin-bottom: 10px;
-      color: #60a5fa;
-      font-size: 15px;
-      border-bottom: 1px solid #334155;
-      padding-bottom: 8px;
+      color: #fff;
+      margin-bottom: 0.5rem;
     }
-    
-    .tooltip-row {
-      margin: 6px 0;
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
+
+    .tooltip-content {
+      font-size: 0.85rem;
+      color: #8b92a7;
+      line-height: 1.5;
     }
-    
-    .tooltip-label {
-      color: #94a3b8;
+
+    .tooltip-badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      background: #ef4444;
+      color: #fff;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      margin-right: 0.25rem;
       font-weight: 500;
     }
-    
-    .tooltip-value {
-      color: #e2e8f0;
-      font-weight: 600;
+
+    .tooltip-badge.warning { background: #f59e0b; }
+    .tooltip-badge.info { background: #3b82f6; }
+
+    /* ========== GRAPH STYLES ========== */
+    .node {
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    
-    /* Loading spinner */
+
+    .node:hover {
+      filter: brightness(1.3);
+    }
+
+    .node-circle {
+      stroke-width: 2px;
+      transition: all 0.2s;
+    }
+
+    .node-label {
+      font-size: 11px;
+      fill: #e0e6ed;
+      pointer-events: none;
+      text-anchor: middle;
+      font-weight: 500;
+    }
+
+    .link {
+      stroke: #2a3142;
+      stroke-opacity: 0.6;
+      fill: none;
+      stroke-width: 1.5px;
+    }
+
+    .link.circular {
+      stroke: #ef4444;
+      stroke-dasharray: 5, 5;
+      stroke-opacity: 0.8;
+    }
+
+    /* ========== LOADING ========== */
     .loading {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      color: #60a5fa;
-      font-size: 18px;
-      font-weight: 600;
+      text-align: center;
+      display: none;
     }
-    
-    .loading::after {
-      content: "...";
-      animation: dots 1.5s steps(4, end) infinite;
+
+    .loading.visible {
+      display: block;
     }
-    
-    @keyframes dots {
-      0%, 20% { content: "."; }
-      40% { content: ".."; }
-      60%, 100% { content: "..."; }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid #2a3142;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
     }
-    
-    /* Responsive */
-    @media (max-width: 768px) {
-      body {
-        padding: 12px;
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 1024px) {
+      .sidebar {
+        width: 250px;
       }
-      
-      h1 {
-        font-size: 22px;
-      }
-      
-      .metadata {
-        flex-direction: column;
-        gap: 8px;
-      }
-      
+
       .controls {
-        justify-content: center;
-      }
-      
-      .legend-items {
-        grid-template-columns: 1fr;
-      }
-      
-      #graph {
-        height: 600px;
+        gap: 1rem;
       }
     }
-    
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    
-    ::-webkit-scrollbar-track {
-      background: #0f172a;
-      border-radius: 4px;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-      background: #475569;
-      border-radius: 4px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-      background: #64748b;
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        height: auto;
+        gap: 1rem;
+      }
+
+      .controls {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .sidebar {
+        display: none;
+      }
     }
   </style>
 </head>
 <body>
+  <!-- Header -->
   <div class="header">
-    <h1>{{TITLE}}</h1>
-    <div class="metadata">
-      <div class="metadata-item">
-        <span class="metadata-label">Project:</span>
-        <span>{{PROJECT_NAME}}</span>
+    <h1>
+      <span class="icon">📊</span>
+      DevCompass - Dependency Graph
+    </h1>
+
+    <!-- Controls -->
+    <div class="controls">
+      <!-- Layout Switcher -->
+      <div class="control-group">
+        <span class="control-label">Layout:</span>
+        <div class="btn-group">
+          <button class="btn active" data-layout="tree">Tree</button>
+          <button class="btn" data-layout="force">Force</button>
+          <button class="btn" data-layout="radial">Radial</button>
+          <button class="btn" data-layout="conflict">Conflict</button>
+        </div>
       </div>
-      <div class="metadata-item">
-        <span class="metadata-label">Version:</span>
-        <span>{{PROJECT_VERSION}}</span>
+
+      <!-- Filter Switcher -->
+      <div class="control-group">
+        <span class="control-label">Filter:</span>
+        <div class="btn-group">
+          <button class="btn active" data-filter="all">All</button>
+          <button class="btn" data-filter="vulnerable">Vulnerable</button>
+          <button class="btn" data-filter="outdated">Outdated</button>
+          <button class="btn" data-filter="deprecated">Deprecated</button>
+          <button class="btn" data-filter="unused">Unused</button>
+        </div>
       </div>
-      <div class="metadata-item">
-        <span class="metadata-label">Dependencies:</span>
-        <span>{{TOTAL_DEPS}}</span>
+
+      <!-- Depth Slider -->
+      <div class="control-group slider-container">
+        <span class="control-label">Depth:</span>
+        <input type="range" id="depthSlider" min="1" max="10" value="10">
+        <span class="depth-value" id="depthValue">∞</span>
       </div>
-      <div class="metadata-item">
-        <span class="metadata-label">Max Depth:</span>
-        <span>{{MAX_DEPTH}}</span>
-      </div>
-      <div class="metadata-item">
-        <span class="metadata-label">Generated:</span>
-        <span>{{GENERATED_AT}}</span>
-      </div>
-    </div>
-  </div>
-  
-  <div class="controls">
-    <button id="zoom-in" class="zoom-in">Zoom In</button>
-    <button id="zoom-out" class="zoom-out">Zoom Out</button>
-    <button id="reset-zoom" class="reset">Reset View</button>
-    <button id="export-svg" class="export">Export SVG</button>
-  </div>
-  
-  {{SEARCH_FILTER_HTML}}
-  
-  <div id="graph-container">
-    <div id="graph">
-      <div class="loading">Loading graph</div>
-    </div>
-  </div>
-  
-  <div class="legend">
-    <h3>Health Score Legend</h3>
-    <div class="legend-items">
-      <div class="legend-item">
-        <div class="legend-color" style="background: #10b981;"></div>
-        <span>Excellent (9-10)</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color" style="background: #84cc16;"></div>
-        <span>Good (7-8)</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color" style="background: #eab308;"></div>
-        <span>Fair (5-6)</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color" style="background: #f97316;"></div>
-        <span>Poor (3-4)</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-color" style="background: #ef4444;"></div>
-        <span>Critical (0-2)</span>
+
+      <!-- Search -->
+      <div class="search-container">
+        <input type="text" class="search-input" placeholder="Search packages..." id="searchInput">
       </div>
     </div>
   </div>
-  
-  <div class="footer">
-    Generated by <a href="https://github.com/AjayBThorat-20/devcompass" target="_blank">DevCompass</a> v3.1.0
-    · <a href="https://www.npmjs.com/package/devcompass" target="_blank">npm</a>
+
+  <!-- Main Container -->
+  <div class="container">
+    <!-- Graph -->
+    <div class="graph-container">
+      <svg id="graph"></svg>
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div>Rendering graph...</div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <h2>Statistics</h2>
+      <div class="stat-grid" id="stats">
+        <!-- Populated by JS -->
+      </div>
+
+      <h2>Legend</h2>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-color" style="background: #10b981;"></div>
+          <span>Healthy</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #f59e0b;"></div>
+          <span>Outdated</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #ef4444;"></div>
+          <span>Vulnerable</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #8b5cf6;"></div>
+          <span>Deprecated</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #6b7280;"></div>
+          <span>Unused</span>
+        </div>
+      </div>
+
+      <h2>Controls</h2>
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <button class="control-btn" onclick="fitToScreen()">⛶ Fit to Screen</button>
+        <button class="control-btn" onclick="zoomIn()">🔍+ Zoom In</button>
+        <button class="control-btn" onclick="zoomOut()">🔍− Zoom Out</button>
+        <button class="control-btn" onclick="resetZoom()">⟲ Reset Zoom</button>
+        <button class="control-btn" onclick="centerGraph()">⊙ Center View</button>
+        <hr style="border: none; border-top: 1px solid #2a3142; margin: 0.5rem 0;">
+        <button class="control-btn" onclick="exportPNG()">📸 Save as PNG</button>
+        <button class="control-btn" onclick="exportJSON()">💾 Save as JSON</button>
+        <button class="control-btn" onclick="toggleFullscreen()">🖵 Fullscreen</button>
+      </div>
+    </div>
   </div>
-  
+
+  <!-- Tooltip -->
+  <div class="tooltip" id="tooltip"></div>
+
   <script>
-    // Remove loading indicator
-    setTimeout(() => {
-      const loading = document.querySelector('.loading');
-      if (loading) loading.remove();
-    }, 100);
-    
-    {{GRAPH_SCRIPT}}
-    
-    // Zoom controls
-    document.getElementById('zoom-in').addEventListener('click', function() {
-      if (typeof zoom !== 'undefined') {
-        d3.select('#graph svg').transition().duration(300).call(zoom.scaleBy, 1.3);
-      }
+    // Graph data will be injected here
+    //  @ts-nocheck
+    const graphData = {{GRAPH_DATA}};
+    const metadata = graphData.metadata || {};
+
+    // State
+    let currentLayout = metadata.defaultLayout || 'tree';
+    let currentFilter = metadata.defaultFilter || 'all';
+    let currentDepth = metadata.defaultDepth || 10;
+    let searchTerm = '';
+    let currentZoom = null; // Store zoom behavior
+    let currentSvg = null;  // Store current SVG
+    let currentG = null;    // Store current group
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeControls();
+      renderGraph();
+      updateStats();
     });
-    
-    document.getElementById('zoom-out').addEventListener('click', function() {
-      if (typeof zoom !== 'undefined') {
-        d3.select('#graph svg').transition().duration(300).call(zoom.scaleBy, 0.7);
+
+    // Control handlers
+    function initializeControls() {
+      // Layout buttons
+      document.querySelectorAll('[data-layout]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('[data-layout]').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentLayout = btn.dataset.layout;
+          renderGraph();
+        });
+      });
+
+      // Filter buttons
+      document.querySelectorAll('[data-filter]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentFilter = btn.dataset.filter;
+          renderGraph();
+        });
+      });
+
+      // Depth slider
+      const slider = document.getElementById('depthSlider');
+      const value = document.getElementById('depthValue');
+      slider.addEventListener('input', (e) => {
+        currentDepth = parseInt(e.target.value);
+        value.textContent = currentDepth === 10 ? '∞' : currentDepth;
+        renderGraph();
+      });
+
+      // Search
+      document.getElementById('searchInput').addEventListener('input', (e) => {
+        searchTerm = e.target.value.toLowerCase();
+        renderGraph();
+      });
+    }
+
+    // Filter nodes
+    function filterNodes(nodes) {
+      let filtered = nodes;
+
+      // Apply depth filter
+      const maxDepth = currentDepth === 10 ? Infinity : currentDepth;
+      filtered = filtered.filter(n => (n.depth || 0) <= maxDepth);
+
+      // Apply category filter
+      if (currentFilter !== 'all') {
+        filtered = filtered.filter(n => {
+          if (n.type === 'root') return true;
+          switch(currentFilter) {
+            case 'vulnerable': return n.isVulnerable;
+            case 'outdated': return n.isOutdated;
+            case 'deprecated': return n.isDeprecated;
+            case 'unused': return n.isUnused;
+            case 'conflict': return n.isVulnerable || n.isDeprecated || n.isOutdated;
+            default: return true;
+          }
+        });
       }
-    });
-    
-    document.getElementById('reset-zoom').addEventListener('click', function() {
-      if (typeof zoom !== 'undefined') {
-        d3.select('#graph svg').transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+
+      // Apply search filter
+      if (searchTerm) {
+        filtered = filtered.filter(n => 
+          n.name.toLowerCase().includes(searchTerm)
+        );
       }
-    });
-    
-    // SVG export
-    document.getElementById('export-svg').addEventListener('click', function() {
-      try {
-        const svgElement = document.querySelector('#graph svg');
-        if (!svgElement) {
-          alert('No graph to export. Please wait for the graph to load.');
-          return;
+
+      return filtered;
+    }
+
+    // Render graph
+    function renderGraph() {
+      const loading = document.getElementById('loading');
+      loading.classList.add('visible');
+
+      setTimeout(() => {
+        const svg = d3.select('#graph');
+        svg.selectAll('*').remove();
+
+        const filteredNodes = filterNodes(graphData.nodes);
+        const nodeIds = new Set(filteredNodes.map(n => n.id));
+        const filteredLinks = graphData.links.filter(l => {
+          const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+          const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+          return nodeIds.has(sourceId) && nodeIds.has(targetId);
+        });
+
+        // Render based on layout
+        switch(currentLayout) {
+          case 'tree': renderTreeLayout(svg, filteredNodes, filteredLinks); break;
+          case 'force': renderForceLayout(svg, filteredNodes, filteredLinks); break;
+          case 'radial': renderRadialLayout(svg, filteredNodes, filteredLinks); break;
+          case 'conflict': renderConflictLayout(svg, filteredNodes, filteredLinks); break;
         }
-        
-        const svgData = svgElement.outerHTML;
-        const blob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'dependency-graph-' + new Date().getTime() + '.svg';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('Export failed:', error);
-        alert('Failed to export SVG. See console for details.');
+
+        loading.classList.remove('visible');
+        updateStats();
+      }, 100);
+    }
+
+    // Layout implementations
+    function renderTreeLayout(svg, nodes, links) {
+      const width = window.innerWidth - 300;
+      const height = window.innerHeight - 80;
+
+      svg.attr('width', width).attr('height', height);
+      const g = svg.append('g');
+
+      const root = buildHierarchy(nodes, links);
+      if (!root) return;
+
+      // Increase spacing between nodes
+      const tree = d3.tree()
+        .size([width - 200, height - 200])
+        .separation((a, b) => (a.parent === b.parent ? 1.5 : 2));
+      
+      tree(root);
+
+      // Links
+      g.selectAll('.link')
+        .data(root.links())
+        .enter().append('path')
+        .attr('class', 'link')
+        .attr('d', d3.linkVertical()
+          .x(d => d.x + 100)
+          .y(d => d.y + 100));
+
+      // Nodes
+      const node = g.selectAll('.node')
+        .data(root.descendants())
+        .enter().append('g')
+        .attr('class', 'node')
+        .attr('transform', d => `translate(${d.x + 100},${d.y + 100})`);
+
+      node.append('circle')
+        .attr('class', 'node-circle')
+        .attr('r', 6)
+        .attr('fill', d => getNodeColor(d.data))
+        .attr('stroke', d => getNodeStroke(d.data))
+        .on('mouseover', showTooltip)
+        .on('mouseout', hideTooltip);
+
+      // Improved label positioning to prevent overlap
+      node.append('text')
+        .attr('class', 'node-label')
+        .attr('dy', d => d.children ? -12 : 15) // Above if has children, below if leaf
+        .attr('text-anchor', 'middle')
+        .text(d => {
+          // Truncate long names
+          const name = d.data.name;
+          return name.length > 15 ? name.substring(0, 15) + '...' : name;
+        })
+        .style('font-size', '10px')
+        .style('pointer-events', 'none');
+
+      addZoom(svg, g);
+      
+      // Auto-fit after rendering
+      setTimeout(() => centerGraph(), 100);
+    }
+
+    function renderForceLayout(svg, nodes, links) {
+      const width = window.innerWidth - 300;
+      const height = window.innerHeight - 80;
+
+      svg.attr('width', width).attr('height', height);
+      const g = svg.append('g');
+
+      const simulation = d3.forceSimulation(nodes)
+        .force('link', d3.forceLink(links).id(d => d.id).distance(100))
+        .force('charge', d3.forceManyBody().strength(-300))
+        .force('center', d3.forceCenter(width / 2, height / 2));
+
+      const link = g.selectAll('.link')
+        .data(links)
+        .enter().append('line')
+        .attr('class', 'link');
+
+      const node = g.selectAll('.node')
+        .data(nodes)
+        .enter().append('g')
+        .attr('class', 'node')
+        .call(d3.drag()
+          .on('start', dragStart)
+          .on('drag', dragging)
+          .on('end', dragEnd));
+
+      node.append('circle')
+        .attr('class', 'node-circle')
+        .attr('r', 8)
+        .attr('fill', getNodeColor)
+        .attr('stroke', getNodeStroke)
+        .on('mouseover', showTooltip)
+        .on('mouseout', hideTooltip);
+
+      node.append('text')
+        .attr('class', 'node-label')
+        .attr('dy', -12)
+        .text(d => d.name);
+
+      simulation.on('tick', () => {
+        link
+          .attr('x1', d => d.source.x)
+          .attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x)
+          .attr('y2', d => d.target.y);
+
+        node.attr('transform', d => `translate(${d.x},${d.y})`);
+      });
+
+      addZoom(svg, g);
+
+      function dragStart(event) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        event.subject.fx = event.subject.x;
+        event.subject.fy = event.subject.y;
       }
-    });
+
+      function dragging(event) {
+        event.subject.fx = event.x;
+        event.subject.fy = event.y;
+      }
+
+      function dragEnd(event) {
+        if (!event.active) simulation.alphaTarget(0);
+        event.subject.fx = null;
+        event.subject.fy = null;
+      }
+    }
+
+    function renderRadialLayout(svg, nodes, links) {
+      const width = window.innerWidth - 300;
+      const height = window.innerHeight - 80;
+      const radius = Math.min(width, height) / 2 - 100;
+
+      svg.attr('width', width).attr('height', height);
+      const g = svg.append('g').attr('transform', `translate(${width/2},${height/2})`);
+
+      const root = buildHierarchy(nodes, links);
+      if (!root) return;
+
+      const tree = d3.cluster().size([2 * Math.PI, radius]);
+      tree(root);
+
+      // Links
+      g.selectAll('.link')
+        .data(root.links())
+        .enter().append('path')
+        .attr('class', 'link')
+        .attr('d', d3.linkRadial()
+          .angle(d => d.x)
+          .radius(d => d.y));
+
+      // Nodes
+      const node = g.selectAll('.node')
+        .data(root.descendants())
+        .enter().append('g')
+        .attr('class', 'node')
+        .attr('transform', d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0)`);
+
+      node.append('circle')
+        .attr('class', 'node-circle')
+        .attr('r', 6)
+        .attr('fill', d => getNodeColor(d.data))
+        .attr('stroke', d => getNodeStroke(d.data))
+        .on('mouseover', showTooltip)
+        .on('mouseout', hideTooltip);
+
+      node.append('text')
+        .attr('class', 'node-label')
+        .attr('dy', -10)
+        .attr('transform', d => d.x >= Math.PI ? 'rotate(180)' : null)
+        .text(d => d.data.name);
+
+      addZoom(svg, g);
+    }
+
+    function renderConflictLayout(svg, nodes, links) {
+      const conflictNodes = nodes.filter(n => 
+        n.type === 'root' || n.isVulnerable || n.isDeprecated || n.isOutdated
+      );
+      const nodeIds = new Set(conflictNodes.map(n => n.id));
+      const conflictLinks = links.filter(l =>
+        nodeIds.has(typeof l.source === 'object' ? l.source.id : l.source) &&
+        nodeIds.has(typeof l.target === 'object' ? l.target.id : l.target)
+      );
+      renderForceLayout(svg, conflictNodes, conflictLinks);
+    }
+
+    // Utilities
+    function buildHierarchy(nodes, links) {
+      const root = nodes.find(n => n.type === 'root');
+      if (!root) return null;
+
+      try {
+        return d3.stratify()
+          .id(d => d.id)
+          .parentId(d => {
+            const link = links.find(l => {
+              const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+              return targetId === d.id;
+            });
+            return link ? (typeof link.source === 'object' ? link.source.id : link.source) : null;
+          })(nodes);
+      } catch (e) {
+        console.error('Hierarchy build failed:', e);
+        return null;
+      }
+    }
+
+    function getNodeColor(node) {
+      if (node.type === 'root') return '#3b82f6';
+      if (node.isVulnerable) return '#ef4444';
+      if (node.isDeprecated) return '#8b5cf6';
+      if (node.isOutdated) return '#f59e0b';
+      if (node.isUnused) return '#6b7280';
+      return '#10b981';
+    }
+
+    function getNodeStroke(node) {
+      if (node.type === 'root') return '#2563eb';
+      return '#1a1f35';
+    }
+
+    function showTooltip(event, d) {
+      const data = d.data || d;
+      const tooltip = document.getElementById('tooltip');
+      
+      let content = `<div class="tooltip-title">${data.name}@${data.version || 'unknown'}</div>`;
+      content += `<div class="tooltip-content">`;
+      
+      if (data.isVulnerable) content += `<span class="tooltip-badge">Vulnerable</span>`;
+      if (data.isDeprecated) content += `<span class="tooltip-badge">Deprecated</span>`;
+      if (data.isOutdated) content += `<span class="tooltip-badge warning">Outdated</span>`;
+      if (data.isUnused) content += `<span class="tooltip-badge info">Unused</span>`;
+      
+      content += `<br>Depth: ${data.depth || 0}`;
+      if (data.healthScore) content += `<br>Health: ${data.healthScore}/10`;
+      content += `</div>`;
+      
+      tooltip.innerHTML = content;
+      tooltip.style.left = (event.pageX + 10) + 'px';
+      tooltip.style.top = (event.pageY + 10) + 'px';
+      tooltip.classList.add('visible');
+    }
+
+    function hideTooltip() {
+      document.getElementById('tooltip').classList.remove('visible');
+    }
+
+    function addZoom(svg, g) {
+      const zoom = d3.zoom()
+        .scaleExtent([0.1, 4])
+        .on('zoom', (event) => g.attr('transform', event.transform));
+      
+      svg.call(zoom);
+      
+      // Store references for external controls
+      currentZoom = zoom;
+      currentSvg = svg;
+      currentG = g;
+    }
+
+    // ========== CONTROL FUNCTIONS ==========
+    
+    function zoomIn() {
+      if (currentSvg && currentZoom) {
+        currentSvg.transition().duration(300).call(currentZoom.scaleBy, 1.3);
+      }
+    }
+
+    function zoomOut() {
+      if (currentSvg && currentZoom) {
+        currentSvg.transition().duration(300).call(currentZoom.scaleBy, 0.7);
+      }
+    }
+
+    function resetZoom() {
+      if (currentSvg && currentZoom) {
+        currentSvg.transition().duration(500).call(currentZoom.transform, d3.zoomIdentity);
+      }
+    }
+
+    function centerGraph() {
+      if (!currentSvg || !currentZoom || !currentG) return;
+      
+      try {
+        // Get the bounding box of all graph elements
+        const bbox = currentG.node().getBBox();
+        
+        // Get container dimensions
+        const containerWidth = currentSvg.node().clientWidth;
+        const containerHeight = currentSvg.node().clientHeight;
+        
+        // Calculate scale to fit content with padding
+        const padding = 50;
+        const scaleX = (containerWidth - padding * 2) / bbox.width;
+        const scaleY = (containerHeight - padding * 2) / bbox.height;
+        const scale = Math.min(scaleX, scaleY, 1); // Don't zoom in beyond 1x
+        
+        // Calculate translation to center the content
+        const tx = (containerWidth - bbox.width * scale) / 2 - bbox.x * scale;
+        const ty = (containerHeight - bbox.height * scale) / 2 - bbox.y * scale;
+        
+        // Apply transform
+        currentSvg.transition().duration(750).call(
+          currentZoom.transform,
+          d3.zoomIdentity.translate(tx, ty).scale(scale)
+        );
+      } catch (error) {
+        // Fallback to simple center
+        const width = currentSvg.node().clientWidth;
+        const height = currentSvg.node().clientHeight;
+        currentSvg.transition().duration(500).call(
+          currentZoom.transform,
+          d3.zoomIdentity.translate(width / 2, height / 2).scale(1)
+        );
+      }
+    }
+
+    function fitToScreen() {
+      centerGraph(); // Uses the same logic
+    }
+
+    function exportPNG() {
+      try {
+        const svgElement = document.getElementById('graph');
+        const svgData = new XMLSerializer().serializeToString(svgElement);
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+
+        canvas.width = svgElement.clientWidth;
+        canvas.height = svgElement.clientHeight;
+
+        img.onload = function() {
+          ctx.fillStyle = '#0a0e1a';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          
+          canvas.toBlob(function(blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'dependency-graph-' + currentLayout + '-' + currentFilter + '.png';
+            a.click();
+            URL.revokeObjectURL(url);
+          });
+        };
+
+        img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+      } catch (error) {
+        alert('PNG export requires the graph to be fully loaded. Please try again.');
+      }
+    }
+
+    function exportJSON() {
+      const filtered = filterNodes(graphData.nodes);
+      const nodeIds = new Set(filtered.map(n => n.id));
+      const filteredLinks = graphData.links.filter(l => {
+        const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+        const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+        return nodeIds.has(sourceId) && nodeIds.has(targetId);
+      });
+
+      const exportData = {
+        layout: currentLayout,
+        filter: currentFilter,
+        depth: currentDepth,
+        nodes: filtered,
+        links: filteredLinks,
+        metadata: graphData.metadata
+      };
+
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'dependency-graph-' + currentLayout + '-' + currentFilter + '.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          alert('Fullscreen not supported on this browser');
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    function updateStats() {
+      const filtered = filterNodes(graphData.nodes);
+      const stats = {
+        total: filtered.length,
+        vulnerable: filtered.filter(n => n.isVulnerable).length,
+        deprecated: filtered.filter(n => n.isDeprecated).length,
+        outdated: filtered.filter(n => n.isOutdated).length,
+        unused: filtered.filter(n => n.isUnused).length,
+        healthy: filtered.filter(n => !n.isVulnerable && !n.isDeprecated && !n.isOutdated && !n.isUnused).length
+      };
+
+      document.getElementById('stats').innerHTML = `
+        <div class="stat-item">
+          <span class="stat-label">Total</span>
+          <span class="stat-value">${stats.total}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Vulnerable</span>
+          <span class="stat-value danger">${stats.vulnerable}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Deprecated</span>
+          <span class="stat-value warning">${stats.deprecated}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Outdated</span>
+          <span class="stat-value warning">${stats.outdated}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Unused</span>
+          <span class="stat-value">${stats.unused}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Healthy</span>
+          <span class="stat-value success">${stats.healthy}</span>
+        </div>
+      `;
+    }
   </script>
 </body>
 </html>
