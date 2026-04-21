@@ -5,6 +5,300 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.5] - 2026-04-21
+
+### 🔑 Major Feature: GitHub Personal Access Token Support
+
+User-configurable GitHub token authentication to eliminate API rate limiting and enable unlimited package monitoring!
+
+### Added
+
+#### **User-Configurable GitHub Token System**
+- **NEW:** `devcompass config` command for token management
+- **NEW:** Secure local token storage in `~/.devcompass/github-token`
+- **NEW:** Token validation (must start with `ghp_` or `github_pat_`)
+- **NEW:** File permissions enforcement (0600 - owner read/write only)
+- **NEW:** Gitignored `.devcompass/` directory for security
+- **NEW:** Masked token display in `--show` output
+- **NEW:** Setup instructions on rate limit errors
+
+#### **Config Command**
+- `devcompass config --github-token <token>` - Save GitHub token
+- `devcompass config --show` - Display masked token
+- `devcompass config --remove-github-token` - Delete saved token
+- `devcompass config --help` - Show configuration help
+
+#### **Benefits**
+- **Avoid Rate Limits:** 60 → 5,000 requests/hour
+- **Secure Storage:** Token stays on local machine only
+- **User-Specific:** Each developer uses their own token
+- **Optional:** Works without token (with rate limits)
+- **Privacy-Focused:** Never committed to git
+
+#### **502 Tracked Repositories**
+- **Expanded package database** from hardcoded list to external JSON file
+- **502 popular npm packages** across 33 categories
+- **File:** `data/tracked-repos.json`
+- **Metadata tracking:** Total packages, categories, last updated
+- **Categories include:**
+  - Frontend Frameworks (React, Vue, Angular, Svelte, etc.)
+  - Backend Frameworks (Express, NestJS, Fastify, etc.)
+  - Build Tools (Webpack, Vite, Rollup, esbuild, etc.)
+  - Testing Libraries (Jest, Mocha, Cypress, Vitest, etc.)
+  - Utilities (Lodash, Axios, Moment, Ramda, etc.)
+  - State Management (Redux, MobX, Zustand, etc.)
+  - CSS & Styling (Sass, PostCSS, Styled-components, etc.)
+  - Database & ORM (Mongoose, Prisma, Sequelize, etc.)
+  - GraphQL (Apollo, GraphQL.js, Relay, etc.)
+  - Authentication (Passport, jsonwebtoken, bcrypt, etc.)
+  - And 23 more categories!
+
+### Technical Details
+
+**New Files Created:**
+- `src/config/github-token.js` - GitHubTokenManager class (~150 lines)
+  - `getToken()` - Retrieve saved token
+  - `saveToken()` - Store token with validation
+  - `hasToken()` - Check if token exists
+  - `removeToken()` - Delete saved token
+  - `showTokenInstructions()` - Display setup guide
+- `src/commands/config.js` - Config command handler (~100 lines)
+  - Token management CLI interface
+  - Masked token display
+  - Setup instructions
+  - Help text
+- `data/tracked-repos.json` - Repository database (~502 entries)
+  - Package → GitHub repo mapping
+  - Metadata (total, categories, lastUpdated)
+
+**Enhanced Files:**
+- `src/alerts/github-tracker.js` - Token integration (~30 lines added)
+  - Loads token via GitHubTokenManager
+  - Adds Authorization header when token available
+  - Enhanced error messages with setup instructions
+  - Fixed exports: added `getTrackedPackageCount()` and `getTrackedPackagesByCategory()`
+- `bin/devcompass.js` - Config command registration (~20 lines)
+  - Added `config` command with options
+  - Help text for token management
+- `.gitignore` - Added `.devcompass/` directory
+
+**Total New Code:** ~800 lines
+
+### Token Storage Architecture
+
+**Location:** `~/.devcompass/github-token`
+
+**Permissions:** `0600` (owner read/write only)
+
+**Format:** Plain text token string
+
+**Validation:** 
+- Must start with `ghp_` or `github_pat_`
+- Enforced before saving
+
+**Security:**
+- Local storage only
+- File permissions enforced
+- Gitignored directory
+- Never transmitted except to GitHub API
+- Masked in display output
+
+### API Integration
+
+**With Token:**
+```javascript
+headers: {
+  'Authorization': `Bearer ${token}`,
+  'User-Agent': 'DevCompass'
+}
+```
+
+**Without Token:**
+```javascript
+headers: {
+  'User-Agent': 'DevCompass'
+}
+```
+
+**Rate Limits:**
+- Without token: 60 requests/hour
+- With token: 5,000 requests/hour
+
+**Error Handling:**
+- 403/429 errors → Show setup instructions
+- Invalid token → Validation error
+- Missing token → Works with rate limits
+
+### Use Cases
+
+**Perfect For:**
+- **Development Teams** - Each developer uses own token
+- **CI/CD Pipelines** - Configure token in environment
+- **Large Projects** - Monitor all 502 packages without limits
+- **Security Teams** - Avoid rate limit interruptions
+- **Package Maintainers** - Comprehensive dependency monitoring
+
+### Example Usage
+
+**Setup Token:**
+```bash
+# 1. Get token from GitHub
+# Visit: https://github.com/settings/tokens/new
+# Scope: public_repo (read access only)
+
+# 2. Configure in DevCompass
+devcompass config --github-token ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Output:
+# ✓ GitHub token saved successfully!
+# Token stored in: /home/user/.devcompass/github-token
+# 🎉 You can now use DevCompass without rate limits!
+```
+
+**Show Current Token:**
+```bash
+devcompass config --show
+
+# Output:
+# ✓ GitHub token configured: ghp_xxx***xxx
+```
+
+**Remove Token:**
+```bash
+devcompass config --remove-github-token
+
+# Output:
+# ✓ GitHub token removed successfully!
+# DevCompass will now use unauthenticated mode (60 requests/hour)
+```
+
+**Analyze with Token:**
+```bash
+devcompass analyze
+
+# Output:
+# ⚡ GitHub check completed in 2.08s (parallel processing)
+# ✅ No unusual activity detected (502+ packages monitored)!
+```
+
+### GitHub Token Scope
+
+**Required Scope:** `public_repo` only
+
+**Safe because:**
+- ✅ Read-only access to public repositories
+- ❌ Cannot access private repositories
+- ❌ Cannot modify anything
+- ❌ Cannot delete anything
+
+**Never select:**
+- ❌ `repo` (too much access)
+- ❌ Any admin/delete scopes
+
+### Performance
+
+**No performance impact** - token adds header only
+
+**GitHub check speed:**
+- With token: ~2 seconds (502 packages)
+- Without token: Same speed (but hits rate limits)
+
+### Breaking Changes
+
+**None** - Fully backward compatible with v3.1.4
+
+- All existing commands work unchanged
+- Token is optional (works without it)
+- Drop-in upgrade
+
+### Migration Guide
+
+**No migration needed!** Token configuration is optional.
+
+**Recommended setup:**
+```bash
+# 1. Upgrade
+npm install -g devcompass@3.1.5
+
+# 2. Get GitHub token
+# https://github.com/settings/tokens/new
+# Select "public_repo" scope only
+
+# 3. Configure token
+devcompass config --github-token ghp_xxxxx
+
+# 4. Done! Enjoy unlimited GitHub API access
+devcompass analyze
+```
+
+### Security Features
+
+**Token Safety:**
+- 🔒 Stored locally in `~/.devcompass/github-token`
+- 🔒 File permissions: `0600` (only you can read/write)
+- 🔒 Directory `.devcompass/` is gitignored
+- 🔒 Never transmitted except to GitHub's API
+- 🔒 Token validation before saving
+- 🔒 Masked in `--show` output (first 7 + last 4 chars)
+
+**What the token can access:**
+- ✅ Read public repository information (issues, metadata)
+- ❌ Cannot access private repositories
+- ❌ Cannot modify anything
+- ❌ Cannot delete anything
+
+### Files Changed
+
+- `bin/devcompass.js` - Added config command
+- `src/alerts/github-tracker.js` - Token integration + fixed exports
+- `.gitignore` - Added `.devcompass/` directory
+- `package.json` - Version bump to 3.1.5, updated description and keywords
+- `README.md` - Added token configuration documentation
+
+### New Files
+
+- `src/config/github-token.js` - GitHubTokenManager class
+- `src/commands/config.js` - Config command handler
+- `data/tracked-repos.json` - 502 package database
+
+### Fixed
+
+- **Missing exports** - Added `getTrackedPackageCount()` and `getTrackedPackagesByCategory()` to github-tracker.js
+- **Error:** "getTrackedPackageCount is not a function" resolved
+
+### Troubleshooting
+
+**Issue:** "API rate limit exceeded"
+```bash
+# Solution: Configure GitHub token
+devcompass config --github-token 
+```
+
+**Issue:** "Invalid token format"
+```bash
+# Solution: Ensure token starts with ghp_ or github_pat_
+# Get a new token from https://github.com/settings/tokens/new
+```
+
+**Issue:** Token not being used
+```bash
+# Verify token is saved
+devcompass config --show
+
+# Should show:
+# ✓ GitHub token configured: ghp_xxx***xxx
+```
+
+### Future Enhancements (v3.2.0+)
+
+- Token expiration warnings
+- Multiple token support (per-organization)
+- Token rotation helper
+- GitHub App authentication
+- Rate limit status display
+
+---
+
 ## [3.1.4] - 2026-04-20
 
 ### 🎨 Major Feature: Unified Interactive Graph System
@@ -4128,6 +4422,7 @@ No migration needed. All features are opt-in via flags or config.
 
 ---
 
+[3.1.5]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.5
 [3.1.4]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.4
 [3.1.3]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.3
 [3.1.2]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.2

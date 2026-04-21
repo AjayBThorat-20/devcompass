@@ -25,3 +25,6 @@ test1.html
 test1.json
 test1-shallow.html
 devcompass-v310-test/
+
+# DevCompass config (contains GitHub token)
+.devcompass/

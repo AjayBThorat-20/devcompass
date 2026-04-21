@@ -1,126 +1,329 @@
 # 🧭 DevCompass
 
-**Dependency health checker with ecosystem intelligence, real-time GitHub issue tracking for 500+ popular npm packages, unified interactive dependency graph with dynamic layout switching, real-time filtering, advanced zoom controls, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, batch fix modes with granular control, backup & rollback, and professional dependency exploration - all in a single interactive HTML file.**
+**Dependency health checker with ecosystem intelligence, user-configurable GitHub Personal Access Token support, real-time GitHub issue tracking for 502 popular npm packages, unified interactive dependency graph with dynamic layout switching, real-time filtering, advanced zoom controls, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, batch fix modes with granular control, backup & rollback, and professional dependency exploration - all in a single interactive HTML file.**
 
 [![npm version](https://img.shields.io/npm/v/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 500+ packages**, **visualize dependency graphs with unified interactive interface**, **instant layout switching**, **real-time filtering**, **advanced zoom controls**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
+Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 502 packages**, **configure your own GitHub token to avoid rate limits**, **visualize dependency graphs with unified interactive interface**, **instant layout switching**, **real-time filtering**, **advanced zoom controls**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
-> **🎨 LATEST v3.1.4:** Unified Interactive Graph System - 40+ files → 1 file with dynamic controls! 🎨  
-> **✨ PREVIOUS v3.1.3:** Cleanup & Code Improvements - Removed unused dependencies! 🧹  
-> **🎯 v3.1.2:** Graph Layout Fixes & Dynamic Issues - Tree/Radial layouts fixed! 🎯
+> **🔑 LATEST v3.1.5:** GitHub Personal Access Token Support - Configure your own token to bypass rate limits! 🔑  
+> **🎨 PREVIOUS v3.1.4:** Unified Interactive Graph System - 40+ files → 1 file with dynamic controls! 🎨  
+> **✨ v3.1.3:** Cleanup & Code Improvements - Removed unused dependencies! 🧹
 
-## 🎉 Latest Release: v3.1.4 (2026-04-20)
+## 🎉 Latest Release: v3.1.5 (2026-04-21)
 
-**Unified Interactive Graph System - Complete Redesign!**
+**GitHub Personal Access Token Support - Avoid Rate Limits!**
 
-### 🌟 What's New in v3.1.4:
+### 🌟 What's New in v3.1.5:
 
-#### **97% File Reduction - Revolutionary Simplification!**
+#### **🔑 User-Configurable GitHub Token**
 
-**Before v3.1.4:**
+No more hardcoded tokens or rate limit errors! Configure your own GitHub Personal Access Token to unlock full monitoring capabilities.
 
-40+ separate HTML files:
+**Benefits:**
+- ✅ **Avoid Rate Limits:** 60 → 5,000 requests/hour
+- ✅ **Secure:** Token stored locally in `~/.devcompass/github-token`
+- ✅ **User-Specific:** Each developer uses their own token
+- ✅ **Optional:** Works without token (with rate limits)
+- ✅ **Privacy:** Never committed to git or shared
 
-graph-tree.html
-graph-force.html
-graph-radial.html
-graph-filter-vulnerable.html
-combo-tree-vulnerable.html
-combo-force-outdated.html
-... (34+ more files)
-Total: ~4-5 MB
+**Quick Setup:**
 
-**After v3.1.4:**
+```bash
+# 1. Get a GitHub token
+# Visit: https://github.com/settings/tokens/new
+# Scope: public_repo (read access only)
 
-1 unified HTML file:
+# 2. Configure in DevCompass
+devcompass config --github-token ghp_YOUR_TOKEN_HERE
 
-dependency-graph.html (107 KB)
-✨ Contains ALL:
+# 3. Verify
+devcompass config --show
+# ✓ GitHub token configured: ghp_xxx***xxx
+```
 
-4 layouts (switchable)
-5 filters (switchable)
-Depth control
-Search
-Export options
-Total: 107 KB (97% reduction!)
+#### **📦 502 Tracked Repositories**
 
+Expanded from hardcoded 60 packages to **502 popular npm packages** tracked via external JSON file:
 
+- Web Frameworks (React, Vue, Angular, Svelte, etc.)
+- Meta Frameworks (Next.js, Nuxt, Remix, etc.)
+- Build Tools (Webpack, Vite, Rollup, esbuild, etc.)
+- Testing (Jest, Vitest, Cypress, Playwright, etc.)
+- And 29 more categories!
 
+**File:** `data/tracked-repos.json`
 
+#### **🛡️ Enhanced Security**
 
+**Token Storage:**
+- Location: `~/.devcompass/github-token`
+- Permissions: `600` (owner read/write only)
+- Format: Plain text token string
+- Gitignored: `.devcompass/` directory
 
-#### **🎨 Unified Interactive Features**
+**Token Validation:**
+- Must start with `ghp_` or `github_pat_`
+- Automatic validation on save
+- Clear error messages
 
-- **Dynamic Layout Switcher** - Tree/Force/Radial/Conflict buttons (no page reload!)
-- **Real-time Filters** - All/Vulnerable/Outdated/Deprecated/Unused (instant updates)
-- **Depth Slider** - 1-10 with ∞ option (live filtering)
-- **Live Search** - Instant package name filtering
-- **Advanced Zoom Controls:**
-  - 🔍+ Zoom In (1.3x magnification)
-  - 🔍− Zoom Out (0.7x reduction)
-  - ⟲ Reset Zoom (return to 1:1)
-  - ⛶ Fit to Screen (auto-scale entire graph)
-  - ⊙ Center View (smart bounding box centering)
-- **Export Capabilities:**
-  - 📸 Save as PNG (download current view)
-  - 💾 Save as JSON (export filtered data)
-- **🖵 Fullscreen Mode** - Immersive graph exploration
-- **📊 Live Statistics** - Real-time node/link counts
+**Masked Display:**
+```bash
+devcompass config --show
+# Shows: ghp_xxx***xxx (first 7 + last 4 characters)
+```
 
-#### **🔧 Enhanced Tree Layout**
+#### **📊 Config Command**
 
-- **Fixed label overlap** - Intelligent positioning (above parents, below leaves)
-- **Increased spacing** - 1.5x-2x separation for clarity
-- **Auto-fit on render** - Graph scales automatically
-- **Text truncation** - 15 character limit with ellipsis
-- **Better readability** - Improved font sizing
+New `config` command for token management:
 
-#### **⚡ Performance Improvements**
+```bash
+# Set token
+devcompass config --github-token <token>
 
-| Operation | Time | Speed |
-|-----------|------|-------|
-| Layout switch | <100ms | No page reload! |
-| Filter update | <50ms | Real-time |
-| Search | <20ms | Instant |
-| Initial render | <100ms | Lightning fast |
-| Export PNG | ~1-2s | Professional quality |
+# Show current token (masked)
+devcompass config --show
+
+# Remove token
+devcompass config --remove-github-token
+
+# Help
+devcompass config --help
+```
+
+#### **🚀 Improved GitHub Tracking**
+
+**With Token:**
+- 5,000 requests/hour (vs 60 without)
+- Tracks all 502 packages without rate limits
+- GitHub check completes in ~2 seconds
+- No warnings or errors
+
+**Without Token:**
+- Falls back to unauthenticated mode
+- Shows setup instructions
+- Links to token creation page
 
 ### 🚀 Upgrade Now:
 
 ```bash
-npm install -g devcompass@3.1.4
+npm install -g devcompass@3.1.5
 ```
 
-### 📈 Migration from v3.1.3:
+### 📈 Migration from v3.1.4:
 
-**No changes required - drop-in replacement!** All existing commands work identically. The unified graph is now the default behavior.
+**No breaking changes!** All existing commands work identically.
 
-**Workflow Comparison:**
+**Optional - Configure GitHub Token:**
 
-**Before v3.1.4:**
 ```bash
-# Generate multiple files
-devcompass graph --layout tree --output graph-tree.html
-devcompass graph --layout force --output graph-force.html
-devcompass graph --filter vulnerable --output graph-vulnerable.html
-# Result: 3 commands, 3 files, 3 browser tabs
+# Step 1: Get token from GitHub
+# https://github.com/settings/tokens/new
+# Select: public_repo scope
+
+# Step 2: Configure in DevCompass
+devcompass config --github-token ghp_YOUR_TOKEN_HERE
+
+# Step 3: Enjoy unlimited GitHub API access!
+devcompass analyze
+# ✅ No rate limits
+# ✅ 502 packages tracked
+# ✅ GitHub check in ~2s
 ```
 
-**After v3.1.4:**
+---
+
+## 🔑 GitHub Token Configuration (v3.1.5)
+
+DevCompass now supports user-configurable GitHub Personal Access Tokens to avoid API rate limiting.
+
+### Why Configure a Token?
+
+**Without Token:**
+- 60 requests/hour (GitHub API limit)
+- May hit rate limits during analysis
+- Cannot track all 502 packages
+
+**With Token:**
+- 5,000 requests/hour 🚀
+- No rate limit warnings
+- Full package health monitoring
+- Faster analysis
+
+### Setup Guide
+
+#### 1. Create GitHub Token
+
+Visit: https://github.com/settings/tokens/new
+
+**Token Settings:**
+- **Token name:** `DevCompass CLI`
+- **Expiration:** `90 days` (or your preference)
+- **Scopes:** ☑️ `public_repo` **ONLY** (read access to public repos)
+
+**Important:** Do NOT select `repo` (full private access) - only `public_repo` is needed!
+
+#### 2. Configure Token
+
 ```bash
-# Generate one unified file
-devcompass graph
-# Result: 1 command, 1 file, instant switching via buttons!
+# Set your token
+devcompass config --github-token ghp_YOUR_TOKEN_HERE
+
+# Output:
+# ✓ GitHub token saved successfully!
+# Token stored in: /home/user/.devcompass/github-token
+# 🎉 You can now use DevCompass without rate limits!
+```
+
+#### 3. Verify Configuration
+
+```bash
+# Show masked token
+devcompass config --show
+
+# Output:
+# ✓ GitHub token configured: ghp_xxx***xxx
+```
+
+#### 4. Test It
+
+```bash
+# Run analysis
+devcompass analyze
+
+# Should see:
+# ⚡ GitHub check completed in 2.08s (parallel processing)
+# ✅ No unusual activity detected (502+ packages monitored)!
+# (No rate limit warnings!)
+```
+
+### Token Management
+
+```bash
+# Show current token (masked)
+devcompass config --show
+
+# Remove token
+devcompass config --remove-github-token
+
+# Get help
+devcompass config --help
+```
+
+### Security & Privacy
+
+**Local Storage:**
+- Token stored in: `~/.devcompass/github-token`
+- File permissions: `600` (owner read/write only)
+- Never committed to git (`.devcompass/` in `.gitignore`)
+
+**Token Safety:**
+- Only needs `public_repo` scope (read-only)
+- Cannot access private repositories
+- Cannot modify anything
+- Can be revoked anytime on GitHub
+
+**Privacy:**
+- Token stored locally on your machine
+- Not shared or transmitted anywhere
+- Each developer uses their own token
+- No central token storage
+
+### Troubleshooting
+
+**Token not working?**
+```bash
+# Verify token is set
+devcompass config --show
+
+# Check file permissions
+ls -la ~/.devcompass/github-token
+# Should show: -rw------- (600)
+
+# Verify token on GitHub
+# https://github.com/settings/tokens
+```
+
+**Rate limit errors?**
+```bash
+# If you see rate limit warnings:
+# 1. Verify token is configured
+devcompass config --show
+
+# 2. Check token hasn't expired
+# Visit: https://github.com/settings/tokens
+
+# 3. Generate new token if needed
+# https://github.com/settings/tokens/new
+```
+
+**Want to remove token?**
+```bash
+# Remove token
+devcompass config --remove-github-token
+
+# DevCompass will work with rate limits (60/hour)
+```
+
+---
+
+## 📦 Tracked Repositories (v3.1.5)
+
+DevCompass now tracks **502 popular npm packages** across 33 categories!
+
+### Coverage by Category:
+
+- **Web Frameworks (25):** React, Vue, Angular, Svelte, Solid, Preact, etc.
+- **Meta Frameworks (15):** Next.js, Nuxt, Remix, Astro, SvelteKit, etc.
+- **Mobile (10):** React Native, Expo, Ionic, NativeScript, etc.
+- **Backend (20):** Express, Fastify, Koa, NestJS, Hono, etc.
+- **Build Tools (25):** Webpack, Vite, Rollup, esbuild, Turbopack, etc.
+- **Testing (25):** Jest, Vitest, Cypress, Playwright, Testing Library, etc.
+- **Linters & Formatters (15):** ESLint, Prettier, Biome, etc.
+- **TypeScript Tools (15):** tsc, ts-node, tsup, tsx, etc.
+- **State Management (20):** Redux, Zustand, Jotai, MobX, Pinia, etc.
+- **HTTP Clients (20):** Axios, Fetch, Got, Ky, Superagent, etc.
+- **Utilities (50):** Lodash, Ramda, date-fns, Zod, Yup, etc.
+- **CSS & Styling (25):** Tailwind, Styled Components, Emotion, etc.
+- **Documentation (15):** Storybook, Docusaurus, VitePress, etc.
+- **Database & ORM (20):** Prisma, Drizzle, TypeORM, Sequelize, etc.
+- **GraphQL (15):** Apollo, Relay, urql, GraphQL Yoga, etc.
+- **Authentication (15):** Passport, NextAuth, Auth0, Clerk, etc.
+- **And 17 more categories!**
+
+**Total: 502 packages monitored for GitHub activity!**
+
+### Data Source
+
+All tracked repositories are defined in:
+```
+data/tracked-repos.json
+```
+
+Format:
+```json
+{
+  "repositories": {
+    "react": "facebook/react",
+    "vue": "vuejs/core",
+    "angular": "angular/angular",
+    ...
+  },
+  "metadata": {
+    "total": 502,
+    "categories": 33,
+    "lastUpdated": "2026-04-21"
+  }
+}
 ```
 
 ---
 
 ## 🎨 Unified Graph Visualization (v3.1.4)
 
-DevCompass now features a **revolutionary unified interactive graph** - all layouts, filters, and controls in one beautiful interface!
+DevCompass features a **revolutionary unified interactive graph** - all layouts, filters, and controls in one beautiful interface!
 
 ### 🎯 Single Command, Infinite Possibilities
 
@@ -214,6 +417,7 @@ Save your current view:
 
 Real-time metrics updated on every action:
 
+```
 Statistics
 ───────────────
 Total:       142
@@ -222,6 +426,7 @@ Deprecated:    0
 Outdated:      4
 Unused:        5
 Healthy:     119
+```
 
 ### 🎨 Color-Coded Health
 
@@ -256,66 +461,12 @@ devcompass graph --open
 #    - Click "Conflict" layout → Verify fixes
 ```
 
-### 📈 Usage Examples
-
-#### **Quick Security Audit**
-```bash
-devcompass graph --open
-# In browser: Click "Vulnerable" filter → See all security issues
-```
-
-#### **Dependency Exploration**
-```bash
-devcompass graph --open
-# In browser: 
-# 1. Click "Force" layout
-# 2. Drag nodes around
-# 3. Click nodes to highlight connections
-# 4. Use search to find packages
-```
-
-#### **Professional Documentation**
-```bash
-devcompass graph --open
-# In browser:
-# 1. Click "Tree" layout
-# 2. Click "Fit to Screen"
-# 3. Click "Export PNG"
-# → Add screenshot to docs
-```
-
-#### **Deep Dependency Analysis**
-```bash
-devcompass graph --open
-# In browser:
-# 1. Drag depth slider to "2"
-# 2. Click "Radial" layout
-# 3. See direct + transitive dependencies
-```
-
----
-
-## 🔄 Dynamic Issue Detection (v3.1.2+)
-
-DevCompass detects issues in **real-time** for ANY package!
-
-```bash
-devcompass analyze
-devcompass graph --open
-# Click "Vulnerable" filter to see live security issues
-```
-
-**Sources:**
-- 🔐 **npm audit** - Real security vulnerabilities
-- 📦 **npm registry** - Deprecation status
-- 📅 **npm registry** - Maintenance status (2+ years = unmaintained)
-
-**Coverage:** Works for ALL packages, not just a hardcoded list!
-
 ---
 
 ## ✨ All Features at a Glance
 
+- 🔑 **GitHub Token Configuration** (v3.1.5) - User-configurable tokens, no rate limits
+- 📦 **502 Tracked Packages** (v3.1.5) - Comprehensive GitHub monitoring
 - 🎨 **Unified Interactive Graph** (v3.1.4) - 40+ files → 1 file with dynamic controls
 - 🧹 **Cleanup & Code Improvements** (v3.1.3) - Removed unused dependencies
 - 🎯 **Graph Layout Fixes** (v3.1.2) - Tree/Radial layouts properly fixed
@@ -348,25 +499,25 @@ devcompass graph --open
 **Global installation (recommended):**
 
 ```bash
-npm install -g devcompass@3.1.4
+npm install -g devcompass@3.1.5
 ```
 
 **Local installation:**
 
 ```bash
-npm install --save-dev devcompass@3.1.4
+npm install --save-dev devcompass@3.1.5
 ```
 
 **One-time use (no installation):**
 
 ```bash
-npx devcompass@3.1.4 analyze
+npx devcompass@3.1.5 analyze
 ```
 
 **Upgrade from previous versions:**
 
 ```bash
-npm install -g devcompass@3.1.4
+npm install -g devcompass@3.1.5
 ```
 
 **No additional dependencies needed!** All features work out of the box. 🎉
@@ -376,10 +527,15 @@ npm install -g devcompass@3.1.4
 ### Basic Commands
 
 ```bash
+# Configure GitHub token (NEW in v3.1.5!)
+devcompass config --github-token <your-token>
+devcompass config --show
+devcompass config --help
+
 # Analyze your project
 devcompass analyze
 
-# Generate unified interactive graph (v3.1.4 - NEW!)
+# Generate unified interactive graph (v3.1.4)
 devcompass graph                    # Single file with ALL features
 devcompass graph --open             # Open in browser
 
@@ -488,78 +644,6 @@ devcompass graph --format json --output graph.json
 # JSON includes complete graph structure
 # nodes, links, metadata, analysis results
 ```
-
-### Advanced Usage Examples
-
-#### **Quick Security Check**
-```bash
-# 1. Generate graph
-devcompass graph --open
-
-# 2. In browser:
-#    - Click "Vulnerable" filter
-#    - See all security issues
-#    - Click "Export PNG" to save screenshot
-```
-
-#### **Dependency Exploration**
-```bash
-# 1. Generate graph
-devcompass graph --open
-
-# 2. In browser:
-#    - Click "Force" layout
-#    - Drag nodes to explore relationships
-#    - Use search to find specific packages
-#    - Click nodes to highlight connections
-#    - Click "Fit to Screen" to see overview
-```
-
-#### **Professional Documentation**
-```bash
-# 1. Generate graph
-devcompass graph --open
-
-# 2. In browser:
-#    - Click "Tree" layout
-#    - Set depth to 2 (slider)
-#    - Click "Fit to Screen"
-#    - Click "Export PNG"
-#    → Add to project documentation
-```
-
-#### **Complete Workflow**
-```bash
-# 1. Analyze project health
-devcompass analyze
-
-# 2. Visualize dependencies
-devcompass graph --open
-#    - Explore with Force layout
-#    - Filter to Vulnerable packages
-#    - Export PNG for review
-
-# 3. Fix critical issues
-devcompass fix --batch-mode high
-
-# 4. Verify improvements
-devcompass graph --open
-#    - Click "Conflict" layout
-#    - Should see fewer issues!
-```
-
-### Command Options (v3.1.4)
-
-```bash
--p, --path <path>       # Project path (default: current directory)
--o, --output <file>     # Output file (default: dependency-graph.html)
--f, --format <format>   # Output format: html, json (default: html)
--w, --width <number>    # Graph width in pixels (default: 1200)
--h, --height <number>   # Graph height in pixels (default: 800)
---open                  # Open in browser after generation
-```
-
-**Note:** Layout and filter options are now **interactive buttons** in the HTML file, not CLI flags!
 
 ---
 
@@ -701,7 +785,7 @@ Create `devcompass.config.json` in your project root:
 **Issue:** "Command not found: devcompass"
 ```bash
 # Solution: Install globally
-npm install -g devcompass@3.1.4
+npm install -g devcompass@3.1.5
 ```
 
 **Issue:** Old version installed
@@ -710,27 +794,33 @@ npm install -g devcompass@3.1.4
 npm update -g devcompass
 ```
 
+**Issue:** GitHub rate limit errors
+```bash
+# Solution: Configure your GitHub token
+devcompass config --github-token <your-token>
+
+# Get token: https://github.com/settings/tokens/new
+# Scope: public_repo only
+```
+
+**Issue:** Token not working
+```bash
+# Verify token is set
+devcompass config --show
+
+# Check file permissions
+ls -la ~/.devcompass/github-token
+
+# Should show: -rw------- (600)
+```
+
 **Issue:** Graph controls not working
 ```bash
-# Solution: Ensure you're on v3.1.4
-devcompass --version  # Should show 3.1.4
+# Solution: Ensure you're on v3.1.5
+devcompass --version  # Should show 3.1.5
 
 # Clear browser cache
 # Hard refresh (Ctrl+F5 or Cmd+Shift+R)
-```
-
-**Issue:** Center view centers entire page (OLD BUG - FIXED in v3.1.4!)
-```bash
-# Solution: Upgrade to v3.1.4
-npm install -g devcompass@3.1.4
-# Center now uses smart bounding box calculation
-```
-
-**Issue:** Labels overlapping in tree layout (OLD BUG - FIXED in v3.1.4!)
-```bash
-# Solution: Upgrade to v3.1.4
-npm install -g devcompass@3.1.4
-# Labels now positioned intelligently
 ```
 
 **Issue:** Unused dependencies showing up incorrectly
@@ -811,6 +901,10 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 - [x] ~~Real-time filtering~~ ✅ **Added in v3.1.4!**
 - [x] ~~Advanced zoom controls~~ ✅ **Added in v3.1.4!**
 - [x] ~~Single file graph~~ ✅ **Added in v3.1.4!**
+- [x] ~~User-configurable GitHub tokens~~ ✅ **Added in v3.1.5!**
+- [x] ~~Expand to 502 tracked packages~~ ✅ **Added in v3.1.5!**
+- [x] ~~GitHub API rate limit bypass~~ ✅ **Added in v3.1.5!**
+- [x] ~~Secure token storage~~ ✅ **Added in v3.1.5!**
 - [ ] Minimap for large graphs (v3.2.0)
 - [ ] Node grouping/clustering (v3.2.0)
 - [ ] Web dashboard for team health monitoring (v3.2.0)

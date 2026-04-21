@@ -6,6 +6,7 @@ const path = require('path');
 const { analyze } = require('../src/commands/analyze');
 const fix = require('../src/commands/fix');
 const backup = require('../src/commands/backup');
+const config = require('../src/commands/config');
 const packageJson = require('../package.json');
 
 // Check if running from local node_modules
@@ -92,7 +93,7 @@ ${chalk.bold('Backup Examples:')}
     backup(action, options);
   });
 
-  // Graph command
+// Graph command
 program
   .command('graph')
   .description('Generate dependency graph visualization')
@@ -109,5 +110,42 @@ program
     const graphCommand = require('../src/commands/graph');
     await graphCommand(options);
   });
+
+// Config command
+program
+  .command('config')
+  .description('Configure DevCompass settings')
+  .option('--github-token <token>', 'Set GitHub Personal Access Token')
+  .option('--remove-github-token', 'Remove GitHub token')
+  .option('--show', 'Show current configuration')
+  .addHelpText('after', `
+
+${chalk.bold('GitHub Token Configuration:')}
+  ${chalk.cyan('devcompass config --github-token <token>')}  Set GitHub token
+  ${chalk.cyan('devcompass config --show')}                  Show current token (masked)
+  ${chalk.cyan('devcompass config --remove-github-token')}   Remove GitHub token
+
+${chalk.bold('Why Configure a Token?')}
+  • Avoid GitHub API rate limits (60 → 5,000 requests/hour)
+  • Enable full package health monitoring
+  • Track 500+ popular npm packages
+
+${chalk.bold('How to Get a Token:')}
+  1. Go to: ${chalk.cyan('https://github.com/settings/tokens/new')}
+  2. Select: "Classic" token
+  3. Description: "DevCompass CLI"
+  4. Expiration: 90 days (or your preference)
+  5. Scopes: Select "${chalk.green('public_repo')}" (read access only)
+  6. Click "Generate token"
+  7. Copy the token (starts with ghp_)
+  8. Run: ${chalk.cyan('devcompass config --github-token <your-token>')}
+
+${chalk.bold('Security:')}
+  • Token stored locally in ${chalk.dim('~/.devcompass/github-token')}
+  • Only you have access to this file
+  • Never committed to git
+  • Optional - DevCompass works without it (with rate limits)
+  `)
+  .action(config);
   
 program.parse();
