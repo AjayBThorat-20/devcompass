@@ -4648,6 +4648,7 @@ No migration needed. All features are opt-in via flags or config.
 
 ---
 
+[3.1.6]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.6
 [3.1.5]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.5
 [3.1.4]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.4
 [3.1.3]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.3
