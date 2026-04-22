@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DevCompass - Dependency Graph</title>
+  <title>DevCompass v3.1.6 - Dependency Graph</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     * {
@@ -44,6 +44,14 @@
 
     .header h1 .icon {
       font-size: 1.5rem;
+    }
+
+    .version-badge {
+      font-size: 0.7rem;
+      background: #3b82f6;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 500;
     }
 
     /* ========== CONTROLS PANEL ========== */
@@ -179,7 +187,7 @@
 
     /* ========== SIDEBAR ========== */
     .sidebar {
-      width: 300px;
+      width: 320px;
       background: #0f1219;
       border-left: 1px solid #2a3142;
       overflow-y: auto;
@@ -194,6 +202,134 @@
       border-bottom: 1px solid #2a3142;
     }
 
+    /* ========== CLUSTERING SECTION ========== */
+    .cluster-section {
+      margin-bottom: 1.5rem;
+      background: #1a1f35;
+      border-radius: 8px;
+      padding: 1rem;
+      border: 1px solid #2a3142;
+    }
+
+    .cluster-mode-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .cluster-mode-btn {
+      padding: 0.6rem;
+      background: #252b42;
+      border: 1px solid #2a3142;
+      color: #8b92a7;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      font-weight: 500;
+    }
+
+    .cluster-mode-btn:hover {
+      background: #2d3548;
+      border-color: #3b82f6;
+    }
+
+    .cluster-mode-btn.active {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+
+    .cluster-list {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 0.75rem;
+    }
+
+    .cluster-item {
+      background: #252b42;
+      border: 1px solid #2a3142;
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .cluster-item:hover {
+      background: #2d3548;
+      border-color: #3b82f6;
+      transform: translateX(-2px);
+    }
+
+    .cluster-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .cluster-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #e0e6ed;
+    }
+
+    .cluster-icon {
+      font-size: 1rem;
+    }
+
+    .cluster-count {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      padding: 0.15rem 0.5rem;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .cluster-stats {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      font-size: 0.75rem;
+    }
+
+    .cluster-badge {
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .cluster-badge.vulnerable {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+    }
+
+    .cluster-badge.deprecated {
+      background: rgba(139, 92, 246, 0.2);
+      color: #c4b5fd;
+    }
+
+    .cluster-badge.outdated {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fcd34d;
+    }
+
+    .cluster-badge.healthy {
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+    }
+
+    /* ========== STATS ========== */
     .stat-grid {
       display: grid;
       gap: 0.75rem;
@@ -223,6 +359,7 @@
     .stat-value.danger { color: #ef4444; }
     .stat-value.warning { color: #f59e0b; }
     .stat-value.success { color: #10b981; }
+    .stat-value.cluster { color: #3b82f6; }
 
     /* ========== LEGEND ========== */
     .legend {
@@ -320,6 +457,7 @@
 
     .tooltip-badge.warning { background: #f59e0b; }
     .tooltip-badge.info { background: #3b82f6; }
+    .tooltip-badge.deprecated { background: #8b5cf6; }
 
     /* ========== GRAPH STYLES ========== */
     .node {
@@ -388,7 +526,7 @@
     /* ========== RESPONSIVE ========== */
     @media (max-width: 1024px) {
       .sidebar {
-        width: 250px;
+        width: 280px;
       }
 
       .controls {
@@ -412,6 +550,24 @@
         display: none;
       }
     }
+
+    /* ========== SCROLLBAR ========== */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #1a1f35;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #2a3142;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3b82f6;
+    }
   </style>
 </head>
 <body>
@@ -420,6 +576,7 @@
     <h1>
       <span class="icon">📊</span>
       DevCompass - Dependency Graph
+      <span class="version-badge">v3.1.6</span>
     </h1>
 
     <!-- Controls -->
@@ -474,12 +631,33 @@
 
     <!-- Sidebar -->
     <div class="sidebar">
-      <h2>Statistics</h2>
+      <!-- Clustering Section -->
+      <h2>🔲 Clustering</h2>
+      <div class="cluster-section">
+        <div class="cluster-mode-grid">
+          <button class="cluster-mode-btn active" data-cluster="ecosystem">
+            ⚛️ Ecosystem
+          </button>
+          <button class="cluster-mode-btn" data-cluster="health">
+            🏥 Health
+          </button>
+          <button class="cluster-mode-btn" data-cluster="depth">
+            📊 Depth
+          </button>
+        </div>
+        <div class="cluster-list" id="clusterList">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Statistics -->
+      <h2>📊 Statistics</h2>
       <div class="stat-grid" id="stats">
         <!-- Populated by JS -->
       </div>
 
-      <h2>Legend</h2>
+      <!-- Legend -->
+      <h2>🎨 Legend</h2>
       <div class="legend">
         <div class="legend-item">
           <div class="legend-color" style="background: #10b981;"></div>
@@ -503,7 +681,8 @@
         </div>
       </div>
 
-      <h2>Controls</h2>
+      <!-- Controls -->
+      <h2>⚙️ Controls</h2>
       <div style="display: flex; flex-direction: column; gap: 0.5rem;">
         <button class="control-btn" onclick="fitToScreen()">⛶ Fit to Screen</button>
         <button class="control-btn" onclick="zoomIn()">🔍+ Zoom In</button>
@@ -527,21 +706,152 @@
     const graphData = {{GRAPH_DATA}};
     const metadata = graphData.metadata || {};
 
+    // Clustering code will be injected here
+    {{CLUSTERING_CODE}}
+
     // State
     let currentLayout = metadata.defaultLayout || 'tree';
     let currentFilter = metadata.defaultFilter || 'all';
     let currentDepth = metadata.defaultDepth || 10;
+    let currentClusterMode = 'ecosystem'; // For sidebar organization only
     let searchTerm = '';
-    let currentZoom = null; // Store zoom behavior
-    let currentSvg = null;  // Store current SVG
-    let currentG = null;    // Store current group
+    let currentZoom = null;
+    let currentSvg = null;
+    let currentG = null;
+    let clusterer = null;
+    let clusters = [];
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
+      initializeClustering();
       initializeControls();
       renderGraph();
       updateStats();
     });
+
+    // Initialize clustering (sidebar only - doesn't affect graph)
+    function initializeClustering() {
+      if (typeof DependencyClusterer !== 'undefined') {
+        clusterer = new DependencyClusterer(graphData.nodes, graphData.links);
+        updateClusters();
+      }
+    }
+
+    // Update clusters based on mode (sidebar organization only)
+    function updateClusters() {
+      if (!clusterer) {
+        clusters = [];
+        renderClusterList();
+        return;
+      }
+
+      clusters = clusterer.clusterBy(currentClusterMode);
+      renderClusterList();
+    }
+
+    // Render cluster list (sidebar stats/navigation)
+    function renderClusterList() {
+      const container = document.getElementById('clusterList');
+      if (!container) return;
+
+      if (clusters.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #8b92a7; font-size: 0.8rem; padding: 1rem;">No clusters</div>';
+        return;
+      }
+
+      container.innerHTML = '';
+      clusters.forEach(cluster => {
+        const item = document.createElement('div');
+        item.className = 'cluster-item';
+
+        item.innerHTML = `
+          <div class="cluster-header">
+            <div class="cluster-title">
+              <span class="cluster-icon">${cluster.icon}</span>
+              <span>${cluster.name}</span>
+            </div>
+            <span class="cluster-count">${cluster.stats.total}</span>
+          </div>
+          <div class="cluster-stats">
+            ${cluster.stats.vulnerable > 0 ? `<span class="cluster-badge vulnerable">🔴 ${cluster.stats.vulnerable}</span>` : ''}
+            ${cluster.stats.deprecated > 0 ? `<span class="cluster-badge deprecated">🟣 ${cluster.stats.deprecated}</span>` : ''}
+            ${cluster.stats.outdated > 0 ? `<span class="cluster-badge outdated">🟡 ${cluster.stats.outdated}</span>` : ''}
+            ${cluster.stats.healthy > 0 ? `<span class="cluster-badge healthy">🟢 ${cluster.stats.healthy}</span>` : ''}
+          </div>
+        `;
+
+        // Click to highlight related packages in graph
+        item.onclick = () => highlightCluster(cluster);
+
+        container.appendChild(item);
+      });
+    }
+
+    // Highlight packages from a cluster (visual emphasis only - 3 second fade)
+    function highlightCluster(cluster) {
+      const clusterNodeIds = new Set(cluster.nodes.map(n => n.id));
+      
+      // Update visual emphasis on graph nodes
+      if (currentSvg) {
+        currentSvg.selectAll('.node')
+          .transition()
+          .duration(300)
+          .style('opacity', d => {
+            const nodeId = d.data ? d.data.id : d.id;
+            return clusterNodeIds.has(nodeId) ? 1 : 0.3;
+          });
+        
+        currentSvg.selectAll('.link')
+          .transition()
+          .duration(300)
+          .style('opacity', 0.2);
+
+        // Reset after 3 seconds
+        setTimeout(() => {
+          currentSvg.selectAll('.node')
+            .transition()
+            .duration(500)
+            .style('opacity', 1);
+          
+          currentSvg.selectAll('.link')
+            .transition()
+            .duration(500)
+            .style('opacity', 0.6);
+        }, 3000);
+      }
+    }
+
+    // Get visible nodes (NO clustering - just normal filtering)
+    function getVisibleNodes() {
+      let nodes = graphData.nodes;
+
+      // Apply depth filter
+      const maxDepth = currentDepth === 10 ? Infinity : currentDepth;
+      nodes = nodes.filter(n => (n.depth || 0) <= maxDepth);
+
+      // Apply category filter
+      if (currentFilter !== 'all') {
+        nodes = nodes.filter(n => {
+          if (n.type === 'root') return true;
+          switch(currentFilter) {
+            case 'vulnerable': return n.isVulnerable;
+            case 'outdated': return n.isOutdated;
+            case 'deprecated': return n.isDeprecated;
+            case 'unused': return n.isUnused;
+            default: return true;
+          }
+        });
+      }
+
+      // Apply search filter
+      if (searchTerm) {
+        nodes = nodes.filter(n => 
+          n.name.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      return nodes;
+    }
 
     // Control handlers
     function initializeControls() {
@@ -565,6 +875,17 @@
         });
       });
 
+      // Cluster mode buttons (sidebar organization only)
+      document.querySelectorAll('[data-cluster]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('[data-cluster]').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentClusterMode = btn.dataset.cluster;
+          updateClusters(); // Updates sidebar list only
+          updateStats();
+        });
+      });
+
       // Depth slider
       const slider = document.getElementById('depthSlider');
       const value = document.getElementById('depthValue');
@@ -583,38 +904,10 @@
 
     // Filter nodes
     function filterNodes(nodes) {
-      let filtered = nodes;
-
-      // Apply depth filter
-      const maxDepth = currentDepth === 10 ? Infinity : currentDepth;
-      filtered = filtered.filter(n => (n.depth || 0) <= maxDepth);
-
-      // Apply category filter
-      if (currentFilter !== 'all') {
-        filtered = filtered.filter(n => {
-          if (n.type === 'root') return true;
-          switch(currentFilter) {
-            case 'vulnerable': return n.isVulnerable;
-            case 'outdated': return n.isOutdated;
-            case 'deprecated': return n.isDeprecated;
-            case 'unused': return n.isUnused;
-            case 'conflict': return n.isVulnerable || n.isDeprecated || n.isOutdated;
-            default: return true;
-          }
-        });
-      }
-
-      // Apply search filter
-      if (searchTerm) {
-        filtered = filtered.filter(n => 
-          n.name.toLowerCase().includes(searchTerm)
-        );
-      }
-
-      return filtered;
+      return getVisibleNodes();
     }
 
-    // Render graph
+    // Render graph (normal visualization - no cluster nodes)
     function renderGraph() {
       const loading = document.getElementById('loading');
       loading.classList.add('visible');
@@ -644,9 +937,9 @@
       }, 100);
     }
 
-    // Layout implementations
+    // Layout implementations (unchanged - normal layouts)
     function renderTreeLayout(svg, nodes, links) {
-      const width = window.innerWidth - 300;
+      const width = window.innerWidth - 320;
       const height = window.innerHeight - 80;
 
       svg.attr('width', width).attr('height', height);
@@ -655,7 +948,6 @@
       const root = buildHierarchy(nodes, links);
       if (!root) return;
 
-      // Increase spacing between nodes
       const tree = d3.tree()
         .size([width - 200, height - 200])
         .separation((a, b) => (a.parent === b.parent ? 1.5 : 2));
@@ -686,13 +978,11 @@
         .on('mouseover', showTooltip)
         .on('mouseout', hideTooltip);
 
-      // Improved label positioning to prevent overlap
       node.append('text')
         .attr('class', 'node-label')
-        .attr('dy', d => d.children ? -12 : 15) // Above if has children, below if leaf
+        .attr('dy', d => d.children ? -12 : 15)
         .attr('text-anchor', 'middle')
         .text(d => {
-          // Truncate long names
           const name = d.data.name;
           return name.length > 15 ? name.substring(0, 15) + '...' : name;
         })
@@ -700,13 +990,11 @@
         .style('pointer-events', 'none');
 
       addZoom(svg, g);
-      
-      // Auto-fit after rendering
       setTimeout(() => centerGraph(), 100);
     }
 
     function renderForceLayout(svg, nodes, links) {
-      const width = window.innerWidth - 300;
+      const width = window.innerWidth - 320;
       const height = window.innerHeight - 80;
 
       svg.attr('width', width).attr('height', height);
@@ -715,7 +1003,8 @@
       const simulation = d3.forceSimulation(nodes)
         .force('link', d3.forceLink(links).id(d => d.id).distance(100))
         .force('charge', d3.forceManyBody().strength(-300))
-        .force('center', d3.forceCenter(width / 2, height / 2));
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(15));
 
       const link = g.selectAll('.link')
         .data(links)
@@ -742,7 +1031,10 @@
       node.append('text')
         .attr('class', 'node-label')
         .attr('dy', -12)
-        .text(d => d.name);
+        .text(d => {
+          const name = d.name;
+          return name.length > 15 ? name.substring(0, 15) + '...' : name;
+        });
 
       simulation.on('tick', () => {
         link
@@ -775,7 +1067,7 @@
     }
 
     function renderRadialLayout(svg, nodes, links) {
-      const width = window.innerWidth - 300;
+      const width = window.innerWidth - 320;
       const height = window.innerHeight - 80;
       const radius = Math.min(width, height) / 2 - 100;
 
@@ -816,7 +1108,10 @@
         .attr('class', 'node-label')
         .attr('dy', -10)
         .attr('transform', d => d.x >= Math.PI ? 'rotate(180)' : null)
-        .text(d => d.data.name);
+        .text(d => {
+          const name = d.data.name;
+          return name.length > 12 ? name.substring(0, 12) + '...' : name;
+        });
 
       addZoom(svg, g);
     }
@@ -876,7 +1171,7 @@
       content += `<div class="tooltip-content">`;
       
       if (data.isVulnerable) content += `<span class="tooltip-badge">Vulnerable</span>`;
-      if (data.isDeprecated) content += `<span class="tooltip-badge">Deprecated</span>`;
+      if (data.isDeprecated) content += `<span class="tooltip-badge deprecated">Deprecated</span>`;
       if (data.isOutdated) content += `<span class="tooltip-badge warning">Outdated</span>`;
       if (data.isUnused) content += `<span class="tooltip-badge info">Unused</span>`;
       
@@ -901,14 +1196,12 @@
       
       svg.call(zoom);
       
-      // Store references for external controls
       currentZoom = zoom;
       currentSvg = svg;
       currentG = g;
     }
 
-    // ========== CONTROL FUNCTIONS ==========
-    
+    // Control functions
     function zoomIn() {
       if (currentSvg && currentZoom) {
         currentSvg.transition().duration(300).call(currentZoom.scaleBy, 1.3);
@@ -931,30 +1224,23 @@
       if (!currentSvg || !currentZoom || !currentG) return;
       
       try {
-        // Get the bounding box of all graph elements
         const bbox = currentG.node().getBBox();
-        
-        // Get container dimensions
         const containerWidth = currentSvg.node().clientWidth;
         const containerHeight = currentSvg.node().clientHeight;
         
-        // Calculate scale to fit content with padding
         const padding = 50;
         const scaleX = (containerWidth - padding * 2) / bbox.width;
         const scaleY = (containerHeight - padding * 2) / bbox.height;
-        const scale = Math.min(scaleX, scaleY, 1); // Don't zoom in beyond 1x
+        const scale = Math.min(scaleX, scaleY, 1);
         
-        // Calculate translation to center the content
         const tx = (containerWidth - bbox.width * scale) / 2 - bbox.x * scale;
         const ty = (containerHeight - bbox.height * scale) / 2 - bbox.y * scale;
         
-        // Apply transform
         currentSvg.transition().duration(750).call(
           currentZoom.transform,
           d3.zoomIdentity.translate(tx, ty).scale(scale)
         );
       } catch (error) {
-        // Fallback to simple center
         const width = currentSvg.node().clientWidth;
         const height = currentSvg.node().clientHeight;
         currentSvg.transition().duration(500).call(
@@ -965,7 +1251,7 @@
     }
 
     function fitToScreen() {
-      centerGraph(); // Uses the same logic
+      centerGraph();
     }
 
     function exportPNG() {
@@ -988,7 +1274,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'dependency-graph-' + currentLayout + '-' + currentFilter + '.png';
+            a.download = 'devcompass-graph-' + currentLayout + '-' + currentFilter + '.png';
             a.click();
             URL.revokeObjectURL(url);
           });
@@ -1010,11 +1296,14 @@
       });
 
       const exportData = {
+        version: '3.1.6',
         layout: currentLayout,
         filter: currentFilter,
         depth: currentDepth,
+        clusterMode: currentClusterMode,
         nodes: filtered,
         links: filteredLinks,
+        clusters: clusters,
         metadata: graphData.metadata
       };
 
@@ -1023,7 +1312,7 @@
       const url = URL.createObjectURL(dataBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'dependency-graph-' + currentLayout + '-' + currentFilter + '.json';
+      a.download = 'devcompass-graph-' + currentLayout + '-' + currentClusterMode + '.json';
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -1040,8 +1329,10 @@
 
     function updateStats() {
       const filtered = filterNodes(graphData.nodes);
+      
       const stats = {
         total: filtered.length,
+        clusters: clusters.length,
         vulnerable: filtered.filter(n => n.isVulnerable).length,
         deprecated: filtered.filter(n => n.isDeprecated).length,
         outdated: filtered.filter(n => n.isOutdated).length,
@@ -1055,6 +1346,10 @@
           <span class="stat-value">${stats.total}</span>
         </div>
         <div class="stat-item">
+          <span class="stat-label">Clusters</span>
+          <span class="stat-value cluster">${stats.clusters}</span>
+        </div>
+        <div class="stat-item">
           <span class="stat-label">Vulnerable</span>
           <span class="stat-value danger">${stats.vulnerable}</span>
         </div>
@@ -1065,10 +1360,6 @@
         <div class="stat-item">
           <span class="stat-label">Outdated</span>
           <span class="stat-value warning">${stats.outdated}</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Unused</span>
-          <span class="stat-value">${stats.unused}</span>
         </div>
         <div class="stat-item">
           <span class="stat-label">Healthy</span>

@@ -1,5 +1,5 @@
 // src/graph/exporter.js
-// v3.1.4 - Unified graph exporter with dynamic controls
+// v3.1.6 - Unified graph exporter with clustering support
 
 const fs = require('fs');
 const path = require('path');
@@ -48,7 +48,7 @@ class GraphExporter {
       projectName: options.projectName || 'Project',
       projectVersion: options.projectVersion || '1.0.0',
       filter: options.filter || 'all',
-      unified: options.unified !== false, // v3.1.4 - Enable unified mode by default
+      unified: options.unified !== false, // Enable unified mode by default
       ...options
     };
   }
@@ -143,21 +143,38 @@ class GraphExporter {
   }
 
   /**
-   * Generate unified HTML with dynamic controls (v3.1.4)
+   * Generate unified HTML with dynamic controls and clustering (v3.1.6)
    */
   generateUnifiedHTML() {
     const templatePath = path.join(__dirname, 'template.html');
+    const clusteringPath = path.join(__dirname, 'clustering.js');
     
     try {
       let template = fs.readFileSync(templatePath, 'utf8');
       
-      // Inject graph data - replace the placeholder
+      // Read clustering code (v3.1.6)
+      let clusteringCode = '';
+      if (fs.existsSync(clusteringPath)) {
+        clusteringCode = fs.readFileSync(clusteringPath, 'utf8');
+        
+        // Remove Node.js exports from clustering code for browser
+        clusteringCode = clusteringCode.replace(
+          /if \(typeof module !== 'undefined' && module\.exports\) \{[\s\S]*?\}/g,
+          ''
+        );
+      }
+      
+      // Inject graph data
       template = template.replace('{{GRAPH_DATA}}', JSON.stringify(this.graphData, null, 2));
+      
+      // Inject clustering code (v3.1.6)
+      template = template.replace('{{CLUSTERING_CODE}}', clusteringCode);
       
       return template;
     } catch (error) {
       console.error('Failed to load unified template:', error.message);
       console.error('Template path:', templatePath);
+      console.error('Clustering path:', clusteringPath);
       // Fallback to traditional layout
       return this.generateTraditionalHTML();
     }
@@ -209,7 +226,7 @@ class GraphExporter {
    * Generate HTML content
    */
   generateHTML() {
-    // v3.1.4 - Use unified template by default
+    // Use unified template by default
     if (this.options.unified) {
       return this.generateUnifiedHTML();
     }
