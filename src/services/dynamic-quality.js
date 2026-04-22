@@ -1,265 +1,135 @@
 // src/services/dynamic-quality.js
+const path = require('path');
+const fs = require('fs');
 const registryClient = require('./registry-client');
 
-// Minimal fallback alternatives for offline mode
-// Only most common replacements - live data covers everything else
-const FALLBACK_ALTERNATIVES = {
-  'request': { replacement: 'axios', reason: 'request is deprecated' },
-  'moment': { replacement: 'dayjs', reason: 'moment is in maintenance mode' },
-  'underscore': { replacement: 'lodash', reason: 'lodash is more actively maintained' },
-  'colors': { replacement: 'chalk', reason: 'colors had a malicious release' },
-  'faker': { replacement: '@faker-js/faker', reason: 'faker was corrupted, use community fork' },
-  'left-pad': { replacement: 'string.prototype.padstart', reason: 'Use native String methods' },
-  'node-uuid': { replacement: 'uuid', reason: 'node-uuid is deprecated' },
-  'querystring': { replacement: 'qs', reason: 'querystring is legacy' },
-  'node-fetch': { replacement: 'undici', reason: 'undici is faster and maintained by Node.js' }
-};
+// Load quality alternatives from JSON
+const FALLBACK_ALTERNATIVES = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '../../data/quality-alternatives.json'), 'utf8')
+);
 
-// Thresholds for maintenance status
-const ABANDONED_THRESHOLD_MONTHS = 36;
-const STALE_THRESHOLD_MONTHS = 24;
+// Thresholds (in milliseconds)
+const ABANDONED_THRESHOLD = 36 * 30 * 24 * 60 * 60 * 1000; // 36 months
+const STALE_THRESHOLD = 24 * 30 * 24 * 60 * 60 * 1000;     // 24 months
 
-
-function monthsSince(date) {
-  if (!date) return Infinity;
-  const then = new Date(date);
-  const now = new Date();
-  return Math.floor((now - then) / (1000 * 60 * 60 * 24 * 30));
-}
-
-async function analyzePackage(packageName) {
-  const result = {
-    name: packageName,
-    status: 'HEALTHY',
-    deprecated: false,
-    abandoned: false,
-    stale: false,
-    lastPublish: null,
-    monthsSinceUpdate: null,
-    deprecationMessage: null,
-    alternative: null,
-    source: 'live' // 'live' or 'fallback'
-  };
-  
+/**
+ * Analyze a package's quality
+ */
+async function analyzePackage(packageName, version) {
   try {
-    const data = await registryClient.fetchPackage(packageName);
+    const packageData = await registryClient.getPackageData(packageName, version);
     
-    if (!data) {
-      // Package not found - check fallback
-      if (FALLBACK_ALTERNATIVES[packageName]) {
-        const fallback = FALLBACK_ALTERNATIVES[packageName];
-        result.status = 'DEPRECATED';
-        result.deprecated = true;
-        result.alternative = fallback.replacement;
-        result.deprecationMessage = fallback.reason;
-        result.source = 'fallback';
-      }
-      return result;
+    if (!packageData) {
+      return null;
     }
-    
-    // Check deprecation status from registry
-    const latestVersion = data['dist-tags']?.latest;
-    const latestData = latestVersion ? data.versions?.[latestVersion] : null;
-    
-    if (latestData?.deprecated || data.deprecated) {
-      result.deprecated = true;
-      result.status = 'DEPRECATED';
-      result.deprecationMessage = latestData?.deprecated || data.deprecated || 'Package is deprecated';
+
+    const time = packageData.time || {};
+    const modified = time.modified || time[version] || Date.now();
+    const lastPublish = new Date(modified);
+    const now = new Date();
+    const ageMs = now - lastPublish;
+
+    const deprecated = packageData.deprecated || false;
+    const isAbandoned = ageMs > ABANDONED_THRESHOLD;
+    const isStale = ageMs > STALE_THRESHOLD && ageMs <= ABANDONED_THRESHOLD;
+
+    let status = 'healthy';
+    let healthScore = 10;
+
+    if (deprecated) {
+      status = 'deprecated';
+      healthScore = 0;
+    } else if (isAbandoned) {
+      status = 'abandoned';
+      healthScore = 2;
+    } else if (isStale) {
+      status = 'stale';
+      healthScore = 5;
+    } else {
+      status = 'healthy';
+      healthScore = 10;
     }
-    
-    // Check maintenance status
-    const timeData = data.time || {};
-    const lastModified = timeData.modified || timeData[latestVersion];
-    
-    if (lastModified) {
-      result.lastPublish = lastModified;
-      result.monthsSinceUpdate = monthsSince(lastModified);
-      
-      if (result.monthsSinceUpdate >= ABANDONED_THRESHOLD_MONTHS) {
-        result.abandoned = true;
-        if (result.status === 'HEALTHY') {
-          result.status = 'ABANDONED';
-        }
-      } else if (result.monthsSinceUpdate >= STALE_THRESHOLD_MONTHS) {
-        result.stale = true;
-        if (result.status === 'HEALTHY') {
-          result.status = 'STALE';
-        }
-      }
-    }
-    
-    // Check fallback for known alternatives
-    if (FALLBACK_ALTERNATIVES[packageName]) {
-      result.alternative = FALLBACK_ALTERNATIVES[packageName].replacement;
-    }
-    
-    return result;
+
+    const alternative = getAlternative(packageName);
+
+    return {
+      package: packageName,
+      version: version,
+      status: status,
+      healthScore: healthScore,
+      lastUpdate: lastPublish.toISOString(),
+      ageMonths: Math.floor(ageMs / (30 * 24 * 60 * 60 * 1000)),
+      deprecated: deprecated,
+      alternative: alternative,
+      autoFixable: (deprecated || isAbandoned) && !!alternative
+    };
   } catch (error) {
-    // Network error - check fallback
-    if (FALLBACK_ALTERNATIVES[packageName]) {
-      const fallback = FALLBACK_ALTERNATIVES[packageName];
-      result.status = 'DEPRECATED';
-      result.deprecated = true;
-      result.alternative = fallback.replacement;
-      result.deprecationMessage = fallback.reason;
-      result.source = 'fallback';
-    }
-    return result;
+    return null;
   }
 }
 
-async function analyzeBatch(packageNames) {
-  if (!Array.isArray(packageNames)) {
-    return new Map();
-  }
+/**
+ * Analyze multiple packages
+ */
+async function analyzeBatch(packages) {
+  const results = [];
   
-  const results = new Map();
-  
-  // Fetch all packages in parallel
-  const packageData = await registryClient.fetchBatch(packageNames);
-  
-  // Analyze each package
-  for (const name of packageNames) {
-    if (!name || typeof name !== 'string') continue;
-    
-    const data = packageData.get(name);
-    
-    if (data) {
-      // We have live data
-      const result = {
-        name,
-        status: 'HEALTHY',
-        deprecated: false,
-        abandoned: false,
-        stale: false,
-        lastPublish: null,
-        monthsSinceUpdate: null,
-        deprecationMessage: null,
-        alternative: FALLBACK_ALTERNATIVES[name]?.replacement || null,
-        source: 'live'
-      };
-      
-      // Check deprecation
-      const latestVersion = data['dist-tags']?.latest;
-      const latestData = latestVersion ? data.versions?.[latestVersion] : null;
-      
-      if (latestData?.deprecated || data.deprecated) {
-        result.deprecated = true;
-        result.status = 'DEPRECATED';
-        result.deprecationMessage = latestData?.deprecated || data.deprecated || 'Package is deprecated';
-      }
-      
-      // Check maintenance
-      const timeData = data.time || {};
-      const lastModified = timeData.modified || timeData[latestVersion];
-      
-      if (lastModified) {
-        result.lastPublish = lastModified;
-        result.monthsSinceUpdate = monthsSince(lastModified);
-        
-        if (result.monthsSinceUpdate >= ABANDONED_THRESHOLD_MONTHS) {
-          result.abandoned = true;
-          if (result.status === 'HEALTHY') result.status = 'ABANDONED';
-        } else if (result.monthsSinceUpdate >= STALE_THRESHOLD_MONTHS) {
-          result.stale = true;
-          if (result.status === 'HEALTHY') result.status = 'STALE';
-        }
-      }
-      
-      results.set(name, result);
-    } else {
-      // Check fallback
-      if (FALLBACK_ALTERNATIVES[name]) {
-        const fallback = FALLBACK_ALTERNATIVES[name];
-        results.set(name, {
-          name,
-          status: 'DEPRECATED',
-          deprecated: true,
-          abandoned: false,
-          stale: false,
-          lastPublish: null,
-          monthsSinceUpdate: null,
-          deprecationMessage: fallback.reason,
-          alternative: fallback.replacement,
-          source: 'fallback'
-        });
-      } else {
-        // Unknown package
-        results.set(name, {
-          name,
-          status: 'UNKNOWN',
-          deprecated: false,
-          abandoned: false,
-          stale: false,
-          lastPublish: null,
-          monthsSinceUpdate: null,
-          deprecationMessage: null,
-          alternative: null,
-          source: 'none'
-        });
-      }
+  for (const pkg of packages) {
+    const analysis = await analyzePackage(pkg.name, pkg.version);
+    if (analysis) {
+      results.push(analysis);
     }
   }
-  
+
   return results;
 }
 
-
-async function getProjectQualitySummary(packageNames) {
-  const results = await analyzeBatch(packageNames);
-  
+/**
+ * Get project quality summary
+ */
+function getProjectQualitySummary(analyses) {
   const summary = {
-    total: packageNames.length,
+    total: analyses.length,
     healthy: 0,
-    deprecated: 0,
-    abandoned: 0,
     stale: 0,
-    unknown: 0,
-    issues: []
+    abandoned: 0,
+    deprecated: 0,
+    averageHealth: 0
   };
-  
-  for (const [name, data] of results) {
-    switch (data.status) {
-      case 'HEALTHY':
+
+  let totalHealth = 0;
+
+  analyses.forEach(analysis => {
+    totalHealth += analysis.healthScore;
+    
+    switch (analysis.status) {
+      case 'healthy':
         summary.healthy++;
         break;
-      case 'DEPRECATED':
-        summary.deprecated++;
-        summary.issues.push({
-          package: name,
-          type: 'deprecated',
-          message: data.deprecationMessage,
-          alternative: data.alternative
-        });
-        break;
-      case 'ABANDONED':
-        summary.abandoned++;
-        summary.issues.push({
-          package: name,
-          type: 'abandoned',
-          message: `No updates in ${data.monthsSinceUpdate} months`,
-          alternative: data.alternative
-        });
-        break;
-      case 'STALE':
+      case 'stale':
         summary.stale++;
-        summary.issues.push({
-          package: name,
-          type: 'stale',
-          message: `No updates in ${data.monthsSinceUpdate} months`,
-          alternative: data.alternative
-        });
         break;
-      default:
-        summary.unknown++;
+      case 'abandoned':
+        summary.abandoned++;
+        break;
+      case 'deprecated':
+        summary.deprecated++;
+        break;
     }
-  }
-  
+  });
+
+  summary.averageHealth = analyses.length > 0 
+    ? (totalHealth / analyses.length).toFixed(1) 
+    : 0;
+
   return summary;
 }
 
+/**
+ * Get alternative for a package
+ */
 function getAlternative(packageName) {
-  return FALLBACK_ALTERNATIVES[packageName]?.replacement || null;
+  return FALLBACK_ALTERNATIVES[packageName] || null;
 }
 
 module.exports = {

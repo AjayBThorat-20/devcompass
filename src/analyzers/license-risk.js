@@ -6,7 +6,8 @@ const { analyzer } = require('../services');
 async function analyzeLicenseRisks(projectPath, licenses = []) {
   try {
     // Extract package names from licenses
-    const packageNames = licenses.map(l => l.package);
+const licensesArray = Array.isArray(licenses) ? licenses : (licenses.warnings || []);
+const packageNames = licensesArray.map(l => l.package);
     
     if (packageNames.length === 0) {
       return {

@@ -1,0 +1,51 @@
+[
+  {
+    "id": "supply-chain",
+    "name": "Supply Chain Security",
+    "icon": "🛡️",
+    "priority": 1,
+    "description": "Malicious packages, typosquatting, suspicious scripts"
+  },
+  {
+    "id": "license",
+    "name": "License Conflicts",
+    "icon": "⚖️",
+    "priority": 2,
+    "description": "GPL/AGPL/LGPL package replacements"
+  },
+  {
+    "id": "quality",
+    "name": "Package Quality",
+    "icon": "📦",
+    "priority": 3,
+    "description": "Abandoned, deprecated, stale packages"
+  },
+  {
+    "id": "security",
+    "name": "Critical Security",
+    "icon": "🔐",
+    "priority": 4,
+    "description": "npm audit vulnerabilities"
+  },
+  {
+    "id": "ecosystem",
+    "name": "Ecosystem Alerts",
+    "icon": "🚨",
+    "priority": 5,
+    "description": "Known package issues"
+  },
+  {
+    "id": "unused",
+    "name": "Unused Dependencies",
+    "icon": "🧹",
+    "priority": 6,
+    "description": "Remove unused packages"
+  },
+  {
+    "id": "updates",
+    "name": "Safe Updates",
+    "icon": "⬆️",
+    "priority": 7,
+    "description": "Patch and minor version updates"
+  }
+]

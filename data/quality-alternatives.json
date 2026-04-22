@@ -1,0 +1,38 @@
+{
+  "request": {
+    "replacement": "axios",
+    "reason": "request is deprecated"
+  },
+  "moment": {
+    "replacement": "dayjs",
+    "reason": "moment is in maintenance mode"
+  },
+  "underscore": {
+    "replacement": "lodash",
+    "reason": "lodash is more actively maintained"
+  },
+  "colors": {
+    "replacement": "chalk",
+    "reason": "colors had a malicious release"
+  },
+  "faker": {
+    "replacement": "@faker-js/faker",
+    "reason": "faker was corrupted, use community fork"
+  },
+  "left-pad": {
+    "replacement": "string.prototype.padstart",
+    "reason": "Use native String methods"
+  },
+  "node-uuid": {
+    "replacement": "uuid",
+    "reason": "node-uuid is deprecated"
+  },
+  "querystring": {
+    "replacement": "qs",
+    "reason": "querystring is legacy"
+  },
+  "node-fetch": {
+    "replacement": "undici",
+    "reason": "undici is faster and maintained by Node.js"
+  }
+}

@@ -2,106 +2,80 @@
 const path = require('path');
 const fs = require('fs');
 
-// Restrictive licenses that might cause issues
-const RESTRICTIVE_LICENSES = [
-  'GPL',
-  'GPL-2.0',
-  'GPL-3.0',
-  'AGPL',
-  'AGPL-3.0',
-  'LGPL',
-  'LGPL-2.1',
-  'LGPL-3.0'
-];
+// Load license data from JSON
+const licensesData = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '../../data/licenses.json'), 'utf8')
+);
 
-// Permissive licenses (usually safe)
-const PERMISSIVE_LICENSES = [
-  'MIT',
-  'Apache-2.0',
-  'BSD-2-Clause',
-  'BSD-3-Clause',
-  'ISC',
-  'CC0-1.0',
-  'Unlicense'
-];
+const RESTRICTIVE_LICENSES = licensesData.restrictive;
+const PERMISSIVE_LICENSES = licensesData.permissive;
 
-/**
- * Check licenses of all dependencies
- */
-async function checkLicenses(projectPath, dependencies) {
-  const licenses = [];
-  
-  for (const [packageName, version] of Object.entries(dependencies)) {
+async function analyzeLicenses(dependencies) {
+  const warnings = [];
+
+  for (const [name, version] of Object.entries(dependencies)) {
     try {
-      const packageJsonPath = path.join(
-        projectPath,
-        'node_modules',
-        packageName,
-        'package.json'
-      );
+      const packagePath = path.join(process.cwd(), 'node_modules', name, 'package.json');
       
-      if (!fs.existsSync(packageJsonPath)) {
+      if (!fs.existsSync(packagePath)) {
         continue;
       }
-      
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-      const license = packageJson.license || 'UNKNOWN';
-      
-      licenses.push({
-        package: packageName,
-        license: license,
-        type: getLicenseType(license)
-      });
-      
+
+      const packageData = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
+      const license = packageData.license || 'Unknown';
+
+      // Check for restrictive licenses
+      const isRestrictive = RESTRICTIVE_LICENSES.some(restrictive =>
+        license.toString().toUpperCase().includes(restrictive)
+      );
+
+      if (isRestrictive) {
+        warnings.push({
+          package: name,
+          license: license,
+          type: 'Restrictive',
+          severity: 'medium'
+        });
+      }
+
+      // Check for unknown licenses
+      if (license === 'Unknown' || license === 'UNLICENSED' || !license) {
+        warnings.push({
+          package: name,
+          license: license || 'Unknown',
+          type: 'Unknown',
+          severity: 'low'
+        });
+      }
     } catch (error) {
       // Skip packages we can't read
       continue;
     }
   }
-  
-  return licenses;
+
+  return { warnings };
 }
 
 /**
- * Determine license type
- */
-function getLicenseType(license) {
-  const licenseStr = String(license).toUpperCase();
-  
-  // Check for restrictive licenses
-  for (const restrictive of RESTRICTIVE_LICENSES) {
-    if (licenseStr.includes(restrictive)) {
-      return 'restrictive';
-    }
-  }
-  
-  // Check for permissive licenses
-  for (const permissive of PERMISSIVE_LICENSES) {
-    if (licenseStr.includes(permissive)) {
-      return 'permissive';
-    }
-  }
-  
-  // Unknown or custom license
-  if (licenseStr === 'UNKNOWN' || licenseStr === 'UNLICENSED') {
-    return 'unknown';
-  }
-  
-  return 'other';
-}
-
-/**
- * Find problematic licenses
+ * ADDED: Find problematic licenses from license array
+ * Used by analyze.js for displaying legacy license warnings
  */
 function findProblematicLicenses(licenses) {
-  return licenses.filter(pkg => 
-    pkg.type === 'restrictive' || pkg.type === 'unknown'
+  // Handle both array and object with warnings property
+  const licensesArray = Array.isArray(licenses) 
+    ? licenses 
+    : (licenses.warnings || []);
+  
+  return licensesArray.filter(l => 
+    l.type === 'Restrictive' || l.type === 'Unknown'
   );
 }
 
-module.exports = {
-  checkLicenses,
-  findProblematicLicenses,
-  RESTRICTIVE_LICENSES,
-  PERMISSIVE_LICENSES
+// FIXED: Export all expected functions
+module.exports = { 
+  analyzeLicenses,
+  checkLicenses: analyzeLicenses,  // Alias for backward compatibility
+  findProblematicLicenses,         // NEW: Export this function
+  RESTRICTIVE_LICENSES, 
+  PERMISSIVE_LICENSES 
 };

@@ -944,8 +944,10 @@ function displayResults(
   if (unusedDeps.length > 0) {
     logSection('🔴 UNUSED DEPENDENCIES', unusedDeps.length);
     
-    unusedDeps.forEach(dep => {
-      log(`  ${chalk.red('●')} ${dep.name}`);
+unusedDeps.forEach(dep => {
+      // ✅ FIXED: Handle both string and object formats
+      const depName = typeof dep === 'string' ? dep : (dep.name || dep.package || dep);
+      log(`  ${chalk.red('●')} ${typeof dep === 'string' ? dep : (dep.name || dep)}`);
     });
     
     log(chalk.gray('\n  Why marked unused:'));

@@ -1,6 +1,6 @@
 {
   "name": "devcompass",
-  "version": "3.1.6",
+  "version": "3.1.7",
   "description": "Dependency health checker with ecosystem intelligence, user-configurable GitHub Personal Access Token support, real-time GitHub issue tracking for 502 popular npm packages, unified interactive dependency graph with dynamic layout switching, intelligent clustering (Ecosystem/Health/Depth grouping), real-time filtering, advanced zoom controls, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, batch fix modes, backup & rollback, and professional dependency exploration - all in a single interactive HTML file.",
   "main": "src/index.js",
   "bin": {

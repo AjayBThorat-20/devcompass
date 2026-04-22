@@ -1,0 +1,26 @@
+{
+  "CRITICAL": {
+    "level": 1,
+    "label": "CRITICAL",
+    "color": "red",
+    "emoji": "🔴"
+  },
+  "HIGH": {
+    "level": 2,
+    "label": "HIGH",
+    "color": "orange",
+    "emoji": "🟠"
+  },
+  "MEDIUM": {
+    "level": 3,
+    "label": "MEDIUM",
+    "color": "yellow",
+    "emoji": "🟡"
+  },
+  "LOW": {
+    "level": 4,
+    "label": "LOW",
+    "color": "gray",
+    "emoji": "⚪"
+  }
+}

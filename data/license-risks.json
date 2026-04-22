@@ -1,0 +1,114 @@
+{
+  "AGPL-3.0": {
+    "level": "critical",
+    "risk": "Requires disclosing source code of network services"
+  },
+  "AGPL-3.0-only": {
+    "level": "critical",
+    "risk": "Requires disclosing source code of network services"
+  },
+  "AGPL-3.0-or-later": {
+    "level": "critical",
+    "risk": "Requires disclosing source code of network services"
+  },
+  "GPL-3.0": {
+    "level": "high",
+    "risk": "Requires derivative works to be GPL licensed"
+  },
+  "GPL-3.0-only": {
+    "level": "high",
+    "risk": "Requires derivative works to be GPL licensed"
+  },
+  "GPL-3.0-or-later": {
+    "level": "high",
+    "risk": "Requires derivative works to be GPL licensed"
+  },
+  "GPL-2.0": {
+    "level": "high",
+    "risk": "Requires derivative works to be GPL licensed"
+  },
+  "GPL-2.0-only": {
+    "level": "high",
+    "risk": "Requires derivative works to be GPL licensed"
+  },
+  "GPL-2.0-or-later": {
+    "level": "high",
+    "risk": "Requires derivative works to be GPL licensed"
+  },
+  "LGPL-3.0": {
+    "level": "medium",
+    "risk": "Modifications to the library must be shared"
+  },
+  "LGPL-3.0-only": {
+    "level": "medium",
+    "risk": "Modifications to the library must be shared"
+  },
+  "LGPL-3.0-or-later": {
+    "level": "medium",
+    "risk": "Modifications to the library must be shared"
+  },
+  "LGPL-2.1": {
+    "level": "medium",
+    "risk": "Modifications to the library must be shared"
+  },
+  "LGPL-2.1-only": {
+    "level": "medium",
+    "risk": "Modifications to the library must be shared"
+  },
+  "LGPL-2.1-or-later": {
+    "level": "medium",
+    "risk": "Modifications to the library must be shared"
+  },
+  "MPL-2.0": {
+    "level": "medium",
+    "risk": "File-level copyleft, changes to MPL files must be shared"
+  },
+  "EPL-1.0": {
+    "level": "medium",
+    "risk": "Weak copyleft, modifications must be shared"
+  },
+  "EPL-2.0": {
+    "level": "medium",
+    "risk": "Weak copyleft, modifications must be shared"
+  },
+  "CDDL-1.0": {
+    "level": "medium",
+    "risk": "File-level copyleft"
+  },
+  "MIT": {
+    "level": "low",
+    "risk": "Permissive - commercial friendly"
+  },
+  "ISC": {
+    "level": "low",
+    "risk": "Permissive - commercial friendly"
+  },
+  "BSD-2-Clause": {
+    "level": "low",
+    "risk": "Permissive - commercial friendly"
+  },
+  "BSD-3-Clause": {
+    "level": "low",
+    "risk": "Permissive - commercial friendly"
+  },
+  "Apache-2.0": {
+    "level": "low",
+    "risk": "Permissive with patent grant"
+  },
+  "0BSD": {
+    "level": "low",
+    "risk": "Public domain equivalent"
+  },
+  "Unlicense": {
+    "level": "low",
+    "risk": "Public domain"
+  },
+  "CC0-1.0": {
+    "level": "low",
+    "risk": "Public domain"
+  },
+  "WTFPL": {
+    "level": "low",
+    "risk": "Permissive"
+  }
+}

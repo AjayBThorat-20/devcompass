@@ -1,143 +1,115 @@
 // src/utils/batch-selector.js
+const path = require('path');
+const fs = require('fs');
 const readline = require('readline');
 const chalk = require('chalk');
 
+// Load batch categories from JSON
+const batchCategories = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '../../data/batch-categories.json'), 'utf8')
+);
+
 class BatchSelector {
   constructor() {
-    this.batches = [
-      {
-        id: 'supply-chain',
-        name: 'Supply Chain Security',
-        icon: '🛡️',
-        priority: 1,
-        description: 'Malicious packages, typosquatting, suspicious scripts'
-      },
-      {
-        id: 'license',
-        name: 'License Conflicts',
-        icon: '⚖️',
-        priority: 2,
-        description: 'GPL/AGPL/LGPL package replacements'
-      },
-      {
-        id: 'quality',
-        name: 'Package Quality',
-        icon: '📦',
-        priority: 3,
-        description: 'Abandoned, deprecated, stale packages'
-      },
-      {
-        id: 'security',
-        name: 'Critical Security',
-        icon: '🔐',
-        priority: 4,
-        description: 'npm audit vulnerabilities'
-      },
-      {
-        id: 'ecosystem',
-        name: 'Ecosystem Alerts',
-        icon: '🚨',
-        priority: 5,
-        description: 'Known package issues'
-      },
-      {
-        id: 'unused',
-        name: 'Unused Dependencies',
-        icon: '🧹',
-        priority: 6,
-        description: 'Remove unused packages'
-      },
-      {
-        id: 'updates',
-        name: 'Safe Updates',
-        icon: '⬆️',
-        priority: 7,
-        description: 'Patch and minor version updates'
-      }
-    ];
+    this.batches = batchCategories;
   }
 
   /**
-   * Get batch statistics from planned fixes
+   * Get fix statistics for each batch
    */
-  getBatchStats(plannedFixes) {
+  getBatchStats(analysisResults) {
     const stats = {};
-    
+
     this.batches.forEach(batch => {
-      stats[batch.id] = {
-        count: 0,
-        fixes: []
-      };
+      stats[batch.id] = 0;
     });
 
-    // Count supply chain fixes
-    if (plannedFixes.supplyChain?.length > 0) {
-      stats['supply-chain'].count = plannedFixes.supplyChain.length;
-      stats['supply-chain'].fixes = plannedFixes.supplyChain;
+    // Count fixes per category
+    const {
+      supplyChain,
+      licenseRisk,
+      quality,
+      security,
+      ecosystem,
+      unused,
+      outdated
+    } = analysisResults;
+
+    // Supply chain
+    if (supplyChain && supplyChain.warnings) {
+      stats['supply-chain'] = supplyChain.warnings.length;
     }
 
-    // Count license fixes
-    if (plannedFixes.licenseConflicts?.length > 0) {
-      stats['license'].count = plannedFixes.licenseConflicts.length;
-      stats['license'].fixes = plannedFixes.licenseConflicts;
+    // License
+    if (licenseRisk && licenseRisk.warnings) {
+      stats['license'] = licenseRisk.warnings.filter(w => w.autoFixable).length;
     }
 
-    // Count quality fixes
-    if (plannedFixes.quality?.length > 0) {
-      stats['quality'].count = plannedFixes.quality.length;
-      stats['quality'].fixes = plannedFixes.quality;
+    // Quality
+    if (quality && quality.packages) {
+      stats['quality'] = quality.packages.filter(p => 
+        p.status === 'deprecated' || p.status === 'abandoned'
+      ).length;
     }
 
-    // Count security fixes
-    if (plannedFixes.security?.criticalCount > 0) {
-      stats['security'].count = plannedFixes.security.criticalCount;
-      stats['security'].fixes = ['npm audit fix'];
+    // Security
+    if (security && security.vulnerabilities) {
+      stats['security'] = security.vulnerabilities.length > 0 ? 1 : 0;
     }
 
-    // Count ecosystem fixes
-    if (plannedFixes.ecosystem?.length > 0) {
-      stats['ecosystem'].count = plannedFixes.ecosystem.length;
-      stats['ecosystem'].fixes = plannedFixes.ecosystem;
+    // Ecosystem
+    if (ecosystem && ecosystem.alerts) {
+      stats['ecosystem'] = ecosystem.alerts.length;
     }
 
-    // Count unused dependencies
-    if (plannedFixes.unused?.length > 0) {
-      stats['unused'].count = plannedFixes.unused.length;
-      stats['unused'].fixes = plannedFixes.unused;
+    // Unused
+    if (unused && Array.isArray(unused)) {
+      stats['unused'] = unused.length > 0 ? 1 : 0;
     }
 
-    // Count safe updates
-    if (plannedFixes.updates?.safe?.length > 0) {
-      stats['updates'].count = plannedFixes.updates.safe.length;
-      stats['updates'].fixes = plannedFixes.updates.safe;
+    // Updates
+    if (outdated && Array.isArray(outdated)) {
+      const safeUpdates = outdated.filter(p => 
+        p.updateType === 'patch' || p.updateType === 'minor'
+      );
+      stats['updates'] = safeUpdates.length > 0 ? 1 : 0;
     }
 
     return stats;
   }
 
   /**
-   * Display batch selection menu
+   * Display batch menu
    */
   displayBatchMenu(stats) {
-    console.log('\n' + chalk.bold.cyan('📦 BATCH FIX MODE'));
+    console.log('\n' + chalk.cyan.bold('📦 BATCH FIX MODE'));
     console.log(chalk.gray('═'.repeat(70)));
-    console.log('\nSelect which categories to fix:\n');
+    console.log(chalk.white('Select which categories to fix:\n'));
 
     this.batches.forEach((batch, index) => {
-      const count = stats[batch.id]?.count || 0;
-      const status = count > 0 ? chalk.yellow(`${count} fix(es)`) : chalk.gray('none');
+      const count = stats[batch.id] || 0;
+      const hasFixed = count > 0;
       
-      console.log(`${chalk.bold(index + 1)}. ${batch.icon} ${chalk.bold(batch.name)}`);
-      console.log(`   ${chalk.gray(batch.description)}`);
-      console.log(`   Fixes available: ${status}\n`);
+      console.log(chalk.white(`${batch.icon} ${batch.name}`));
+      console.log(chalk.gray(batch.description));
+      console.log(
+        hasFixed 
+          ? chalk.green(`Fixes available: ${count} fix(es)`)
+          : chalk.gray('Fixes available: none')
+      );
+      
+      if (index < this.batches.length - 1) {
+        console.log('');
+      }
     });
 
-    console.log(chalk.gray('─'.repeat(70)));
-    console.log('\n' + chalk.bold('Preset Modes:'));
-    console.log(`${chalk.bold('c')} - ${chalk.red('Critical only')} (supply-chain + license + security)`);
-    console.log(`${chalk.bold('h')} - ${chalk.yellow('High priority')} (critical + quality + ecosystem)`);
-    console.log(`${chalk.bold('a')} - ${chalk.green('All safe fixes')} (everything except major updates)`);
-    console.log(`${chalk.bold('n')} - ${chalk.gray('None')} (cancel)\n`);
+    console.log('\n' + chalk.gray('─'.repeat(70)));
+    console.log(chalk.white('Preset Modes:'));
+    console.log(chalk.cyan('c') + ' - Critical only (supply-chain + license + security)');
+    console.log(chalk.cyan('h') + ' - High priority (critical + quality + ecosystem)');
+    console.log(chalk.cyan('a') + ' - All safe fixes (everything except major updates)');
+    console.log(chalk.cyan('n') + ' - None (cancel)');
+    console.log(chalk.gray('Enter your choice (1-7, c/h/a/n, or comma-separated):'));
   }
 
   /**
@@ -152,71 +124,53 @@ class BatchSelector {
     });
 
     return new Promise((resolve) => {
-      rl.question(chalk.cyan('Enter your choice (1-7, c/h/a/n, or comma-separated): '), (answer) => {
+      rl.question('> ', (answer) => {
         rl.close();
-
-        const selection = this.parseBatchSelection(answer.trim().toLowerCase(), stats);
-        resolve(selection);
+        const selected = this.parseBatchSelection(answer.trim().toLowerCase(), stats);
+        resolve(selected);
       });
     });
   }
 
   /**
-   * Parse user's batch selection
+   * Parse batch selection
    */
   parseBatchSelection(input, stats) {
     // Handle preset modes
     if (input === 'c') {
-      // Critical only: supply-chain, license, security
-      return this.batches.filter(b => 
-        ['supply-chain', 'license', 'security'].includes(b.id) && 
-        stats[b.id]?.count > 0
-      );
+      return this.batches
+        .filter(b => ['supply-chain', 'license', 'security'].includes(b.id))
+        .filter(b => stats[b.id] > 0);
     }
 
     if (input === 'h') {
-      // High priority: critical + quality + ecosystem
-      return this.batches.filter(b => 
-        ['supply-chain', 'license', 'security', 'quality', 'ecosystem'].includes(b.id) && 
-        stats[b.id]?.count > 0
-      );
+      return this.batches
+        .filter(b => ['supply-chain', 'license', 'security', 'quality', 'ecosystem'].includes(b.id))
+        .filter(b => stats[b.id] > 0);
     }
 
     if (input === 'a') {
-      // All safe fixes
-      return this.batches.filter(b => stats[b.id]?.count > 0);
+      return this.batches.filter(b => stats[b.id] > 0);
     }
 
-    if (input === 'n' || input === '') {
-      // None - cancel
+    if (input === 'n') {
       return [];
     }
 
-    // Handle comma-separated numbers (e.g., "1,2,5")
-    const numbers = input.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
-    
-    if (numbers.length > 0) {
-      return this.batches.filter((b, idx) => 
-        numbers.includes(idx + 1) && stats[b.id]?.count > 0
-      );
-    }
+    // Handle number selections (1-7 or comma-separated)
+    const numbers = input.split(',').map(n => parseInt(n.trim()));
+    const selectedBatches = [];
 
-    // Invalid input
-    return null;
-  }
+    numbers.forEach(num => {
+      if (num >= 1 && num <= this.batches.length) {
+        const batch = this.batches[num - 1];
+        if (stats[batch.id] > 0) {
+          selectedBatches.push(batch);
+        }
+      }
+    });
 
-  /**
-   * Get batch by ID
-   */
-  getBatchById(id) {
-    return this.batches.find(b => b.id === id);
-  }
-
-  /**
-   * Get all batches with fixes
-   */
-  getBatchesWithFixes(stats) {
-    return this.batches.filter(b => stats[b.id]?.count > 0);
+    return selectedBatches;
   }
 }
 

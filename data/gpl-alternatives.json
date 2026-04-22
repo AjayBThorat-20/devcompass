@@ -1,0 +1,18 @@
+{
+  "readline-sync": {
+    "replacement": "prompts",
+    "reason": "MIT licensed alternative"
+  },
+  "gnu-which": {
+    "replacement": "which",
+    "reason": "ISC licensed alternative"
+  },
+  "node-forge": {
+    "replacement": "forge",
+    "reason": "BSD-3-Clause licensed"
+  },
+  "gpl-package": {
+    "replacement": "mit-alternative",
+    "reason": "MIT licensed alternative"
+  }
+}

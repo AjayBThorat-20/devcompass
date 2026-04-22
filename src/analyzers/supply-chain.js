@@ -48,22 +48,28 @@ async function analyzeSupplyChain(projectPath, dependencies = {}) {
     let auditResults = { vulnerabilities: [], summary: { total: 0 } };
     
     try {
-      auditResults = analyzer.security.runNpmAudit(projectPath);
+      auditResults = await analyzer.security.runNpmAudit(projectPath);
     } catch (error) {
       // npm audit may fail in some environments, continue anyway
+      console.error('[supply-chain] npm audit failed:', error.message);
     }
     
+    // ✅ FIXED: Safe iteration over vulnerabilities
+    const vulnArray = Array.isArray(auditResults.vulnerabilities) 
+      ? auditResults.vulnerabilities 
+      : [];
+    
     // Add high/critical vulnerabilities to warnings
-    for (const vuln of auditResults.vulnerabilities) {
+    for (const vuln of vulnArray) {
       const severity = (vuln.severity || 'moderate').toLowerCase();
       
       if (severity === 'critical' || severity === 'high') {
         warnings.push({
-          package: vuln.package,
+          package: vuln.package || 'unknown',
           type: 'vulnerability',
           severity: severity,
-          description: vuln.title,
-          reason: vuln.title,
+          description: vuln.title || vuln.via || 'Security vulnerability detected',
+          reason: vuln.title || vuln.via || 'Security vulnerability',
           risk: `${severity.toUpperCase()} security vulnerability`,
           action: 'update',
           url: vuln.url,
@@ -77,9 +83,9 @@ async function analyzeSupplyChain(projectPath, dependencies = {}) {
     const summary = {
       typosquatting: warnings.filter(w => w.type === 'typosquatting').length,
       suspiciousScripts: warnings.filter(w => w.type === 'install_script').length,
-      vulnerabilities: auditResults.summary.total,
-      critical: auditResults.summary.critical || 0,
-      high: auditResults.summary.high || 0
+      vulnerabilities: auditResults.summary?.total || 0,
+      critical: auditResults.summary?.critical || 0,
+      high: auditResults.summary?.high || 0
     };
     
     return {
@@ -107,11 +113,9 @@ function addToWhitelist(packageName) {
   analyzer.security.addToWhitelist(packageName);
 }
 
-
 function removeFromWhitelist(packageName) {
   analyzer.security.removeFromWhitelist(packageName);
 }
-
 
 function isWhitelisted(packageName) {
   return analyzer.security.isWhitelisted(packageName);

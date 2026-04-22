@@ -1,0 +1,68 @@
+{
+  "entry": [
+    "src/index.js",
+    "index.js",
+    "main.js",
+    "app.js",
+    "server.js"
+  ],
+  "project": [
+    "**/*.js",
+    "**/*.jsx",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "ignore": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    ".next/**",
+    "coverage/**",
+    "out/**",
+    "*.min.js"
+  ],
+  "ignoreDependencies": [
+    "react",
+    "react-dom",
+    "react-native",
+    "next",
+    "@angular/core",
+    "@angular/common",
+    "@angular/platform-browser",
+    "@nestjs/core",
+    "@nestjs/common",
+    "@nestjs/platform-express",
+    "typescript",
+    "webpack",
+    "vite",
+    "rollup",
+    "esbuild",
+    "jest",
+    "vitest",
+    "mocha",
+    "postcss",
+    "autoprefixer",
+    "tailwindcss",
+    "cssnano",
+    "prettier",
+    "eslint",
+    "devcompass"
+  ],
+  "skipPackages": [
+    "typescript",
+    "@types/",
+    "eslint",
+    "prettier",
+    "webpack",
+    "vite",
+    "rollup",
+    "esbuild",
+    "jest",
+    "vitest",
+    "mocha",
+    "react",
+    "react-dom",
+    "next",
+    "devcompass"
+  ]
+}
