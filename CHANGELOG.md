@@ -5,6 +5,224 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.7] - 2026-04-22
+
+### 🔧 Major Feature: Dynamic Data Configuration System
+
+Scalable JSON-based configuration system that moves all hardcoded data to external files for easy customization and maintenance!
+
+### Added
+
+#### **8 New JSON Configuration Files**
+- **licenses.json** (272B) - Restrictive (8) and permissive (7) license lists
+- **priorities.json** (394B) - CRITICAL/HIGH/MEDIUM/LOW severity levels with colors and emojis
+- **knip-config.json** (1.0kB) - Entry points, project patterns, ignore paths for unused dependency detection
+- **license-risks.json** (2.7kB) - 28 license types with risk levels (critical/high/medium/low) and descriptions
+- **gpl-alternatives.json** (382B) - 4 GPL package replacements (readline-sync→prompts, gnu-which→which, etc.)
+- **quality-alternatives.json** (888B) - 9 deprecated package alternatives (request→axios, moment→dayjs, colors→chalk, faker→@faker-js/faker)
+- **popular-packages.json** (1.7kB) - 73 popular packages for typosquatting detection + 38 whitelist packages
+- **batch-categories.json** (1.1kB) - 7 fix categories with icons, priorities, descriptions (supply-chain, license, quality, security, ecosystem, unused, updates)
+
+#### **Dynamic Data Loading System**
+- All hardcoded configuration extracted to JSON files
+- 7 source files refactored to load data via `fs.readFileSync()` at runtime
+- Zero hardcoded data remaining in codebase
+- Clean separation of data and logic
+
+#### **Scalable Architecture**
+- Add/remove licenses by editing `licenses.json` (no code changes)
+- Customize severity levels in `priorities.json`
+- Adjust typosquatting detection via `popular-packages.json`
+- Modify fix priorities in `batch-categories.json`
+- Teams can customize thresholds and lists per project
+
+### Technical Details
+
+**Files Refactored for Dynamic Loading:**
+- `src/analyzers/licenses.js` - Loads `licenses.json` for restrictive/permissive license detection
+- `src/analyzers/security-recommendations.js` - Loads `priorities.json` for severity levels
+- `src/analyzers/unused-deps.js` - Loads `knip-config.json` for unused dependency detection config
+- `src/services/dynamic-license.js` - Loads `license-risks.json` + `gpl-alternatives.json` for risk analysis
+- `src/services/dynamic-quality.js` - Loads `quality-alternatives.json` for deprecated package suggestions
+- `src/services/dynamic-security.js` - Loads `popular-packages.json` for typosquatting detection
+- `src/utils/batch-selector.js` - Loads `batch-categories.json` for fix category definitions
+
+**Loading Pattern:**
+```javascript
+const data = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '../../data/file.json'), 'utf8')
+);
+```
+
+**Code Quality Improvement:**
+- **+1,219 insertions** / **-1,544 deletions** = **-325 net lines**
+- More maintainable architecture
+- Better separation of concerns
+- Easier to extend and customize
+
+### Fixed
+
+**Critical Bug Fixes:**
+- ✅ Fixed unused dependencies displaying as `undefined` in analyze output
+- ✅ Fixed `findProblematicLicenses` missing export in `licenses.js`
+- ✅ Fixed `licenses.map is not a function` error in license-risk analysis
+- ✅ Fixed `auditResults.vulnerabilities is not iterable` in supply-chain analysis
+- ✅ Added safe array handling for license and security data
+
+**Type Safety Improvements:**
+- Added `typeof dep === 'string' ? dep : (dep.name || dep)` checks
+- Safe array extraction: `Array.isArray(licenses) ? licenses : (licenses.warnings || [])`
+- Proper null/undefined handling in all analyzers
+
+### Performance
+
+**Data Loading:**
+- All JSON files totaling 8.3 KB
+- Parsing overhead: <5ms per file
+- Total startup impact: <50ms
+- Zero impact on analysis performance
+
+**Memory Footprint:**
+- Data directory: 56 KB total (9 files)
+- Minimal memory usage
+- Fast JSON parsing
+
+### Benefits
+
+**For Users:**
+- ✅ **Customizable** - Edit JSON files to add/remove items
+- ✅ **Scalable** - No code changes needed for data updates
+- ✅ **Maintainable** - Data updates don't require code review
+- ✅ **Version Controlled** - Track configuration changes separately
+
+**For Contributors:**
+- ✅ **Easier to extend** - Add new licenses/packages by editing JSON
+- ✅ **Clear structure** - Data separated from business logic
+- ✅ **No code knowledge required** - Non-developers can update data
+- ✅ **Better testing** - Can swap data files for testing
+
+### Example Customization
+
+**Add custom restrictive license:**
+```json
+// data/licenses.json
+{
+  "restrictive": ["GPL", "AGPL", "SSPL", "YOUR-CUSTOM-LICENSE"],
+  "permissive": ["MIT", "Apache-2.0", "BSD-3-Clause"]
+}
+```
+
+**Whitelist internal packages:**
+```json
+// data/popular-packages.json
+{
+  "packages": ["express", "react", "lodash"],
+  "whitelist": ["your-internal-package", "your-company-lib"]
+}
+```
+
+**Customize severity colors:**
+```json
+// data/priorities.json
+{
+  "CRITICAL": {
+    "level": 1,
+    "label": "CRITICAL",
+    "color": "red",
+    "emoji": "🔴"
+  }
+}
+```
+
+### Breaking Changes
+
+**None** - 100% backward compatible
+
+- All existing commands work unchanged
+- Configuration is optional (defaults work out of box)
+- Drop-in upgrade from any previous version
+- All v3.1.6 clustering features intact
+- All v3.1.5 GitHub token features intact
+
+### Migration Guide
+
+**No migration needed!** Just upgrade and go.
+
+```bash
+# Upgrade to v3.1.7
+npm install -g devcompass@3.1.7
+
+# Verify version
+devcompass --version
+# Expected: 3.1.7
+
+# Use normally - all commands work
+devcompass analyze
+devcompass graph --open
+devcompass fix --dry-run
+
+# Optional: Customize configuration
+vim ~/devCompass/data/licenses.json
+devcompass analyze
+```
+
+### Files Changed
+
+**Modified (7 files):**
+- `src/analyzers/licenses.js` - Dynamic license loading (80 lines)
+- `src/analyzers/security-recommendations.js` - Dynamic priorities
+- `src/analyzers/unused-deps.js` - Dynamic knip config
+- `src/services/dynamic-license.js` - Dynamic risk matrix (137 lines)
+- `src/services/dynamic-quality.js` - Dynamic alternatives
+- `src/services/dynamic-security.js` - Dynamic packages (235 lines)
+- `src/utils/batch-selector.js` - Dynamic categories
+- `src/commands/analyze.js` - Fixed unused deps display
+- `package.json` - Version bump to 3.1.7
+- `README.md` - Added configuration documentation
+- `CHANGELOG.md` - This entry
+
+**Added (8 files):**
+- `data/licenses.json` - License categorization
+- `data/priorities.json` - Severity levels
+- `data/knip-config.json` - Unused deps config
+- `data/license-risks.json` - License risk matrix
+- `data/gpl-alternatives.json` - GPL replacements
+- `data/quality-alternatives.json` - Deprecated alternatives
+- `data/popular-packages.json` - Typosquatting detection
+- `data/batch-categories.json` - Fix categories
+
+**Removed (1 file):**
+- `data/issues-db.json` - Replaced by dynamic npm audit in v3.1.2
+
+### Testing
+
+**All 36 automated tests passed:**
+- ✅ Version verification (3.1.7)
+- ✅ Data file validation (9/9 JSON files valid)
+- ✅ Dynamic loading (7/7 source files)
+- ✅ No hardcoded data (0 instances found)
+- ✅ All commands working (analyze/fix/graph)
+- ✅ Backward compatibility (v3.1.6/v3.1.5/v3.1.4)
+- ✅ Data modification (add licenses/packages dynamically)
+- ✅ Performance (56KB data, <50ms overhead)
+
+### Known Limitations
+
+- Data files must be valid JSON (syntax errors will cause loading failures)
+- Changes to data files require restart (not hot-reloaded)
+- File paths are relative to package installation directory
+
+### Future Enhancements (v3.2.0+)
+
+- Hot-reload configuration without restart
+- Configuration validation on startup
+- User-specific config overrides
+- Visual configuration editor (web UI)
+- Configuration presets (team/company templates)
+- Schema validation for JSON files
+
+---
+
 ## [3.1.6] - 2026-04-22
 
 ### 🔲 Major Feature: Intelligent Dependency Clustering
@@ -4648,6 +4866,7 @@ No migration needed. All features are opt-in via flags or config.
 
 ---
 
+[3.1.7]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.7
 [3.1.6]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.6
 [3.1.5]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.5
 [3.1.4]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.4

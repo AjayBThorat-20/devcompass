@@ -1,98 +1,117 @@
 # 🧭 DevCompass
 
-**Dependency health checker with ecosystem intelligence, user-configurable GitHub Personal Access Token support, real-time GitHub issue tracking for 502 popular npm packages, unified interactive dependency graph with intelligent clustering (Ecosystem/Health/Depth grouping), dynamic layout switching, real-time filtering, advanced zoom controls, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, batch fix modes with granular control, backup & rollback, and professional dependency exploration - all in a single interactive HTML file.**
+**Dependency health checker with dynamic data configuration, ecosystem intelligence, user-configurable GitHub Personal Access Token support, real-time GitHub issue tracking for 502 popular npm packages, unified interactive dependency graph with intelligent clustering (Ecosystem/Health/Depth grouping), dynamic layout switching, real-time filtering, advanced zoom controls, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, batch fix modes with granular control, backup & rollback, and professional dependency exploration - all in a single interactive HTML file.**
 
 [![npm version](https://img.shields.io/npm/v/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 502 packages**, **configure your own GitHub token to avoid rate limits**, **visualize dependency graphs with intelligent clustering**, **organize packages by ecosystem (React/Vue/Angular/Testing/Build Tools)**, **group by health status (Critical/Warning/Healthy)**, **analyze by depth levels**, **instant layout switching**, **real-time filtering**, **advanced zoom controls**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
+Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 502 packages**, **configure your own GitHub token to avoid rate limits**, **customize all configuration via JSON files**, **visualize dependency graphs with intelligent clustering**, **organize packages by ecosystem (React/Vue/Angular/Testing/Build Tools)**, **group by health status (Critical/Warning/Healthy)**, **analyze by depth levels**, **instant layout switching**, **real-time filtering**, **advanced zoom controls**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
-> **🔲 LATEST v3.1.6:** Intelligent Clustering - Organize packages by Ecosystem, Health, or Depth! 🔲  
+> **🔧 LATEST v3.1.7:** Dynamic Data Configuration - Scalable JSON-based configuration system! 🔧  
+> **🔲 v3.1.6:** Intelligent Clustering - Organize packages by Ecosystem, Health, or Depth! 🔲  
 > **🔑 v3.1.5:** GitHub Personal Access Token Support - Configure your own token to bypass rate limits! 🔑  
 > **🎨 v3.1.4:** Unified Interactive Graph System - 40+ files → 1 file with dynamic controls! 🎨
 
-## 🎉 Latest Release: v3.1.6 (2026-04-22)
+## 🎉 Latest Release: v3.1.7 (2026-04-22)
 
-**Intelligent Dependency Clustering - Organize & Understand Your Dependencies!**
+**Dynamic Data Configuration System - Scalable & Customizable!**
 
-### 🌟 What's New in v3.1.6:
+### 🌟 What's New in v3.1.7:
 
-#### **🔲 Smart Clustering System**
+#### **🔧 Dynamic Configuration System**
 
-Organize your dependencies into meaningful groups for better understanding and management.
+All hardcoded data moved to external JSON files for easy customization and maintenance.
 
-**Three Clustering Modes:**
+**8 New Data Files:**
 
-1. **⚛️ Ecosystem Clustering**
-   - Groups packages by technology (React, Vue, Angular, Testing, Build Tools, etc.)
-   - Automatically detects 12 ecosystems
-   - Perfect for understanding your tech stack
+1. **📄 licenses.json** (272B)
+   - 8 restrictive licenses (GPL, AGPL, SSPL, etc.)
+   - 7 permissive licenses (MIT, Apache-2.0, BSD, etc.)
 
-2. **🏥 Health Clustering**
-   - Groups by health status (Critical Issues, Needs Attention, Healthy)
-   - Color-coded health indicators
-   - Quick identification of problem areas
+2. **📄 priorities.json** (394B)
+   - 4 severity levels: CRITICAL, HIGH, MEDIUM, LOW
+   - Colors, emojis, and labels for each
 
-3. **📊 Depth Clustering**
-   - Groups by dependency levels (Direct → Level 1 → Level 2, etc.)
-   - Understand dependency chains
-   - Visualize transitive dependencies
+3. **📄 knip-config.json** (1.0kB)
+   - Entry points for unused dependency detection
+   - Project patterns and ignore paths
 
-**Features:**
-- ✅ **Sidebar Organization** - Clean categorized list of all packages
-- ✅ **Health Statistics** - See vulnerable/deprecated/outdated/healthy counts per cluster
-- ✅ **Click to Highlight** - Click any cluster to highlight related packages (3 seconds)
-- ✅ **Switch Modes Instantly** - Three buttons to change grouping
-- ✅ **Graph Unchanged** - All nodes always visible, layouts work normally
-- ✅ **No Page Reload** - Everything happens in real-time
+4. **📄 license-risks.json** (2.7kB)
+   - 28 license types with risk levels
+   - Detailed descriptions and compatibility info
 
-#### **📊 Cluster Statistics**
+5. **📄 gpl-alternatives.json** (382B)
+   - GPL package replacement suggestions (4 packages)
 
-Each cluster shows:
-- 📦 Package count
-- 🔴 Vulnerable count
-- 🟣 Deprecated count
-- 🟡 Outdated count
-- 🟢 Healthy count
+6. **📄 quality-alternatives.json** (888B)
+   - Deprecated package alternatives (9 packages)
+   - request → axios, moment → dayjs, etc.
 
-#### **🎯 Example Use Cases**
+7. **📄 popular-packages.json** (1.7kB)
+   - 73 popular packages for typosquatting detection
+   - 38 whitelist packages (known safe)
 
-**"Which testing tools do I have?"**
-```bash
-devcompass graph --open
-# Click "Ecosystem" → See "Testing Tools (15 packages)"
-```
+8. **📄 batch-categories.json** (1.1kB)
+   - 7 fix categories with icons and priorities
+   - supply-chain, license, quality, security, etc.
 
-**"Show me all critical issues"**
-```bash
-devcompass graph --open
-# Click "Health" → See "Critical Issues (8 packages)"
-```
+**Benefits:**
+- ✅ **Scalable** - Add/remove items by editing JSON (no code changes!)
+- ✅ **Maintainable** - Update configuration without code review
+- ✅ **Customizable** - Teams can customize thresholds and lists
+- ✅ **Version Controlled** - Track data changes separately from code
 
-**"What are my direct dependencies?"**
-```bash
-devcompass graph --open
-# Click "Depth" → See "Direct Dependencies (42 packages)"
-```
+**Code Quality:**
+- **-325 net lines** (more maintainable!)
+- 7 source files refactored for dynamic loading
+- Zero hardcoded data in code
+- 100% backward compatible
+
+### 🐛 Bug Fixes in v3.1.7:
+
+- ✅ Fixed unused dependencies showing as `undefined`
+- ✅ Fixed supply chain analysis array iteration
+- ✅ Fixed license risk analysis input handling
+- ✅ Fixed `findProblematicLicenses` export
 
 ### 🚀 Upgrade Now:
 
 ```bash
-npm install -g devcompass@3.1.6
+npm install -g devcompass@3.1.7
 ```
 
-### 📈 What's Included:
+### 💡 Customization Examples:
 
-All features from previous versions PLUS clustering:
-- ✅ Unified interactive graph (v3.1.4)
-- ✅ GitHub token configuration (v3.1.5)
-- ✅ 502 tracked packages (v3.1.5)
-- ✅ **NEW: Intelligent clustering (v3.1.6)**
-- ✅ 4 layouts (Tree/Force/Radial/Conflict)
-- ✅ 5 filters (All/Vulnerable/Outdated/Deprecated/Unused)
-- ✅ Advanced zoom controls
-- ✅ Export (PNG/JSON)
+**Add custom restrictive license:**
+```json
+// data/licenses.json
+{
+  "restrictive": ["GPL", "AGPL", "YOUR-LICENSE"],
+  "permissive": ["MIT", "Apache-2.0"]
+}
+```
+
+**Whitelist internal packages:**
+```json
+// data/popular-packages.json
+{
+  "packages": ["express", "react", ...],
+  "whitelist": ["your-internal-package"]
+}
+```
+
+**Customize fix priorities:**
+```json
+// data/batch-categories.json
+[
+  {
+    "id": "supply-chain",
+    "priority": 1,
+    "icon": "🛡️"
+  }
+]
+```
 
 ---
 
@@ -259,7 +278,7 @@ devcompass graph --open
 **What you get in ONE file:**
 - ✅ 4 layouts (Tree/Force/Radial/Conflict) - switchable via buttons
 - ✅ 5 filters (All/Vulnerable/Outdated/Deprecated/Unused) - instant filtering
-- ✅ **3 clustering modes (Ecosystem/Health/Depth) - NEW in v3.1.6!**
+- ✅ 3 clustering modes (Ecosystem/Health/Depth) - organize packages
 - ✅ Depth slider (1-10, ∞)
 - ✅ Live search
 - ✅ Advanced zoom controls
@@ -290,7 +309,7 @@ Click to filter packages:
 - **Deprecated** - Officially deprecated
 - **Unused** - Unused dependencies
 
-#### **Clustering (NEW!)**
+#### **Clustering (v3.1.6)**
 
 Click to organize packages:
 
@@ -310,6 +329,7 @@ Click to organize packages:
 
 ## ✨ All Features
 
+- 🔧 **Dynamic Data Configuration** (v3.1.7) - JSON-based scalable config
 - 🔲 **Intelligent Clustering** (v3.1.6) - Ecosystem/Health/Depth grouping
 - 🔑 **GitHub Token Config** (v3.1.5) - User tokens, no rate limits
 - 📦 **502 Tracked Packages** (v3.1.5) - Comprehensive monitoring
@@ -332,16 +352,16 @@ Click to organize packages:
 
 ```bash
 # Global (recommended)
-npm install -g devcompass@3.1.6
+npm install -g devcompass@3.1.7
 
 # Local
-npm install --save-dev devcompass@3.1.6
+npm install --save-dev devcompass@3.1.7
 
 # One-time use
-npx devcompass@3.1.6 analyze
+npx devcompass@3.1.7 analyze
 
-# Upgrade
-npm install -g devcompass@3.1.6
+# Upgrade from any version
+npm install -g devcompass@3.1.7
 ```
 
 ## 📖 Usage
@@ -349,7 +369,7 @@ npm install -g devcompass@3.1.6
 ### Basic Commands
 
 ```bash
-# Configure GitHub token
+# Configure GitHub token (recommended)
 devcompass config --github-token <your-token>
 devcompass config --show
 
@@ -400,6 +420,119 @@ devcompass graph --format json --output data.json
 
 ---
 
+## 🔧 Configuration Files (v3.1.7)
+
+All configuration is now in external JSON files for easy customization!
+
+### Data Files Location
+
+```
+devcompass/
+├── data/
+│   ├── licenses.json           # License categorization
+│   ├── priorities.json         # Severity levels
+│   ├── knip-config.json       # Unused deps config
+│   ├── license-risks.json     # License risk matrix
+│   ├── gpl-alternatives.json  # GPL replacements
+│   ├── quality-alternatives.json # Deprecated alternatives
+│   ├── popular-packages.json  # Typosquatting detection
+│   ├── batch-categories.json  # Fix categories
+│   └── tracked-repos.json     # GitHub tracked packages (502)
+```
+
+### Customization Examples
+
+**1. Add Custom License to Detection:**
+
+Edit `data/licenses.json`:
+```json
+{
+  "restrictive": [
+    "GPL", "GPL-2.0", "GPL-3.0",
+    "AGPL", "AGPL-3.0",
+    "SSPL",
+    "YOUR-CUSTOM-LICENSE"
+  ],
+  "permissive": [
+    "MIT", "Apache-2.0", "BSD-2-Clause",
+    "BSD-3-Clause", "ISC", "0BSD", "Unlicense"
+  ]
+}
+```
+
+**2. Whitelist Internal Packages:**
+
+Edit `data/popular-packages.json`:
+```json
+{
+  "packages": ["express", "react", "lodash", ...],
+  "whitelist": [
+    "chalk", "ora", "inquirer",
+    "your-internal-package",
+    "your-company-library"
+  ]
+}
+```
+
+**3. Adjust Severity Colors:**
+
+Edit `data/priorities.json`:
+```json
+{
+  "CRITICAL": {
+    "level": 1,
+    "label": "CRITICAL",
+    "color": "red",
+    "emoji": "🔴"
+  },
+  "HIGH": {
+    "level": 2,
+    "label": "HIGH",
+    "color": "orange",
+    "emoji": "🟠"
+  }
+}
+```
+
+**4. Add Deprecated Package Alternative:**
+
+Edit `data/quality-alternatives.json`:
+```json
+{
+  "request": {
+    "replacement": "axios",
+    "reason": "request is deprecated"
+  },
+  "your-old-package": {
+    "replacement": "your-new-package",
+    "reason": "your-old-package is abandoned"
+  }
+}
+```
+
+### Project-Specific Configuration
+
+Create `devcompass.config.json` in your project:
+
+```json
+{
+  "ignore": ["package-name"],
+  "ignoreSeverity": ["low"],
+  "minSeverity": "medium",
+  "minScore": 7,
+  "cache": true
+}
+```
+
+**Options:**
+- **ignore** - Packages to skip
+- **ignoreSeverity** - Severities to ignore (low/medium/high/critical)
+- **minSeverity** - Minimum to display
+- **minScore** - Minimum health score for CI (default: 7)
+- **cache** - Enable caching (default: true)
+
+---
+
 ## 📦 Tracked Repositories (v3.1.5)
 
 DevCompass tracks **502 popular npm packages** across 33 categories!
@@ -413,7 +546,7 @@ DevCompass tracks **502 popular npm packages** across 33 categories!
 - Utilities (50) - Lodash, date-fns, Zod, Yup
 - And 27 more categories!
 
-**Data Source:** `data/tracked-repos.json`
+**Data Source:** `data/tracked-repos.json` (customizable!)
 
 ---
 
@@ -468,28 +601,7 @@ devcompass fix --skip updates
 devcompass fix --skip ecosystem,updates
 ```
 
----
-
-## 🎯 Configuration
-
-Create `devcompass.config.json`:
-
-```json
-{
-  "ignore": ["package-name"],
-  "ignoreSeverity": ["low"],
-  "minSeverity": "medium",
-  "minScore": 7,
-  "cache": true
-}
-```
-
-**Options:**
-- **ignore** - Packages to skip
-- **ignoreSeverity** - Severities to ignore (low/medium/high/critical)
-- **minSeverity** - Minimum to display
-- **minScore** - Minimum health score for CI (default: 7)
-- **cache** - Enable caching (default: true)
+**Category Configuration:** Edit `data/batch-categories.json` to customize!
 
 ---
 
@@ -499,13 +611,13 @@ Create `devcompass.config.json`:
 
 **"Command not found"**
 ```bash
-npm install -g devcompass@3.1.6
+npm install -g devcompass@3.1.7
 ```
 
 **Old version**
 ```bash
 npm update -g devcompass
-devcompass --version  # Should show 3.1.6
+devcompass --version  # Should show 3.1.7
 ```
 
 **GitHub rate limits**
@@ -536,11 +648,23 @@ ls -la ~/.devcompass/github-token
 
 **Clustering not showing**
 ```bash
-# Ensure v3.1.6
+# Ensure v3.1.7
 devcompass --version
 
 # Clear cache
 # Hard refresh browser
+```
+
+**Customize configuration not working**
+```bash
+# Check file exists
+ls -la ~/devCompass/data/
+
+# Validate JSON
+cat ~/devCompass/data/licenses.json | jq .
+
+# Restart after editing
+devcompass analyze
 ```
 
 ---
@@ -549,11 +673,26 @@ devcompass --version
 
 Contributions welcome! 
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing`)
-3. Commit changes (`git commit -m 'Add feature'`)
-4. Push branch (`git push origin feature/amazing`)
-5. Open Pull Request
+### Ways to Contribute:
+
+1. **Add Package Alternatives**
+   - Edit `data/quality-alternatives.json`
+   - Submit PR with new deprecated package alternatives
+
+2. **Expand License Database**
+   - Edit `data/license-risks.json`
+   - Add new license types and risk levels
+
+3. **Improve Typosquatting Detection**
+   - Edit `data/popular-packages.json`
+   - Add more popular packages to track
+
+4. **Code Contributions**
+   - Fork the repository
+   - Create feature branch (`git checkout -b feature/amazing`)
+   - Commit changes (`git commit -m 'Add feature'`)
+   - Push branch (`git push origin feature/amazing`)
+   - Open Pull Request
 
 ---
 
@@ -567,31 +706,69 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 
 ### Completed Features:
 
-- [x] GitHub token configuration (v3.1.5)
-- [x] 502 tracked packages (v3.1.5)
-- [x] Unified graph system (v3.1.4)
-- [x] Dynamic layout switching (v3.1.4)
-- [x] Real-time filtering (v3.1.4)
-- [x] Advanced zoom controls (v3.1.4)
-- [x] **Intelligent clustering (v3.1.6)** ✅
-- [x] **Ecosystem grouping (v3.1.6)** ✅
-- [x] **Health clustering (v3.1.6)** ✅
-- [x] **Depth analysis (v3.1.6)** ✅
+- [x] Dynamic data configuration (v3.1.7) ✅
+- [x] GitHub token configuration (v3.1.5) ✅
+- [x] 502 tracked packages (v3.1.5) ✅
+- [x] Unified graph system (v3.1.4) ✅
+- [x] Dynamic layout switching (v3.1.4) ✅
+- [x] Real-time filtering (v3.1.4) ✅
+- [x] Advanced zoom controls (v3.1.4) ✅
+- [x] Intelligent clustering (v3.1.6) ✅
+- [x] Ecosystem grouping (v3.1.6) ✅
+- [x] Health clustering (v3.1.6) ✅
+- [x] Depth analysis (v3.1.6) ✅
 
-### Planned Features:
+### Planned Features (v3.2.0+):
 
+- [ ] **Comprehensive Package Recommendations** - 200+ package alternatives
+- [ ] **Custom Rule Engine** - Define your own detection rules
+- [ ] **Configuration Presets** - Team/company-wide settings
+- [ ] **Visual Configuration Editor** - Edit JSON files via web UI
 - [ ] **Web Dashboard** - Team health monitoring
 - [ ] **Monorepo Support** - Multi-project analysis
 - [ ] **Historical Tracking** - Track changes over time
 - [ ] **Compare Mode** - Before/after fix comparison
 - [ ] **Timeline View** - Dependency evolution
+- [ ] **Migration Wizard** - Automated upgrade assistant
 
 Want to contribute? Pick a feature and open an issue! 🚀
 
 ---
 
+## 📊 Version History
+
+### v3.1.7 (2026-04-22) - Dynamic Data Configuration
+- 🔧 8 new JSON configuration files
+- ✅ 7 source files refactored for dynamic loading
+- ✅ Zero hardcoded data in code
+- ✅ Scalable and customizable architecture
+- 🐛 Fixed unused deps showing as `undefined`
+- 🐛 Fixed supply chain analysis bugs
+- 🐛 Fixed license risk analysis bugs
+
+### v3.1.6 (2026-04-22) - Intelligent Clustering
+- 🔲 Ecosystem clustering (12 categories)
+- 🔲 Health clustering (Critical/Warning/Healthy)
+- 🔲 Depth clustering (Direct → Level N)
+- ✨ Click-to-highlight packages
+- 📊 Per-cluster statistics
+
+### v3.1.5 (2026-04-21) - GitHub Token Support
+- 🔑 User-configurable GitHub tokens
+- 📦 502 tracked packages database
+- ⚡ 5,000 requests/hour (vs 60)
+- 🔒 Secure local storage
+
+### v3.1.4 (2026-04-20) - Unified Graph
+- 🎨 All layouts in one file
+- 🔄 Dynamic layout switching
+- 🎯 Real-time filtering
+- 🔍 Advanced zoom controls
+
+---
+
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
 
-*DevCompass - Keep your dependencies healthy!* 🧭
+*DevCompass v3.1.7 - Scalable, Maintainable, Customizable!* 🧭
 
 **Like Lighthouse for your dependencies** ⚡
