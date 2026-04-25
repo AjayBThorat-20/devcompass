@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevCompass Dashboard v3.2.0</title>
+  
+  <!-- Modular CSS -->
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/layout.css">
+  <link rel="stylesheet" href="styles/controls.css">
+  <link rel="stylesheet" href="styles/graph.css">
+  <link rel="stylesheet" href="styles/themes.css">
+  
+  <!-- D3.js Library -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body class="theme-dark">
+  
+  <!-- ========== HEADER ========== -->
+  <header class="header">
+    <div class="header-left">
+      <h1 class="header-title">
+        <span class="header-icon">📊</span>
+        DevCompass Dashboard
+        <span class="version-badge">v3.2.0</span>
+      </h1>
+      <div class="header-meta" id="headerMeta">
+        <span><strong>Project:</strong> <span id="projectName">Loading...</span></span>
+        <span><strong>Version:</strong> <span id="projectVersion">-</span></span>
+        <span><strong>Dependencies:</strong> <span id="totalDeps">0</span></span>
+      </div>
+    </div>
+    
+    <div class="header-right">
+      <!-- Layout Tabs -->
+      <nav class="layout-tabs">
+        <button class="tab-btn active" data-layout="tree" onclick="window.switchLayout('tree')">
+          <span>🌳</span> Tree
+        </button>
+        <button class="tab-btn" data-layout="force" onclick="window.switchLayout('force')">
+          <span>⚡</span> Force
+        </button>
+        <button class="tab-btn" data-layout="radial" onclick="window.switchLayout('radial')">
+          <span>🌐</span> Radial
+        </button>
+        <button class="tab-btn" data-layout="conflict" onclick="window.switchLayout('conflict')">
+          <span>⚠️</span> Conflict
+        </button>
+        <button class="tab-btn" data-layout="analytics" onclick="window.switchLayout('analytics')">
+          <span>📊</span> Analytics
+        </button>
+      </nav>
+      
+      <!-- Theme Toggle -->
+      <button class="icon-btn" onclick="window.toggleTheme()" title="Toggle Theme">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========== MAIN CONTAINER ========== -->
+  <div class="main-container">
+    
+    <!-- ========== LEFT SIDEBAR ========== -->
+    <aside class="sidebar sidebar-left">
+      <!-- Search -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">🔍 Search</h3>
+        <input 
+          type="text" 
+          class="search-input" 
+          id="searchInput" 
+          placeholder="Search packages..."
+          oninput="window.handleSearch(this.value)"
+        >
+      </div>
+
+      <!-- Filters -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">🎯 Filters</h3>
+        <div class="filter-group">
+          <label class="filter-label">Health Score</label>
+          <select class="filter-select" id="healthFilter" onchange="window.applyFilters()">
+            <option value="all">All Packages</option>
+            <option value="excellent">Excellent (9-10)</option>
+            <option value="good">Good (7-8)</option>
+            <option value="caution">Caution (5-7)</option>
+            <option value="warning">Warning (3-5)</option>
+            <option value="critical">Critical (&lt;3)</option>
+          </select>
+        </div>
+        
+        <div class="filter-group">
+          <label class="filter-label">Depth Level</label>
+          <div class="slider-container">
+            <input 
+              type="range" 
+              class="depth-slider" 
+              id="depthSlider" 
+              min="1" 
+              max="10" 
+              value="10"
+              oninput="window.handleDepthChange(this.value)"
+            >
+            <span class="depth-value" id="depthValue">∞</span>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">Show/Hide</label>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" checked onchange="window.toggleLabels()"> Labels
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" checked onchange="window.toggleLinks()"> Links
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" checked onchange="window.toggleDepthCircles()"> Depth Circles
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clustering -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">🔲 Clustering</h3>
+        <div class="cluster-mode-grid">
+          <button class="cluster-btn active" data-mode="ecosystem" onclick="window.switchClusterMode('ecosystem')">
+            ⚛️ Ecosystem
+          </button>
+          <button class="cluster-btn" data-mode="health" onclick="window.switchClusterMode('health')">
+            🏥 Health
+          </button>
+          <button class="cluster-btn" data-mode="depth" onclick="window.switchClusterMode('depth')">
+            📊 Depth
+          </button>
+        </div>
+        <div class="cluster-list" id="clusterList">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- ========== GRAPH AREA ========== -->
+    <main class="graph-container">
+      <svg id="graph" class="graph-svg"></svg>
+      
+      <!-- Loading Indicator -->
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Rendering graph...</div>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState" style="display: none;">
+        <div class="empty-icon">📦</div>
+        <h2 class="empty-title">No Dependencies Found</h2>
+        <p class="empty-text">Your project has no dependencies to visualize.</p>
+      </div>
+
+      <!-- Analytics View (Hidden by default) -->
+      <div class="analytics-container" id="analyticsView" style="display: none;">
+        <div class="analytics-grid">
+          <!-- Will be populated by analytics layout -->
+        </div>
+      </div>
+    </main>
+
+    <!-- ========== RIGHT SIDEBAR ========== -->
+    <aside class="sidebar sidebar-right">
+      <!-- Statistics -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">📊 Statistics</h3>
+        <div class="stat-grid" id="statsGrid">
+          <div class="stat-item">
+            <span class="stat-label">Total</span>
+            <span class="stat-value" id="stat-total">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Visible</span>
+            <span class="stat-value" id="stat-visible">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Clusters</span>
+            <span class="stat-value stat-cluster" id="stat-clusters">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Vulnerable</span>
+            <span class="stat-value stat-danger" id="stat-vulnerable">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Outdated</span>
+            <span class="stat-value stat-warning" id="stat-outdated">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Healthy</span>
+            <span class="stat-value stat-success" id="stat-healthy">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">⚙️ Controls</h3>
+        <div class="control-buttons">
+          <button class="control-btn primary" onclick="window.resetView()">
+            <span>↻</span> Reset View
+          </button>
+          <button class="control-btn" onclick="window.fitToScreen()">
+            <span>⛶</span> Fit to Screen
+          </button>
+          <button class="control-btn" onclick="window.zoomIn()">
+            <span>🔍+</span> Zoom In
+          </button>
+          <button class="control-btn" onclick="window.zoomOut()">
+            <span>🔍−</span> Zoom Out
+          </button>
+          <button class="control-btn" onclick="window.centerGraph()">
+            <span>⊙</span> Center
+          </button>
+        </div>
+      </div>
+
+      <!-- Export -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">💾 Export</h3>
+        <div class="control-buttons">
+          <button class="control-btn" onclick="window.exportPNG()">
+            <span>📸</span> Save PNG
+          </button>
+          <button class="control-btn" onclick="window.exportJSON()">
+            <span>📄</span> Save JSON
+          </button>
+          <button class="control-btn" onclick="window.exportReport()">
+            <span>📊</span> Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">🎨 Legend</h3>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-dot health-excellent"></div>
+            <span>Excellent (9-10)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot health-good"></div>
+            <span>Good (7-8)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot health-caution"></div>
+            <span>Caution (5-7)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot health-warning"></div>
+            <span>Warning (3-5)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot health-critical"></div>
+            <span>Critical (&lt;3)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot root-node"></div>
+            <span>Root Package</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ========== TOOLTIP ========== -->
+  <div class="tooltip" id="tooltip"></div>
+
+  <!-- ========== ZOOM CONTROLS (FLOATING) ========== -->
+  <div class="zoom-controls">
+    <button class="zoom-btn" onclick="window.zoomIn()" title="Zoom In">+</button>
+    <div class="zoom-level" id="zoomLevel">100%</div>
+    <button class="zoom-btn" onclick="window.zoomOut()" title="Zoom Out">−</button>
+    <button class="zoom-btn" onclick="window.resetView()" title="Reset">⟲</button>
+  </div>
+
+  <!-- ========== MODULAR JAVASCRIPT ========== -->
+  <script>
+    // Graph data will be injected here by the exporter
+    window.graphData = {{GRAPH_DATA}};
+    
+    // Clustering code will be injected here
+    {{CLUSTERING_CODE}}
+  </script>
+  
+  <!-- Load modules in correct order -->
+  <script src="scripts/utils.js"></script>
+  <script src="scripts/tooltip.js"></script>
+  <script src="scripts/stats.js"></script>
+  <script src="scripts/controls.js"></script>
+  <script src="scripts/layouts.js"></script>
+  <script src="scripts/core.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,175 @@
+/* src/dashboard/styles/graph.css */
+
+.node {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.node:hover {
+  filter: brightness(1.3);
+}
+
+.node circle {
+  stroke-width: 2px;
+  transition: all var(--transition-normal);
+}
+
+.node:hover circle {
+  stroke-width: 3px;
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+.node.selected circle {
+  stroke: var(--accent-cyan);
+  stroke-width: 4px;
+}
+
+.node-label {
+  font-size: 11px;
+  fill: var(--text-secondary);
+  pointer-events: none;
+  text-anchor: middle;
+  font-weight: 500;
+  user-select: none;
+}
+
+.node-label.hidden {
+  display: none;
+}
+
+.link {
+  stroke: var(--border-color);
+  stroke-opacity: 0.6;
+  fill: none;
+  stroke-width: 1.5px;
+  transition: all var(--transition-fast);
+}
+
+.link:hover {
+  stroke: var(--accent-cyan);
+  stroke-opacity: 1;
+  stroke-width: 2px;
+}
+
+.link.highlighted {
+  stroke: var(--accent-cyan);
+  stroke-opacity: 0.8;
+  stroke-width: 2.5px;
+}
+
+.link.circular {
+  stroke: var(--health-critical);
+  stroke-dasharray: 5, 5;
+  stroke-opacity: 0.8;
+}
+
+.link.hidden {
+  display: none;
+}
+
+.depth-circle {
+  fill: none;
+  stroke: var(--border-color);
+  stroke-width: 1px;
+  stroke-dasharray: 4, 4;
+  opacity: 0.4;
+  transition: opacity var(--transition-normal);
+}
+
+.depth-circle.hidden {
+  opacity: 0;
+}
+
+.depth-label {
+  fill: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.tooltip {
+  position: absolute;
+  background: rgba(15, 18, 25, 0.98);
+  border: 1px solid var(--accent-blue);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+  max-width: 350px;
+  z-index: var(--z-tooltip);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-10px);
+}
+
+.tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tooltip-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tooltip-content {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.4rem 0;
+  gap: 1rem;
+}
+
+.tooltip-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.tooltip-value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.tooltip-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+
+.tooltip-badge.critical {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--health-critical);
+}
+
+.tooltip-badge.warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--health-warning);
+}
+
+.tooltip-badge.info {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--accent-blue);
+}
+
+.tooltip-badge.deprecated {
+  background: rgba(139, 92, 246, 0.2);
+  color: var(--accent-purple);
+}
+
+.tooltip-badge.success {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--health-excellent);
+}

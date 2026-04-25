@@ -1,0 +1,60 @@
+/* src/dashboard/styles/themes.css */
+
+.theme-light {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-hover: #e2e8f0;
+  
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  
+  --border-color: #e2e8f0;
+  --border-hover: #3b82f6;
+}
+
+.theme-light .node-label {
+  fill: #475569;
+  text-shadow: 
+    -1px -1px 2px white,
+    1px -1px 2px white,
+    -1px 1px 2px white,
+    1px 1px 2px white;
+}
+
+.theme-light .link {
+  stroke: #cbd5e1;
+}
+
+.theme-light .depth-circle {
+  stroke: #cbd5e1;
+}
+
+.theme-light .tooltip {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: var(--accent-blue);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.theme-light .tooltip-title {
+  border-bottom-color: #e2e8f0;
+}
+
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.header,
+.sidebar,
+.sidebar-section,
+.tab-btn,
+.control-btn,
+.stat-item,
+.cluster-item,
+.search-input,
+.filter-select {
+  transition: background-color 0.3s ease, 
+              border-color 0.3s ease, 
+              color 0.3s ease;
+}

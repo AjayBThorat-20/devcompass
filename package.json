@@ -1,7 +1,7 @@
 {
   "name": "devcompass",
-  "version": "3.1.7",
-  "description": "Dependency health checker with ecosystem intelligence, user-configurable GitHub Personal Access Token support, real-time GitHub issue tracking for 502 popular npm packages, unified interactive dependency graph with dynamic layout switching, intelligent clustering (Ecosystem/Health/Depth grouping), real-time filtering, advanced zoom controls, supply chain security with auto-fix, license conflict resolution with auto-fix, package quality auto-fix, batch fix modes, backup & rollback, and professional dependency exploration - all in a single interactive HTML file.",
+  "version": "3.2.0",
+  "description": "Dependency health checker with ecosystem intelligence, unified interactive dashboard with 5 dynamic layouts (Tree/Force/Radial/Conflict/Analytics), modular CSS/JS architecture, intelligent clustering, real-time filtering, advanced zoom controls, theme support (dark/light), supply chain security with auto-fix, license conflict resolution, package quality auto-fix, batch fix modes, backup & rollback, and professional dependency exploration.",
   "main": "src/index.js",
   "bin": {
     "devcompass": "bin/devcompass.js"
@@ -99,6 +99,7 @@
     "radial-layout",
     "tree-layout",
     "conflict-view",
+    "analytics-dashboard",
     "graph-export",
     "graph-search",
     "graph-filter",
@@ -137,13 +138,21 @@
     "cluster-highlighting",
     "visual-clustering",
     "ecosystem-detection",
-    "package-ecosystem-mapping"
+    "package-ecosystem-mapping",
+    "unified-dashboard",
+    "modular-architecture",
+    "theme-support",
+    "dark-mode",
+    "light-mode",
+    "interactive-analytics",
+    "5-layouts",
+    "no-duplication",
+    "performance-optimized"
   ],
   "author": "Ajay Thorat <ajaythorat988@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "chalk": "4.1.2",
-    "commander": "11.1.0",
     "knip": "^5.88.1",
     "npm-check-updates": "^20.0.0",
     "open": "^10.2.0",

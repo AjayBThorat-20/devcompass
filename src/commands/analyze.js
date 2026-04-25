@@ -40,15 +40,7 @@ const {
 
 const packageJson = require('../../package.json');
 
-/**
- * v3.1.3 - analyzeProject() for graph enrichment
- * Returns structured analysis data without console output
- * Used by graph command to enrich nodes with vulnerability/outdated/unused flags
- * 
- * @param {string} projectPath - Path to project directory
- * @param {object} options - Options (silent mode enabled by default)
- * @returns {object|null} Analysis results or null on failure
- */
+
 async function analyzeProject(projectPath, options = {}) {
   const config = loadConfig(projectPath);
   

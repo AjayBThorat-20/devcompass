@@ -28,3 +28,4 @@ devcompass-v310-test/
 
 # DevCompass config (contains GitHub token)
 .devcompass/
+knip.json
