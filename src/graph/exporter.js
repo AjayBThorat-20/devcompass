@@ -95,11 +95,7 @@ class GraphExporter {
     }
   }
 
-  /**
-   * Inline all CSS and JS assets into HTML
-   * @param {string} html - HTML content
-   * @returns {string} HTML with inlined assets
-   */
+
   inlineAllAssets(html) {
     const dashboardDir = path.join(__dirname, '../dashboard');
     
