@@ -718,18 +718,12 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 - [x] Health clustering (v3.1.6) ✅
 - [x] Depth analysis (v3.1.6) ✅
 
-### Planned Features (v3.2.0+):
-
-- [ ] **Comprehensive Package Recommendations** - 200+ package alternatives
-- [ ] **Custom Rule Engine** - Define your own detection rules
-- [ ] **Configuration Presets** - Team/company-wide settings
-- [ ] **Visual Configuration Editor** - Edit JSON files via web UI
+### Planned Features:
 - [ ] **Web Dashboard** - Team health monitoring
 - [ ] **Monorepo Support** - Multi-project analysis
 - [ ] **Historical Tracking** - Track changes over time
 - [ ] **Compare Mode** - Before/after fix comparison
 - [ ] **Timeline View** - Dependency evolution
-- [ ] **Migration Wizard** - Automated upgrade assistant
 
 Want to contribute? Pick a feature and open an issue! 🚀
 
