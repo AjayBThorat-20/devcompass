@@ -15,27 +15,39 @@ const WHITELIST = new Set(securityData.whitelist);
  * Check for typosquatting attempts
  */
 function checkTyposquatting(packageName) {
+  // ✅ DEBUG: Log what's happening
+  if (process.env.DEBUG) {
+    console.log(`[DEBUG] Checking ${packageName} against whitelist:`, WHITELIST.has(packageName));
+  }
+  
   if (WHITELIST.has(packageName)) {
+    if (process.env.DEBUG) {
+      console.log(`[DEBUG] ${packageName} is whitelisted, skipping`);
+    }
     return null;
   }
 
   for (const official of POPULAR_PACKAGES) {
     const distance = levenshteinDistance(packageName, official);
     
-    if (distance > 0 && distance <= 2) {
+    // ✅ Only flag 1-character differences (real typosquats)
+    if (distance > 0 && distance === 1) {
+      if (process.env.DEBUG) {
+        console.log(`[DEBUG] ${packageName} is similar to ${official} (distance: ${distance})`);
+      }
       return {
         package: packageName,
-        official: official,
+        similarTo: official,
         distance: distance,
         type: 'typosquat',
-        severity: 'high'
+        severity: 'high',
+        warning: `Possible typosquatting - similar to "${official}"`
       };
     }
   }
 
   return null;
 }
-
 /**
  * Check for suspicious install scripts
  */

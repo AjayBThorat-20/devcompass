@@ -61,7 +61,7 @@ async function analyzeUnusedDependencies(projectPath) {
 
     } catch (knipError) {
       // Fallback if knip fails
-      console.error('Knip failed, using fallback mechanism');
+       console.log('Knip analysis unavailable, using fallback');
       return fallbackUnusedCheck(projectPath, dependencies);
     }
 

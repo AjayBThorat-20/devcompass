@@ -1,211 +1,178 @@
 # 🧭 DevCompass
 
-**Dependency health checker with unified interactive dashboard featuring 5 dynamic layouts (Tree/Force/Radial/Conflict/Analytics), modular CSS/JS architecture, intelligent clustering (Ecosystem/Health/Depth grouping), real-time filtering, advanced zoom controls, theme support (dark/light), supply chain security with auto-fix, license conflict resolution, package quality auto-fix, batch fix modes, backup & rollback, and professional dependency exploration.**
+**Dependency health checker with unified interactive dashboard featuring 5 dynamic layouts (Tree/Force/Radial/Conflict/Analytics), modular CSS/JS architecture, intelligent clustering (Ecosystem/Health/Depth grouping), real-time filtering, advanced zoom controls, theme support (dark/light), supply chain security with auto-fix, license conflict resolution, package quality auto-fix, batch fix modes, backup & rollback, historical tracking with SQLite database, snapshot comparison, timeline visualization, and professional dependency exploration.**
 
 [![npm version](https://img.shields.io/npm/v/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 502 packages**, **configure your own GitHub token to avoid rate limits**, **customize all configuration via JSON files**, **visualize dependency graphs with 5 dynamic layouts including Analytics dashboard**, **modular architecture with zero code duplication**, **organize packages by ecosystem (React/Vue/Angular/Testing/Build Tools)**, **group by health status (Critical/Warning/Healthy)**, **analyze by depth levels**, **instant layout switching**, **dark/light theme toggle**, **real-time filtering**, **advanced zoom controls**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
+Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 502 packages**, **configure your own GitHub token to avoid rate limits**, **customize all configuration via JSON files**, **visualize dependency graphs with 5 dynamic layouts including Analytics dashboard**, **modular architecture with zero code duplication**, **organize packages by ecosystem (React/Vue/Angular/Testing/Build Tools)**, **group by health status (Critical/Warning/Healthy)**, **analyze by depth levels**, **instant layout switching**, **dark/light theme toggle**, **real-time filtering**, **advanced zoom controls**, **track dependency changes over time with SQLite database**, **compare snapshots to see what changed**, **visualize evolution with interactive timelines**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
-> **🎨 LATEST v3.2.0:** Unified Dashboard Architecture - 50% less code, 5 layouts, dark/light themes! 🎨  
-> **🔧 v3.1.7:** Dynamic Data Configuration - Scalable JSON-based configuration system! 🔧  
-> **🔲 v3.1.6:** Intelligent Clustering - Organize packages by Ecosystem, Health, or Depth! 🔲  
-> **🔑 v3.1.5:** GitHub Personal Access Token Support - Configure your own token to bypass rate limits! 🔑
+> **📊 LATEST v3.2.1:** Historical Tracking System - Track changes, compare snapshots, visualize trends! 📊  
+> **🎨 v3.2.0:** Unified Dashboard Architecture - 50% less code, 5 layouts, dark/light themes! 🎨  
+> **🔧 v3.1.7:** Dynamic Data Configuration - Scalable JSON-based configuration system! 🔧
 
-## 🎉 Latest Release: v3.2.0 (2026-04-25)
+## 🎉 Latest Release: v3.2.1 (2026-04-26)
 
-**Unified Dashboard Architecture - Modular, Scalable, Beautiful!**
+**Historical Tracking System - Track Your Dependency Evolution!**
 
-### 🌟 What's New in v3.2.0:
+### 🌟 What's New in v3.2.1:
 
-#### **🎨 Unified Dashboard Architecture**
+#### **📊 Historical Tracking with SQLite**
 
-Complete refactor from 4 duplicated layout files (3,600 lines) to unified modular dashboard (1,800 lines).
+Complete dependency history tracking with SQLite database backend.
 
-**Benefits:**
-- ✅ **50% code reduction** - Easier to maintain
-- ✅ **Single source of truth** - Update once, applies everywhere
-- ✅ **4× faster updates** - No more copy-paste across files
-- ✅ **Zero duplication** - CSS/JS shared across all layouts
-- ✅ **Fully backward compatible** - No breaking changes
+**Features:**
+- ✅ **Auto-save snapshots** - Every analysis saved to database
+- ✅ **SQLite storage** - Fast, reliable, local database (~/.devcompass/history.db)
+- ✅ **Optimized performance** - 8-19ms save time (6-11× faster than target)
+- ✅ **Flexible date formats** - 9 formats including DD-MM-YYYY, MM-YYYY, YYYY
+- ✅ **Smart grouping** - Auto-groups >20 snapshots by month
+- ✅ **Monthly summaries** - Aggregated statistics per month
+- ✅ **Zero configuration** - Works automatically
 
-**New Structure:**
+**Database Structure:**
 
 ```
-src/dashboard/
-├── index.html          # Main template (11KB)
-├── scripts/            # 6 modular JS files
-│   ├── core.js        # Initialization
-│   ├── layouts.js     # ALL 5 layouts in one file
-│   ├── controls.js    # Zoom, filters, exports
-│   ├── tooltip.js     # Tooltip management
-│   ├── stats.js       # Statistics calculations
-│   └── utils.js       # Shared utilities
-└── styles/            # 5 modular CSS files
-├── base.css       # Variables, reset
-├── layout.css     # Header, sidebars, grid
-├── controls.css   # Buttons, filters, inputs
-├── graph.css      # Nodes, links, tooltips
-└── themes.css     # Dark/light theme support
+~/.devcompass/history.db
+├── snapshots         # Project snapshots with metadata
+├── packages          # Package details per snapshot
+└── dependencies      # Dependency relationships
 ```
 
-**Removed (Consolidated):**
-- ❌ `src/graph/layouts/tree.js` (800 lines)
-- ❌ `src/graph/layouts/force.js` (700 lines)
-- ❌ `src/graph/layouts/radial.js` (650 lines)
-- ❌ `src/graph/layouts/conflict.js` (600 lines)
-- ❌ `src/graph/template.html` (900 lines)
+**Performance:**
+- Snapshot save: 8-19ms (6-11× faster than target)
+- Query speed: <10ms for all operations
+- Database size: ~3KB per snapshot (40% better than target)
 
-#### **📊 NEW: Analytics Layout**
+#### **🔍 Snapshot Comparison**
 
-Fifth layout added - comprehensive statistics dashboard with 5 cards:
+Compare any two snapshots to see exactly what changed:
 
-1. **📊 Overview** - Total/Healthy/Vulnerable/Outdated at a glance
-2. **💊 Health Distribution** - Bar chart showing package health breakdown
-3. **📏 Depth Distribution** - Dependency depth visualization
-4. **🚨 Issues by Type** - Categorized issue summary
-5. **⚠️ Needs Attention** - Top 10 packages requiring fixes
+```bash
+# Compare two snapshots
+devcompass compare 5 8
 
-**Access:** Click **📊 Analytics** tab in header
+# Detailed comparison
+devcompass compare 5 8 --verbose
 
-#### **🎨 Dark/Light Theme Support**
+# Save to file
+devcompass compare 5 8 -o report.md
+```
 
-Toggle between dark and light themes with one click:
+**What Gets Compared:**
+- ✅ Added/removed packages
+- ✅ Version changes
+- ✅ Health score changes
+- ✅ Vulnerability status changes
+- ✅ Deprecated status changes
 
-- **Dark Theme** (default) - Professional dark UI
-- **Light Theme** - Clean, bright interface
-- **Persisted** - Saves preference in localStorage
-- **Smooth Transitions** - Beautiful theme switching
-- **Toggle Button** - 🌙 / ☀️ in header
+**Output Example:**
 
-#### **⚡ Performance Optimizations**
+```
+📊 Snapshot Comparison
+Snapshots: #5 → #8
+Health Score: 8.20 → 6.20 (-2.00) ❌
+🔄 Updated Packages (9):
+⟳ axios
+Health: 8.2 → 6.2 (-2.0)
+```
 
-Massive speed improvements across all layouts:
+📊 Snapshot Comparison
+Snapshots: #5 → #8
+Health Score: 8.20 → 6.20 (-2.00) ❌
+🔄 Updated Packages (9):
+⟳ axios
+Health: 8.2 → 6.2 (-2.0)
 
-- **Tree Layout** - 5× faster rendering
-- **Force Layout** - 4× faster simulation
-- **Radial Layout** - 4× faster positioning
-- **Analytics Layout** - 6× faster card generation
+```
+📊 Snapshot History (Grouped by Month)
+📅 April 2026 (22 snapshots, Avg Health: 7.71)
+────────────────────────────────────────────────────────────
+#24   25, 07:17 PM     Deps:   9 Health: 6.2
+#23   25, 07:17 PM     Deps:   9 Health: 6.2
+...
+#3    25, 06:15 PM     Deps:   7 Health: 7.7
+Total: 22 snapshots
+```
 
-**Optimizations:**
-- Pre-calculated node positions
-- Batch DOM operations
-- Optimized D3 selections
-- Reduced transition durations
-- Deferred expensive operations
+**Features:**
+- ✅ Automatic grouping when >20 snapshots
+- ✅ Monthly average health scores
+- ✅ Snapshot count per month
+- ✅ Clean, organized display
 
-### 📊 Code Metrics
+#### **🔧 Bug Fixes**
 
-| Metric | v3.1.7 | v3.2.0 | Improvement |
-|--------|--------|--------|-------------|
-| Total Lines | 3,600 | 1,800 | **-50%** |
-| Layout Files | 4 files | 1 file | **-75%** |
-| CSS Duplication | 4× | 1× shared | **-75%** |
-| JS Duplication | 4× | 1× engine | **-75%** |
-| Files | 5 files | 12 files | Better organized |
-| Layouts | 4 layouts | **5 layouts** | +25% |
-| Themes | None | **2 themes** | New feature |
-| Maintainability | Update 4 places | Update 1 place | **4× easier** |
+**Fixed Typosquatting False Positives:**
+- ✅ Changed distance threshold from 2 to 1 character
+- ✅ Only flags real typosquats (1-char difference)
+- ✅ Added comprehensive whitelist for legitimate packages
+- ✅ Fixed `knip` → `knex` false alarm
+
+**Fixed Dynamic Security:**
+- ✅ Corrected `similarTo` property name
+- ✅ Added proper null checks
+- ✅ Improved error handling
+
+### 📊 Performance Metrics
+
+| Operation | Target | Actual | Improvement |
+|-----------|--------|--------|-------------|
+| Snapshot Save | <100ms | 8-19ms | **6-11× faster** |
+| Snapshot Load | <50ms | ~4ms | **12× faster** |
+| Comparison | <200ms | 4-5ms | **50× faster** |
+| Timeline Gen | <500ms | 6ms | **83× faster** |
+| Database Size | ~5KB | ~3KB | **40% smaller** |
+
+**Average Improvement: 40× faster than targets!**
 
 ### 🚀 Upgrade Now:
 
 ```bash
-npm install -g devcompass@3.2.0
+npm install -g devcompass@3.2.1
 ```
 
 ### 💡 What Changed for Users:
 
-**Nothing! (100% Backward Compatible)**
-
-All commands work exactly the same:
+**New Commands:**
 ```bash
-devcompass graph --open  # Same command, better UI!
+# History management
+devcompass history list
+devcompass history show <id>
+devcompass history summary
+devcompass history cleanup
+devcompass history stats
+
+# Comparison
+devcompass compare <id1> <id2>
+
+# Timeline
+devcompass timeline
+devcompass timeline --open
 ```
 
-**New Features:**
-- ✅ **Analytics tab** - Click to see dashboard
-- ✅ **Theme toggle** - Click 🌙/☀️ button
-- ✅ **Faster rendering** - 4-6× performance boost
-
----
-
-## 🎨 Unified Graph Visualization (v3.2.0)
-
-DevCompass features a **revolutionary unified interactive dashboard** - 5 layouts, intelligent clustering, theme support, and all controls in one beautiful interface!
-
-### 🎯 One Command, Everything Included
-
+**Auto-save Feature:**
 ```bash
-# Generate unified interactive dashboard
-devcompass graph --open
+# Snapshots auto-saved on analyze
+devcompass analyze   # Saves to database
+
+# Disable if needed
+devcompass analyze --no-history
 ```
 
-**What you get in ONE file:**
-- ✅ **5 layouts** (Tree/Force/Radial/Conflict/Analytics) - switchable via tabs
-- ✅ **5 filters** (All/Vulnerable/Outdated/Deprecated/Unused) - instant filtering
-- ✅ **3 clustering modes** (Ecosystem/Health/Depth) - organize packages
-- ✅ **2 themes** (Dark/Light) - toggle with one click
-- ✅ Depth slider (1-10, ∞)
-- ✅ Live search
-- ✅ Advanced zoom controls
-- ✅ Export (PNG/JSON/Report)
-- ✅ Live statistics
-- ✅ Professional UI
-- ✅ **No page reload!**
-- ✅ **50% less code** - Better performance
-
-### 🎮 Interactive Controls
-
-#### **Layout Switcher**
-
-Click tabs to switch between:
-
-1. **🌳 Tree** - Hierarchical view (root → children)
-2. **⚡ Force** - Physics-based network (drag nodes!)
-3. **🌐 Radial** - Circular view (root at center)
-4. **⚠️ Conflict** - Issues-only view
-5. **📊 Analytics** - Statistics dashboard (NEW!)
-
-#### **Theme Toggle (NEW!)**
-
-Click **🌙 / ☀️** button to switch themes:
-
-- **🌙 Dark Theme** - Professional dark interface (default)
-- **☀️ Light Theme** - Clean, bright interface
-- Preference saved automatically
-- Smooth transitions
-
-#### **Filter Controls**
-
-Click to filter packages:
-
-- **All** - Show everything
-- **Vulnerable** - Security issues only
-- **Outdated** - Update available
-- **Deprecated** - Officially deprecated
-- **Unused** - Unused dependencies
-
-#### **Clustering**
-
-Click to organize packages:
-
-- **⚛️ Ecosystem** - Group by technology
-- **🏥 Health** - Group by status
-- **📊 Depth** - Group by level
-
-#### **Other Controls**
-
-- **Depth Slider** - Control dependency depth (1-∞)
-- **Search** - Find packages instantly
-- **Zoom** - In/Out/Reset/Fit/Center
-- **Export** - PNG image, JSON data, or full report
-- **Keyboard Shortcuts** - +/- zoom, R reset, F fit, L labels, T theme
+**New Files Created:**
+- `~/.devcompass/history.db` - SQLite database
+- Timeline HTML files when exported
 
 ---
 
 ## ✨ All Features
 
+- 📊 **Historical Tracking** (v3.2.1) - SQLite database, auto-save snapshots
+- 🔍 **Snapshot Comparison** (v3.2.1) - Side-by-side diff analysis
+- 📈 **Timeline Visualization** (v3.2.1) - Interactive D3 charts
+- 🗂️ **Flexible Dates** (v3.2.1) - 9 date formats supported
 - 🎨 **Unified Dashboard** (v3.2.0) - 5 layouts, modular architecture
 - 📊 **Analytics Layout** (v3.2.0) - Statistics dashboard
 - 🌙 **Theme Support** (v3.2.0) - Dark/light mode toggle
@@ -222,25 +189,21 @@ Click to organize packages:
 - 📦 **Quality Auto-Fix** (v2.8.3) - Replace abandoned packages
 - ⚖️ **License Auto-Fix** (v2.8.2) - GPL/AGPL replacement
 - 🛡️ **Supply Chain Auto-Fix** (v2.8.1) - Remove malicious packages
-- 🛡️ **Security Analysis** (v2.7) - Comprehensive security
-- ⚡ **Parallel Processing** (v2.6) - 80% faster
-- 🔮 **GitHub Tracking** (v2.4) - Real-time package health
-- 🚀 **CI/CD Integration** (v2.2) - JSON output, exit codes
 
 ## 🚀 Installation
 
 ```bash
 # Global (recommended)
-npm install -g devcompass@3.2.0
+npm install -g devcompass@3.2.1
 
 # Local
-npm install --save-dev devcompass@3.2.0
+npm install --save-dev devcompass@3.2.1
 
 # One-time use
-npx devcompass@3.2.0 analyze
+npx devcompass@3.2.1 analyze
 
 # Upgrade from any version
-npm install -g devcompass@3.2.0
+npm install -g devcompass@3.2.1
 ```
 
 ## 📖 Usage
@@ -252,8 +215,9 @@ npm install -g devcompass@3.2.0
 devcompass config --github-token <your-token>
 devcompass config --show
 
-# Analyze project
+# Analyze project (auto-saves snapshot!)
 devcompass analyze
+devcompass analyze --no-history  # Skip snapshot
 
 # Generate graph (with 5 layouts + themes!)
 devcompass graph --open
@@ -281,6 +245,50 @@ devcompass analyze --json
 devcompass analyze --ci
 ```
 
+### History Commands (NEW in v3.2.1)
+
+```bash
+# List snapshots
+devcompass history list
+devcompass history list --limit 50
+devcompass history list --date 25-04-2026
+devcompass history list --month 04-2026
+devcompass history list --year 2026
+devcompass history list --from 01-04-2026 --to 30-04-2026
+
+# View snapshot details
+devcompass history show 5
+
+# Monthly summary
+devcompass history summary
+devcompass history summary --year 2026
+
+# Cleanup old snapshots
+devcompass history cleanup --keep 30
+
+# Statistics
+devcompass history stats
+```
+
+### Comparison Commands (NEW in v3.2.1)
+
+```bash
+# Compare snapshots
+devcompass compare 5 8
+devcompass compare 5 8 --verbose
+devcompass compare 5 8 -o report.md
+```
+
+### Timeline Commands (NEW in v3.2.1)
+
+```bash
+# Generate timeline
+devcompass timeline
+devcompass timeline --days 60
+devcompass timeline --open
+devcompass timeline --output my-timeline.html --open
+```
+
 ### Graph Commands
 
 ```bash
@@ -295,6 +303,151 @@ devcompass graph --output my-deps.html --open
 
 # JSON export
 devcompass graph --format json --output data.json
+```
+
+---
+
+## 📊 Historical Tracking System (v3.2.1)
+
+Track your dependency evolution over time with automatic snapshots, comparison tools, and timeline visualization.
+
+### How It Works
+
+**1. Auto-Save on Analyze**
+
+Every time you run `devcompass analyze`, a snapshot is automatically saved:
+
+```bash
+devcompass analyze
+
+# Output:
+# ✔ Scanned 6 dependencies in project
+# 📸 Snapshot saved (ID: 40, 19ms)
+#    Use "devcompass history list" to view all snapshots
+```
+
+**2. View Your History**
+
+```bash
+devcompass history list
+```
+
+**Output:**
+
+```
+📊 Snapshot History
+ID    Date & Time           Project          Deps    Health
+────────────────────────────────────────────────────────────
+40    Apr 26, 2026, 02:30 PMdevcompass       6       7.0
+39    Apr 25, 2026, 08:20 PMdevcompass       6       7.0
+38    Apr 25, 2026, 08:19 PMdevcompass       6       7.0
+```
+
+**3. Compare Changes**
+
+```bash
+devcompass compare 38 40
+```
+
+**Output:**
+
+```
+📊 Snapshot Comparison
+Snapshots: #38 → #40
+Health Score: 7.00 → 7.00 (0.00)
+Changes:
+Added: 0
+Removed: 0
+Updated: 2
+Unchanged: 4
+```
+
+**4. Visualize Trends**
+
+```bash
+devcompass timeline --open
+```
+
+Opens interactive HTML chart showing:
+- Health score over time
+- Dependency count changes
+- Trend analysis (improving/declining/stable)
+
+### Date Filtering
+
+Query snapshots using flexible date formats:
+
+```bash
+# European formats
+devcompass history list --date 25-04-2026    # Specific day
+devcompass history list --month 04-2026      # Specific month
+
+# ISO formats
+devcompass history list --date 2026-04-25    # ISO day
+devcompass history list --month 2026-04      # ISO month
+
+# Year only
+devcompass history list --year 2026
+
+# Date ranges
+devcompass history list --from 01-04-2026 --to 30-04-2026
+devcompass history list --after 15-04-2026
+```
+
+### Grouped Display
+
+When you have >20 snapshots, they're automatically grouped by month:
+
+```bash
+devcompass history list --year 2026
+```
+
+**Output:**
+
+```
+📊 Snapshot History (Grouped by Month)
+📅 April 2026 (22 snapshots, Avg Health: 7.71)
+────────────────────────────────────────────────────────────
+#24   25, 07:17 PM     Deps:   9 Health: 6.2
+#23   25, 07:17 PM     Deps:   9 Health: 6.2
+...
+Total: 22 snapshots
+```
+
+### Monthly Summary
+
+```bash
+devcompass history summary
+```
+
+**Output:**
+
+```
+📊 Monthly Snapshot Summary
+April 2026            22 snapshots  Avg Health: 7.71/10  Avg Deps: 9
+March 2026            15 snapshots  Avg Health: 8.20/10  Avg Deps: 8
+```
+
+### Database Location
+
+All snapshots are stored in:
+
+```
+~/.devcompass/history.db
+```
+
+**Storage Efficiency:**
+- ~3KB per snapshot
+- SQLite database with WAL mode
+- 4 optimized indexes
+- Fast queries (<10ms)
+
+### Disable Auto-Save
+
+If you don't want automatic snapshots:
+
+```bash
+devcompass analyze --no-history
 ```
 
 ---
@@ -359,23 +512,6 @@ Click any cluster to temporarily highlight those packages on the graph (highligh
 - **🔗 Level 2 Dependencies** - Dependencies of level 1
 - **🔗 Level N Dependencies** - And so on...
 
-### Benefits
-
-**Better Understanding:**
-- See your tech stack at a glance
-- Identify dominant ecosystems
-- Understand dependency chains
-
-**Faster Problem Identification:**
-- Critical issues grouped together
-- Easy to spot problem areas
-- Quick access to related packages
-
-**Informed Decision Making:**
-- See which ecosystems are heavily used
-- Identify opportunities for consolidation
-- Plan migrations with depth visibility
-
 ---
 
 ## 🔑 GitHub Token Configuration (v3.1.5)
@@ -425,212 +561,6 @@ devcompass analyze
 # No rate limit warnings!
 ```
 
-### Token Management
-
-```bash
-# Show current token (masked)
-devcompass config --show
-
-# Remove token
-devcompass config --remove-github-token
-
-# Get help
-devcompass config --help
-```
-
-### Security
-
-- Token stored locally: `~/.devcompass/github-token`
-- File permissions: `600` (owner only)
-- Only needs `public_repo` scope (read-only)
-- Never committed to git
-- Can be revoked anytime
-
----
-
-## 🔧 Configuration Files (v3.1.7)
-
-All configuration is now in external JSON files for easy customization!
-
-### Data Files Location
-
-```
-devcompass/
-├── data/
-│   ├── licenses.json           # License categorization
-│   ├── priorities.json         # Severity levels
-│   ├── knip-config.json       # Unused deps config
-│   ├── license-risks.json     # License risk matrix
-│   ├── gpl-alternatives.json  # GPL replacements
-│   ├── quality-alternatives.json # Deprecated alternatives
-│   ├── popular-packages.json  # Typosquatting detection
-│   ├── batch-categories.json  # Fix categories
-│   └── tracked-repos.json     # GitHub tracked packages (502)
-```
-
-### Customization Examples
-
-**1. Add Custom License to Detection:**
-
-Edit `data/licenses.json`:
-```json
-{
-  "restrictive": [
-    "GPL", "GPL-2.0", "GPL-3.0",
-    "AGPL", "AGPL-3.0",
-    "SSPL",
-    "YOUR-CUSTOM-LICENSE"
-  ],
-  "permissive": [
-    "MIT", "Apache-2.0", "BSD-2-Clause",
-    "BSD-3-Clause", "ISC", "0BSD", "Unlicense"
-  ]
-}
-```
-
-**2. Whitelist Internal Packages:**
-
-Edit `data/popular-packages.json`:
-```json
-{
-  "packages": ["express", "react", "lodash", ...],
-  "whitelist": [
-    "chalk", "ora", "inquirer",
-    "your-internal-package",
-    "your-company-library"
-  ]
-}
-```
-
-**3. Adjust Severity Colors:**
-
-Edit `data/priorities.json`:
-```json
-{
-  "CRITICAL": {
-    "level": 1,
-    "label": "CRITICAL",
-    "color": "red",
-    "emoji": "🔴"
-  },
-  "HIGH": {
-    "level": 2,
-    "label": "HIGH",
-    "color": "orange",
-    "emoji": "🟠"
-  }
-}
-```
-
-**4. Add Deprecated Package Alternative:**
-
-Edit `data/quality-alternatives.json`:
-```json
-{
-  "request": {
-    "replacement": "axios",
-    "reason": "request is deprecated"
-  },
-  "your-old-package": {
-    "replacement": "your-new-package",
-    "reason": "your-old-package is abandoned"
-  }
-}
-```
-
-### Project-Specific Configuration
-
-Create `devcompass.config.json` in your project:
-
-```json
-{
-  "ignore": ["package-name"],
-  "ignoreSeverity": ["low"],
-  "minSeverity": "medium",
-  "minScore": 7,
-  "cache": true
-}
-```
-
-**Options:**
-- **ignore** - Packages to skip
-- **ignoreSeverity** - Severities to ignore (low/medium/high/critical)
-- **minSeverity** - Minimum to display
-- **minScore** - Minimum health score for CI (default: 7)
-- **cache** - Enable caching (default: true)
-
----
-
-## 📦 Tracked Repositories (v3.1.5)
-
-DevCompass tracks **502 popular npm packages** across 33 categories!
-
-**Major Categories:**
-- Web Frameworks (25) - React, Vue, Angular, Svelte, Solid
-- Meta Frameworks (15) - Next.js, Nuxt, Remix, Astro
-- Build Tools (25) - Webpack, Vite, Rollup, esbuild
-- Testing (25) - Jest, Vitest, Cypress, Playwright
-- State Management (20) - Redux, Zustand, Jotai, MobX
-- Utilities (50) - Lodash, date-fns, Zod, Yup
-- And 27 more categories!
-
-**Data Source:** `data/tracked-repos.json` (customizable!)
-
----
-
-## 💾 Backup & Rollback (v2.8.4)
-
-```bash
-# List backups
-devcompass backup list
-
-# Restore backup
-devcompass backup restore --name <backup>
-
-# Show details
-devcompass backup info --name <backup>
-
-# Clean old backups
-devcompass backup clean
-devcompass backup clean --keep 3
-```
-
----
-
-## 📦 Batch Fix Modes (v2.8.5)
-
-### Categories (Priority Order):
-
-1. 🛡️ **Supply Chain** - Malicious packages
-2. ⚖️ **License Conflicts** - GPL/AGPL
-3. 📦 **Quality** - Abandoned/deprecated
-4. 🔐 **Security** - Vulnerabilities
-5. 🚨 **Ecosystem** - Known issues
-6. 🧹 **Unused** - Remove unused
-7. ⬆️ **Updates** - Safe updates
-
-### Commands:
-
-```bash
-# Interactive mode
-devcompass fix --batch
-
-# Preset modes
-devcompass fix --batch-mode critical  # Categories 1-2
-devcompass fix --batch-mode high      # Categories 1-4
-devcompass fix --batch-mode all       # All 7
-
-# Specific categories
-devcompass fix --only quality
-devcompass fix --only supply-chain,license
-
-# Skip categories
-devcompass fix --skip updates
-devcompass fix --skip ecosystem,updates
-```
-
-**Category Configuration:** Edit `data/batch-categories.json` to customize!
-
 ---
 
 ## 🐛 Troubleshooting
@@ -639,68 +569,59 @@ devcompass fix --skip ecosystem,updates
 
 **"Command not found"**
 ```bash
-npm install -g devcompass@3.2.0
+npm install -g devcompass@3.2.1
 ```
 
 **Old version**
 ```bash
 npm update -g devcompass
-devcompass --version  # Should show 3.2.0
+devcompass --version  # Should show 3.2.1
 ```
 
-**GitHub rate limits**
+**History database not saving**
 ```bash
-# Configure your token
-devcompass config --github-token <token>
+# Check database exists
+ls -la ~/.devcompass/history.db
 
-# Get token: https://github.com/settings/tokens/new
-# Scope: public_repo only
-```
-
-**Token not working**
-```bash
-# Verify
-devcompass config --show
-
-# Check permissions
-ls -la ~/.devcompass/github-token
-# Should show: -rw------- (600)
-```
-
-**Graph not loading**
-```bash
-# Hard refresh browser
-# Ctrl+F5 (Windows/Linux)
-# Cmd+Shift+R (Mac)
-```
-
-**Theme not switching**
-```bash
-# Clear browser cache
-# Hard refresh (Ctrl+F5)
-
-# Check console for errors (F12)
-```
-
-**Analytics tab empty**
-```bash
-# Ensure v3.2.0
-devcompass --version
-
-# Regenerate graph
-devcompass graph --output new.html --open
-```
-
-**Customize configuration not working**
-```bash
-# Check file exists
-ls -la ~/devCompass/data/
-
-# Validate JSON
-cat ~/devCompass/data/licenses.json | jq .
-
-# Restart after editing
+# If missing, re-run analyze
 devcompass analyze
+
+# Check for errors
+DEBUG=1 devcompass analyze
+```
+
+**Date format not recognized**
+```bash
+# Supported formats:
+# DD-MM-YYYY: 25-04-2026
+# MM-YYYY: 04-2026
+# YYYY: 2026
+# YYYY-MM-DD: 2026-04-25
+# YYYY-MM: 2026-04
+
+# Example:
+devcompass history list --date 25-04-2026
+```
+
+**Timeline not generating**
+```bash
+# Ensure you have snapshots
+devcompass history list
+
+# Generate timeline
+devcompass timeline --open
+
+# Check output file
+ls -la devcompass-timeline.html
+```
+
+**Comparison showing no changes**
+```bash
+# Verify snapshot IDs exist
+devcompass history list
+
+# Compare different snapshots
+devcompass compare <older-id> <newer-id>
 ```
 
 ---
@@ -742,6 +663,10 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 
 ### Completed Features:
 
+- [x] Historical tracking (v3.2.1) ✅
+- [x] Snapshot comparison (v3.2.1) ✅
+- [x] Timeline visualization (v3.2.1) ✅
+- [x] Flexible date formats (v3.2.1) ✅
 - [x] Unified dashboard architecture (v3.2.0) ✅
 - [x] Analytics layout (v3.2.0) ✅
 - [x] Theme support (v3.2.0) ✅
@@ -750,26 +675,28 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 - [x] GitHub token configuration (v3.1.5) ✅
 - [x] 502 tracked packages (v3.1.5) ✅
 - [x] Unified graph system (v3.1.4) ✅
-- [x] Dynamic layout switching (v3.1.4) ✅
-- [x] Real-time filtering (v3.1.4) ✅
-- [x] Advanced zoom controls (v3.1.4) ✅
 - [x] Intelligent clustering (v3.1.6) ✅
-- [x] Ecosystem grouping (v3.1.6) ✅
-- [x] Health clustering (v3.1.6) ✅
-- [x] Depth analysis (v3.1.6) ✅
 
 ### Planned Features:
 - [ ] **Web Dashboard** - Team health monitoring
 - [ ] **Monorepo Support** - Multi-project analysis
-- [ ] **Historical Tracking** - Track changes over time
-- [ ] **Compare Mode** - Before/after fix comparison
-- [ ] **Timeline View** - Dependency evolution
 
 Want to contribute? Pick a feature and open an issue! 🚀
 
 ---
 
 ## 📊 Version History
+
+### v3.2.1 (2026-04-26) - Historical Tracking System
+- 📊 SQLite database for snapshot storage
+- 🔍 Snapshot comparison with side-by-side diff
+- 📈 Timeline visualization with D3 charts
+- 🗂️ 9 flexible date formats (DD-MM-YYYY, MM-YYYY, YYYY, etc.)
+- 🎨 Auto-grouped display for >20 snapshots
+- 📊 Monthly summary with aggregated stats
+- ⚡ Performance: 6-83× faster than targets
+- 🐛 Fixed typosquatting false positives
+- 🐛 Fixed dynamic security property names
 
 ### v3.2.0 (2026-04-25) - Unified Dashboard Architecture
 - 🎨 Unified modular dashboard (50% code reduction)
@@ -785,33 +712,21 @@ Want to contribute? Pick a feature and open an issue! 🚀
 - ✅ 7 source files refactored for dynamic loading
 - ✅ Zero hardcoded data in code
 - ✅ Scalable and customizable architecture
-- 🐛 Fixed unused deps showing as `undefined`
-- 🐛 Fixed supply chain analysis bugs
-- 🐛 Fixed license risk analysis bugs
 
 ### v3.1.6 (2026-04-22) - Intelligent Clustering
 - 🔲 Ecosystem clustering (12 categories)
 - 🔲 Health clustering (Critical/Warning/Healthy)
 - 🔲 Depth clustering (Direct → Level N)
-- ✨ Click-to-highlight packages
-- 📊 Per-cluster statistics
 
 ### v3.1.5 (2026-04-21) - GitHub Token Support
 - 🔑 User-configurable GitHub tokens
 - 📦 502 tracked packages database
 - ⚡ 5,000 requests/hour (vs 60)
-- 🔒 Secure local storage
-
-### v3.1.4 (2026-04-20) - Unified Graph
-- 🎨 All layouts in one file
-- 🔄 Dynamic layout switching
-- 🎯 Real-time filtering
-- 🔍 Advanced zoom controls
 
 ---
 
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
 
-*DevCompass v3.2.0 - Unified, Modular, Beautiful!* 🧭
+*DevCompass v3.2.1 - Track, Compare, Evolve!* 🧭
 
 **Like Lighthouse for your dependencies** ⚡

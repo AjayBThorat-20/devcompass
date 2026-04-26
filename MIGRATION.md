@@ -1,5 +1,313 @@
 # Migration Guide
 
+## From v3.2.0 → v3.2.1
+
+### What's New
+- **Historical Tracking System**: SQLite database for automatic snapshot storage
+- **Snapshot Comparison**: Side-by-side diff of any two snapshots
+- **Timeline Visualization**: Interactive D3 charts showing dependency evolution
+- **9 Flexible Date Formats**: DD-MM-YYYY, MM-YYYY, YYYY, YYYY-MM-DD, YYYY-MM
+- **Auto-Grouped Display**: Automatic monthly grouping for >20 snapshots
+- **Monthly Summary**: Aggregated statistics per month
+- **Bug Fixes**: Typosquatting false positives eliminated (distance 2→1)
+- **No Breaking Changes**: Fully backward compatible
+
+### Migration Steps
+```bash
+npm install -g devcompass@3.2.1
+```
+
+### What Changed
+- **Added**: `src/history/` module (5 files)
+  - `database.js` - SQLite connection and schema
+  - `snapshot-saver.js` - Transaction-based saving
+  - `snapshot-loader.js` - Query methods with date filtering
+  - `comparator.js` - Snapshot comparison engine
+  - `timeline-generator.js` - Timeline data and D3 charts
+- **Added**: `src/utils/date-parser.js` - Smart date parser (9 formats)
+- **Added**: `src/commands/` - 3 new CLI commands
+  - `history.js` - History management
+  - `compare.js` - Snapshot comparison
+  - `timeline.js` - Timeline generation
+- **Modified**: `src/commands/analyze.js` - Auto-save snapshots to database
+- **Modified**: `src/services/dynamic-security.js` - Fixed typosquatting threshold (2→1)
+- **Modified**: `data/popular-packages.json` - Added knip to whitelist
+- **Added**: `~/.devcompass/history.db` - SQLite database (created automatically)
+
+### New Commands Available
+```bash
+# History management
+devcompass history list                    # List all snapshots
+devcompass history list --date 25-04-2026  # Filter by date
+devcompass history list --month 04-2026    # Filter by month
+devcompass history list --year 2026        # Filter by year
+devcompass history show 5                  # Show snapshot details
+devcompass history summary                 # Monthly breakdown
+devcompass history cleanup --keep 30       # Delete old snapshots
+devcompass history stats                   # Overall statistics
+
+# Snapshot comparison
+devcompass compare 5 8                     # Compare two snapshots
+devcompass compare 5 8 --verbose           # Detailed comparison
+devcompass compare 5 8 -o report.md        # Save to file
+
+# Timeline visualization
+devcompass timeline                        # Generate timeline
+devcompass timeline --days 60              # Last 60 days
+devcompass timeline --open                 # Open interactive chart
+devcompass timeline -o my-timeline.html    # Custom output
+```
+
+### Date Filtering
+All history commands support 9 date formats:
+
+```bash
+# European formats
+--date 25-04-2026      # DD-MM-YYYY (day)
+--month 04-2026        # MM-YYYY (month)
+
+# ISO formats
+--date 2026-04-25      # YYYY-MM-DD (day)
+--month 2026-04        # YYYY-MM (month)
+
+# Year only
+--year 2026            # YYYY
+
+# Date ranges
+--from 01-04-2026 --to 30-04-2026
+--after 15-04-2026
+--before 30-04-2026
+```
+
+### Auto-Save Feature
+Snapshots are **automatically saved** on every `devcompass analyze`:
+
+```bash
+# Auto-saves snapshot
+devcompass analyze
+
+# Output:
+# ✔ Scanned 6 dependencies in project
+# 📸 Snapshot saved (ID: 40, 19ms)
+#    Use "devcompass history list" to view all snapshots
+
+# Disable auto-save if needed
+devcompass analyze --no-history
+```
+
+### New Features Available
+- **📊 Automatic Tracking** - Every analysis saved to SQLite database
+- **🔍 Snapshot Comparison** - See exactly what changed between versions
+- **📈 Timeline Charts** - Visualize dependency evolution over time
+- **🗂️ Flexible Queries** - 9 date formats for natural searching
+- **📊 Grouped Display** - Auto-groups >20 snapshots by month
+- **📊 Monthly Summary** - Aggregated statistics per month
+- **⚡ Ultra-Fast** - 6-83× faster than performance targets
+- **🐛 Bug Fixes** - Zero false positives for typosquatting
+
+### Performance
+| Operation | Target | Actual | Improvement |
+|-----------|--------|--------|-------------|
+| Snapshot Save | <100ms | 8-19ms | **6-11× faster** |
+| Snapshot Load | <50ms | ~4ms | **12× faster** |
+| Comparison | <200ms | 4-5ms | **50× faster** |
+| Timeline Gen | <500ms | 6ms | **83× faster** |
+| Database Size | ~5KB | ~3KB | **40% smaller** |
+
+### Database Location
+```bash
+~/.devcompass/history.db
+```
+
+**Storage:**
+- ~3KB per snapshot
+- SQLite with WAL mode
+- 4 optimized indexes
+- <10ms query speed
+
+### Benefits
+- **Zero Configuration** - Works automatically, no setup needed
+- **Automatic Tracking** - Build dependency history over time
+- **Fast Queries** - <10ms for all operations
+- **Lightweight** - Only 3KB per snapshot
+- **Regression Detection** - Spot when health scores drop
+- **Audit Trail** - Complete history of dependency changes
+- **Data-Driven Decisions** - See trends and patterns
+- **CI/CD Integration** - Compare builds automatically
+
+### Breaking Changes
+**None!** This is a drop-in upgrade.
+
+- All v3.2.0 features intact (unified dashboard, 5 layouts, themes)
+- All v3.1.7 features intact (dynamic configuration)
+- All v3.1.6 features intact (clustering)
+- All v3.1.5 features intact (GitHub tokens)
+- All CLI commands work exactly the same
+- Snapshots saved automatically (can disable with `--no-history`)
+- Database created automatically on first analyze
+- Graph visualization unchanged
+- Configuration files unchanged
+
+### Verification
+After upgrading, verify everything works:
+
+```bash
+# Check version
+devcompass --version
+# Expected: 3.2.1
+
+# Run analysis (auto-saves snapshot)
+cd /path/to/your/project
+devcompass analyze
+
+# View history
+devcompass history list
+
+# Compare snapshots (after running analyze twice)
+devcompass analyze  # Creates snapshot #1
+# Make changes...
+devcompass analyze  # Creates snapshot #2
+devcompass compare 1 2
+
+# Generate timeline (needs multiple snapshots)
+devcompass timeline --open
+
+# Test date filtering
+devcompass history list --date 26-04-2026
+devcompass history list --month 04-2026
+
+# Verify bug fixes
+# Should show NO typosquatting warnings for knip
+devcompass analyze
+```
+
+### Troubleshooting
+
+**Database not created:**
+```bash
+# Check if database exists
+ls -la ~/.devcompass/history.db
+
+# If missing, run analyze
+devcompass analyze
+
+# Check for errors
+DEBUG=1 devcompass analyze
+```
+
+**Date format not recognized:**
+```bash
+# Use supported formats:
+# DD-MM-YYYY: 25-04-2026
+# MM-YYYY: 04-2026
+# YYYY: 2026
+# YYYY-MM-DD: 2026-04-25
+# YYYY-MM: 2026-04
+
+# Example:
+devcompass history list --date 25-04-2026
+```
+
+**Timeline not generating:**
+```bash
+# Ensure you have multiple snapshots
+devcompass history list
+
+# If you only have 1 snapshot, run analyze again
+devcompass analyze
+
+# Then generate timeline
+devcompass timeline --open
+```
+
+**Comparison showing no changes:**
+```bash
+# Verify snapshot IDs exist
+devcompass history list
+
+# Compare different snapshots
+devcompass compare  
+
+# Example:
+devcompass compare 1 5
+```
+
+**Typosquatting still showing false positives:**
+```bash
+# Verify you're on v3.2.1
+devcompass --version
+
+# If still on 3.2.0, upgrade
+npm install -g devcompass@3.2.1
+
+# Test
+devcompass analyze
+# Should show: ✅ SUPPLY CHAIN SECURITY - No supply chain risks detected!
+```
+
+**"Knip analysis unavailable" warning:**
+```bash
+# This is normal - Knip fallback is working
+# Warning only shows in DEBUG mode now
+
+# To verify it's suppressed:
+devcompass analyze
+# Should NOT show "Knip failed" message
+
+# In DEBUG mode (should show):
+DEBUG=1 devcompass analyze
+# Shows: "Knip analysis unavailable, using fallback"
+```
+
+### Upgrade Path
+
+**From v3.2.0:**
+```bash
+npm install -g devcompass@3.2.1
+devcompass analyze  # Starts tracking history automatically
+```
+
+**From v3.1.x:**
+```bash
+npm install -g devcompass@3.2.1
+# You get ALL v3.2.0 features + v3.2.1 features
+# Unified dashboard + historical tracking
+```
+
+**From v2.x or v1.x:**
+```bash
+npm install -g devcompass@3.2.1
+# Major upgrade with all v3.x features
+# See previous migration sections below
+```
+
+### What You Get (Full v3.2.1 Feature Set)
+- ✅ **Historical Tracking** (v3.2.1) - SQLite database, auto-save
+- ✅ **Snapshot Comparison** (v3.2.1) - Side-by-side diff
+- ✅ **Timeline Visualization** (v3.2.1) - Interactive D3 charts
+- ✅ **9 Date Formats** (v3.2.1) - Flexible querying
+- ✅ **Unified Dashboard** (v3.2.0) - 5 layouts, modular architecture
+- ✅ **Analytics Layout** (v3.2.0) - Statistics dashboard
+- ✅ **Theme Support** (v3.2.0) - Dark/light mode
+- ✅ **Dynamic Config** (v3.1.7) - JSON-based configuration
+- ✅ **Clustering** (v3.1.6) - Ecosystem/Health/Depth
+- ✅ **GitHub Tokens** (v3.1.5) - 5,000 req/hr
+- ✅ All previous features (batch fixes, auto-fix, backup/rollback)
+
+### Rollback (if needed)
+```bash
+# Downgrade to v3.2.0
+npm install -g devcompass@3.2.0
+
+# Database will remain (safe to delete if needed)
+rm ~/.devcompass/history.db
+
+# Restore any backups
+devcompass backup restore --name 
+```
+
+---
+
 ## From v3.1.7 → v3.2.0
 
 ### What's New

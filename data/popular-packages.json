@@ -112,6 +112,7 @@
     "parcel",
     "husky",
     "lint-staged",
-    "commitlint"
+    "commitlint",
+    "knip"
   ]
 }

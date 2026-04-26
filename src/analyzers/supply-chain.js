@@ -1,5 +1,5 @@
 // src/analyzers/supply-chain.js
-// v3.1.4 - Dynamic supply chain security analysis
+// v3.2.1 - Fixed typosquatting false positives
 
 const { analyzer } = require('../services');
 
@@ -28,7 +28,8 @@ async function analyzeSupplyChain(projectPath, dependencies = {}) {
     for (const pkg of packages) {
       const typosquat = analyzer.security.checkTyposquatting(pkg);
       
-      if (typosquat) {
+      // ✅ FIX: Only add warning if similarTo is a valid package name
+      if (typosquat && typosquat.similarTo && typosquat.similarTo !== 'undefined') {
         warnings.push({
           package: pkg,
           type: 'typosquatting',
@@ -51,10 +52,12 @@ async function analyzeSupplyChain(projectPath, dependencies = {}) {
       auditResults = await analyzer.security.runNpmAudit(projectPath);
     } catch (error) {
       // npm audit may fail in some environments, continue anyway
-      console.error('[supply-chain] npm audit failed:', error.message);
+      if (process.env.DEBUG) {
+        console.error('[supply-chain] npm audit failed:', error.message);
+      }
     }
     
-    // ✅ FIXED: Safe iteration over vulnerabilities
+    // ✅ Safe iteration over vulnerabilities
     const vulnArray = Array.isArray(auditResults.vulnerabilities) 
       ? auditResults.vulnerabilities 
       : [];
@@ -96,7 +99,9 @@ async function analyzeSupplyChain(projectPath, dependencies = {}) {
     };
     
   } catch (error) {
-    console.error('[supply-chain] Analysis failed:', error.message);
+    if (process.env.DEBUG) {
+      console.error('[supply-chain] Analysis failed:', error.message);
+    }
     return {
       warnings: [],
       total: 0,

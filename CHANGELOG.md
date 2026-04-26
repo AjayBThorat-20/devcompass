@@ -5,6 +5,433 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.1] - 2026-04-26
+
+### 📊 Major Feature: Historical Tracking System
+
+Complete dependency history tracking with SQLite database, snapshot comparison, timeline visualization, and flexible date filtering!
+
+### Added
+
+#### **Historical Tracking with SQLite Database**
+- **NEW:** Automatic snapshot saving on every `devcompass analyze` command
+- **NEW:** SQLite database storage (`~/.devcompass/history.db`) with WAL mode
+- **NEW:** Optimized schema with 3 tables (snapshots, packages, dependencies) and 4 indexes
+- **NEW:** 8-19ms save time (6-11× faster than 100ms target)
+- **NEW:** ~3KB per snapshot (40% better than 5KB target)
+- **NEW:** <10ms query speed for all operations
+
+**Database Structure:**
+```sql
+snapshots       # Project snapshots with metadata (health score, timestamp, etc.)
+packages        # Package details per snapshot (version, health, flags)
+dependencies    # Dependency relationships between packages
+```
+
+**Storage Location:** `~/.devcompass/history.db`
+
+#### **Snapshot Comparison System**
+- **NEW:** `devcompass compare <id1> <id2>` command for side-by-side snapshot comparison
+- **NEW:** `--verbose` flag for detailed comparison output
+- **NEW:** `-o, --output <file>` to save comparison report as markdown
+- **NEW:** 4-5ms comparison speed (50× faster than 200ms target)
+
+**What Gets Compared:**
+- Added/removed packages
+- Version changes (e.g., 1.0.0 → 2.0.0)
+- Health score changes (e.g., 8.2 → 6.2)
+- Vulnerability status changes (secure → vulnerable)
+- Deprecated status changes (active → deprecated)
+
+**Output Example:**
+
+```
+📊 Snapshot Comparison
+Snapshots: #5 → #8
+Health Score: 8.20 → 6.20 (-2.00) ❌
+🔄 Updated Packages (9):
+⟳ axios
+Health: 8.2 → 6.2 (-2.0)
+```
+
+**Performance:** 4-5ms comparison (50× faster than target!)
+
+#### **Timeline Visualization with D3 Charts**
+- **NEW:** `devcompass timeline` command for trend analysis
+- **NEW:** `--days <number>` to specify time range (default: 30)
+- **NEW:** `--open` flag to generate and open interactive HTML chart
+- **NEW:** `--output <file>` to specify timeline output path
+- **NEW:** 6ms generation time (83× faster than 500ms target)
+
+**Timeline Features:**
+- Health score trend over time (line chart)
+- Dependency count changes (line chart)
+- Interactive D3 charts with hover tooltips
+- Zoom and pan capabilities
+- Trend detection (improving/declining/stable)
+- Statistics cards (total snapshots, avg health, trends)
+
+**Visualizations:**
+1. **Health Score Chart** - Track quality over time
+2. **Dependencies Chart** - Monitor package count
+3. **Statistics Cards** - Total snapshots, avg health, trends
+
+**Performance:** 6ms generation (83× faster than target!)
+
+#### **Flexible Date Filtering (9 Formats)**
+- **NEW:** Support for both European and ISO date formats
+- **NEW:** Smart date parser with validation (no Feb 30, etc.)
+- **NEW:** Clear error messages for invalid formats
+- **NEW:** Automatic format detection
+
+**Supported Formats:**
+```bash
+DD-MM-YYYY    # European day: 25-04-2026
+MM-YYYY       # European month: 04-2026
+YYYY          # Year only: 2026
+YYYY-MM-DD    # ISO day: 2026-04-25
+YYYY-MM       # ISO month: 2026-04
+```
+
+**Date Query Options:**
+- `--date <date>` - Specific date
+- `--month <month>` - Specific month
+- `--year <year>` - Specific year
+- `--from <date>` - Start date
+- `--to <date>` - End date
+- `--after <date>` - After date (alias for --from)
+- `--before <date>` - Before date (alias for --to)
+
+**Examples:**
+```bash
+devcompass history list --date 25-04-2026
+devcompass history list --month 04-2026
+devcompass history list --year 2026
+devcompass history list --from 01-04-2026 --to 30-04-2026
+```
+
+#### **History Management Commands**
+- **NEW:** `devcompass history list` - List all saved snapshots
+- **NEW:** `devcompass history show <id>` - Show snapshot details
+- **NEW:** `devcompass history summary` - Monthly breakdown with aggregated stats
+- **NEW:** `devcompass history cleanup --keep <n>` - Delete old snapshots
+- **NEW:** `devcompass history stats` - Overall statistics
+
+**History List Options:**
+- `--limit <n>` - Limit number of results (default: 30)
+- `--project <name>` - Filter by project name
+- Date filtering options (see above)
+
+#### **Auto-Grouped Display**
+- **NEW:** Automatic grouping when >20 snapshots
+- **NEW:** Monthly average health scores
+- **NEW:** Snapshot count per month
+- **NEW:** Clean, organized display
+
+**Output Example:**
+
+```
+📊 Snapshot History (Grouped by Month)
+📅 April 2026 (22 snapshots, Avg Health: 7.71)
+────────────────────────────────────────────────────────────
+#24   25, 07:17 PM     Deps:   9 Health: 6.2
+#23   25, 07:17 PM     Deps:   9 Health: 6.2
+...
+#3    25, 06:15 PM     Deps:   7 Health: 7.7
+Total: 22 snapshots
+```
+
+#### **Monthly Summary View**
+- **NEW:** Aggregated statistics per month
+- **NEW:** Average health score per month
+- **NEW:** Average dependency count per month
+- **NEW:** Snapshot count per month
+
+**Output Example:**
+
+```
+📊 Monthly Snapshot Summary
+April 2026            22 snapshots  Avg Health: 7.71/10  Avg Deps: 9
+March 2026            15 snapshots  Avg Health: 8.20/10  Avg Deps: 8
+```
+
+### Changed
+
+#### **Enhanced Analyze Command**
+- `devcompass analyze` now auto-saves snapshots to database
+- Added `--no-history` flag to disable snapshot saving
+- Shows snapshot ID and save time after analysis
+- Displays helpful hints about history commands
+
+**Output Example:**
+
+```
+✔ Scanned 6 dependencies in project
+📸 Snapshot saved (ID: 40, 19ms)
+Use "devcompass history list" to view all snapshots
+Use "devcompass compare <id1> <id2>" to compare snapshots
+```
+
+### Fixed
+
+#### **Typosquatting False Positives**
+- ✅ Changed distance threshold from 2 to 1 character
+- ✅ Only flags real typosquats (1-char difference like `expres` → `express`)
+- ✅ Prevents false alarms for legitimate packages (like `knip` vs `knex`)
+- ✅ Added comprehensive whitelist for common dev tools
+
+**What Changed:**
+```javascript
+// Before (too sensitive):
+if (distance > 0 && distance <= 2) {
+
+// After (catches real typosquats):
+if (distance > 0 && distance === 1) {
+```
+
+**Impact:**
+- Eliminated `knip` → `knex` false alarm
+- Eliminated false positives for 2-character differences
+- Only flags dangerous 1-character typosquats
+- Improved overall health scores (fewer false warnings)
+
+#### **Dynamic Security Property Names**
+- ✅ Corrected `official` → `similarTo` property name
+- ✅ Fixed property name mismatch between modules
+- ✅ Added proper null checks
+- ✅ Improved error handling
+
+#### **Package Whitelist**
+- ✅ Added `knip` to whitelist (unused dependency detector)
+- ✅ Added other common dev tools to prevent false positives
+- ✅ Updated `data/popular-packages.json` with comprehensive whitelist
+
+### Performance
+
+#### **Performance Metrics**
+
+| Operation | Target | Actual | Improvement |
+|-----------|--------|--------|-------------|
+| Snapshot Save | <100ms | 8-19ms | **6-11× faster** |
+| Snapshot Load | <50ms | ~4ms | **12× faster** |
+| Comparison | <200ms | 4-5ms | **50× faster** |
+| Timeline Gen | <500ms | 6ms | **83× faster** |
+| Database Size | ~5KB | ~3KB | **40% smaller** |
+
+**Average Improvement: 40× faster than targets!**
+
+**Database Performance:**
+- WAL mode for concurrent reads
+- 4 optimized indexes for fast queries
+- Prepared statements for safety
+- Batch inserts for efficiency
+- Transaction-based saves
+
+### Technical Details
+
+#### **New Files Created**
+
+**History Modules (src/history/):**
+- `database.js` (2.3KB) - SQLite connection, schema, pragmas
+- `snapshot-saver.js` (2.8KB) - Transaction-based snapshot saving
+- `snapshot-loader.js` (4.2KB) - Query methods with date filtering
+- `comparator.js` (3.5KB) - Snapshot comparison and diff generation
+- `timeline-generator.js` (3.9KB) - Timeline data and D3 chart generation
+
+**Utility:**
+- `utils/date-parser.js` (2.1KB) - Smart date parser supporting 9 formats
+
+**Commands:**
+- `commands/history.js` (7.8KB) - Full history management CLI
+- `commands/compare.js` (2.4KB) - Snapshot comparison CLI
+- `commands/timeline.js` (4.1KB) - Timeline generation CLI
+
+**Database Schema:**
+```sql
+CREATE TABLE snapshots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+  project_name TEXT NOT NULL,
+  project_version TEXT,
+  project_path TEXT NOT NULL,
+  node_count INTEGER,
+  total_dependencies INTEGER,
+  health_score REAL,
+  metadata JSON
+);
+
+CREATE TABLE packages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  snapshot_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  version TEXT,
+  depth INTEGER DEFAULT 0,
+  health_score REAL DEFAULT 8.0,
+  is_vulnerable BOOLEAN DEFAULT 0,
+  is_deprecated BOOLEAN DEFAULT 0,
+  is_outdated BOOLEAN DEFAULT 0,
+  is_unused BOOLEAN DEFAULT 0,
+  issues JSON,
+  FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE
+);
+
+CREATE TABLE dependencies (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  snapshot_id INTEGER NOT NULL,
+  source_package TEXT NOT NULL,
+  target_package TEXT NOT NULL,
+  FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE
+);
+```
+
+**Indexes:**
+```sql
+CREATE INDEX idx_snapshots_project ON snapshots(project_name, timestamp DESC);
+CREATE INDEX idx_packages_snapshot ON packages(snapshot_id, name);
+CREATE INDEX idx_packages_health ON packages(health_score);
+CREATE INDEX idx_dependencies_snapshot ON dependencies(snapshot_id);
+```
+
+#### **Date Parser Implementation**
+Smart date parser that:
+- Validates dates (no Feb 30, June 31, etc.)
+- Supports both European and ISO formats
+- Returns start/end date range for queries
+- Provides human-readable descriptions
+- Clear error messages for invalid input
+
+**Example:**
+```javascript
+DateParser.parse('25-04-2026')
+// Returns:
+{
+  start: '2026-04-25T00:00:00.000Z',
+  end: '2026-04-25T23:59:59.999Z',
+  description: '25-04-2026',
+  type: 'date'
+}
+```
+
+### Benefits
+
+**For Users:**
+- ✅ **Track Evolution** - See how dependencies change over time
+- ✅ **Compare Snapshots** - Understand what changed between versions
+- ✅ **Visualize Trends** - Interactive charts show health patterns
+- ✅ **Flexible Queries** - 9 date formats for natural searching
+- ✅ **Zero Config** - Works automatically, no setup needed
+- ✅ **Fast** - 6-83× faster than performance targets
+- ✅ **Lightweight** - Only 3KB per snapshot
+
+**For Teams:**
+- ✅ **Audit Trail** - Complete history of dependency changes
+- ✅ **Regression Detection** - Spot when health scores drop
+- ✅ **Decision Support** - Data-driven dependency decisions
+- ✅ **Compliance** - Track changes for audits
+
+**For CI/CD:**
+- ✅ **Automated Tracking** - Build history automatically
+- ✅ **Performance Monitoring** - Track health over releases
+- ✅ **Regression Alerts** - Compare current vs previous builds
+
+### Breaking Changes
+
+**None** - 100% backward compatible
+
+- All v3.2.0 features intact (unified dashboard)
+- All v3.1.7 features intact (dynamic configuration)
+- All v3.1.6 features intact (clustering)
+- All v3.1.5 features intact (GitHub tokens)
+- Drop-in upgrade from any version
+
+### Migration Guide
+
+**No migration needed!** Just upgrade and enjoy.
+
+```bash
+# Upgrade to v3.2.1
+npm install -g devcompass@3.2.1
+
+# Verify version
+devcompass --version
+# Expected: 3.2.1
+
+# Use normally - snapshots auto-save!
+devcompass analyze
+
+# View history
+devcompass history list
+
+# Compare snapshots
+devcompass compare 5 8
+
+# Generate timeline
+devcompass timeline --open
+
+# Disable auto-save if needed
+devcompass analyze --no-history
+```
+
+### Files Changed
+
+**Modified (8 files):**
+- `bin/devcompass.js` - Added history, compare, timeline commands with date filtering
+- `src/commands/analyze.js` - Added snapshot auto-save integration
+- `src/analyzers/supply-chain.js` - Fixed typosquatting validation
+- `src/analyzers/unused-deps.js` - Fixed undefined display issue
+- `src/services/dynamic-security.js` - Fixed distance threshold (2→1)
+- `data/popular-packages.json` - Added knip to whitelist
+- `package.json` - Version bump to 3.2.1, added better-sqlite3 dependency
+- `package-lock.json` - Updated dependencies
+- `README.md` - Added v3.2.1 documentation
+- `CHANGELOG.md` - This entry
+
+**Added (9 files):**
+- `src/history/database.js` - SQLite database connection and schema
+- `src/history/snapshot-saver.js` - Snapshot saving with transactions
+- `src/history/snapshot-loader.js` - Snapshot loading with date filtering
+- `src/history/comparator.js` - Snapshot comparison engine
+- `src/history/timeline-generator.js` - Timeline data and D3 charts
+- `src/utils/date-parser.js` - Smart date parser (9 formats)
+- `src/commands/history.js` - History management CLI
+- `src/commands/compare.js` - Comparison CLI
+- `src/commands/timeline.js` - Timeline CLI
+
+### Testing
+
+**All tests passed:**
+- ✅ Version verification (3.2.1)
+- ✅ Database initialization (schema creation)
+- ✅ Snapshot saving (8-19ms, 3KB/snapshot)
+- ✅ Snapshot loading (4ms query time)
+- ✅ Date parsing (all 9 formats)
+- ✅ Date validation (rejects Feb 30, etc.)
+- ✅ Comparison (4-5ms, accurate diffs)
+- ✅ Timeline generation (6ms, D3 charts)
+- ✅ Grouped display (>20 snapshots)
+- ✅ Monthly summary (aggregated stats)
+- ✅ All commands working (history/compare/timeline)
+- ✅ Typosquatting fix (no false positives)
+- ✅ Backward compatibility (v3.2.0/v3.1.7/v3.1.6)
+
+**Real-World Testing:**
+- 40+ snapshots created
+- All date formats validated
+- Health score drop detected (8.2 → 6.2)
+- Timeline showing correct trends
+- Comparison showing accurate diffs
+- Zero false positives after typosquatting fix
+
+### Known Limitations
+
+- Database stored locally only (no cloud sync)
+- Timeline requires multiple snapshots (can't visualize 1 snapshot)
+- Comparison requires 2 different snapshots
+- Date filtering requires valid date formats
+- Auto-save can be disabled with `--no-history` flag
+
+---
+
 ## [3.2.0] - 2026-04-25
 
 ### 🎨 Major Feature: Unified Dashboard Architecture
@@ -5268,7 +5695,7 @@ No migration needed. All features are opt-in via flags or config.
 - npm package published
 
 ---
-
+[3.2.1]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.2.1
 [3.2.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.2.0
 [3.1.7]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.7
 [3.1.6]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.1.6

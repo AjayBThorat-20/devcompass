@@ -28,7 +28,7 @@ const { getCached, setCache } = require('../cache/manager');
 const { formatAsJson } = require('../utils/json-formatter');
 const { handleCiMode } = require('../utils/ci-handler');
 
-// NEW v2.7.0 imports
+// v2.7.0 imports
 const { analyzeSupplyChain } = require('../analyzers/supply-chain');
 const { analyzeLicenseRisks, getLicenseRiskScore } = require('../analyzers/license-risk');
 const { analyzePackageQuality } = require('../analyzers/package-quality');
@@ -37,6 +37,10 @@ const {
   groupByPriority, 
   calculateExpectedImpact 
 } = require('../analyzers/security-recommendations');
+
+// NEW v3.2.1 - History tracking imports
+const snapshotSaver = require('../history/snapshot-saver');
+const db = require('../history/database');
 
 const packageJson = require('../../package.json');
 
@@ -143,9 +147,7 @@ async function analyzeProject(projectPath, options = {}) {
     }
     
     // Return structured data for graph enrichment
-    // Format matches what enrichNodesWithAnalysis() expects
     return {
-      // Security data - vulnerabilities array with package names
       security: {
         vulnerabilities: securityData.vulnerabilities || [],
         metadata: securityData.metadata || { total: 0, critical: 0, high: 0, moderate: 0, low: 0 },
@@ -156,7 +158,6 @@ async function analyzeProject(projectPath, options = {}) {
         low: securityData.metadata?.low || 0
       },
       
-      // Outdated packages - array of { name, current, latest, wanted, versionsBehind }
       outdatedPackages: (outdatedDeps || []).map(dep => ({
         name: dep.name,
         package: dep.name,
@@ -166,12 +167,10 @@ async function analyzeProject(projectPath, options = {}) {
         versionsBehind: dep.versionsBehind
       })),
       
-      // Unused dependencies - array of { name } or strings
       unusedDependencies: (unusedDeps || []).map(dep => 
         typeof dep === 'string' ? dep : (dep.name || dep.package)
       ),
       
-      // Ecosystem alerts - array of { package, title, severity, fix, source }
       ecosystemAlerts: (alerts || []).map(alert => ({
         package: alert.package,
         name: alert.package,
@@ -183,7 +182,6 @@ async function analyzeProject(projectPath, options = {}) {
         affected: alert.affected
       })),
       
-      // Summary
       summary: {
         totalDeps,
         unusedCount: unusedDeps?.length || 0,
@@ -196,6 +194,34 @@ async function analyzeProject(projectPath, options = {}) {
   } catch (error) {
     if (process.env.DEBUG) {
       console.error('[analyzeProject] Error:', error.message);
+    }
+    return null;
+  }
+}
+
+/**
+ * NEW v3.2.1 - Save analysis snapshot to history database
+ */
+async function saveHistorySnapshot(analysisData, graphData, projectPackageJson) {
+  try {
+    // Only save if --no-history flag is NOT present
+    if (process.argv.includes('--no-history')) {
+      return null;
+    }
+    
+    const result = snapshotSaver.saveSnapshot(analysisData, graphData);
+    
+    return {
+      snapshotId: result.snapshotId,
+      duration: result.duration,
+      nodes: result.nodes,
+      links: result.links
+    };
+    
+  } catch (error) {
+    // Don't fail the entire analysis if snapshot saving fails
+    if (process.env.DEBUG) {
+      console.error('[saveHistorySnapshot] Error:', error.message);
     }
     return null;
   }
@@ -383,10 +409,8 @@ async function analyze(options) {
         const { generatePredictiveWarnings } = require('../alerts/predictive');
         const { checkGitHubIssues } = require('../alerts/github-tracker');
         
-        // Track performance
         const startTime = Date.now();
         
-        // Get raw GitHub data for quality analysis
         githubData = await checkGitHubIssues(dependencies, {
           concurrency: 5,
           onProgress: (current, total, packageName) => {
@@ -396,7 +420,6 @@ async function analyze(options) {
           }
         });
         
-        // Generate predictive warnings
         predictiveWarnings = await generatePredictiveWarnings(dependencies, {
           onProgress: (current, total, packageName) => {
             if (outputMode === 'normal') {
@@ -483,7 +506,7 @@ async function analyze(options) {
       }
     }
     
-    // NEW v2.7.0 - Enhanced License Risk Analysis
+    // v2.7.0 - Enhanced License Risk Analysis
     spinner.text = 'Analyzing license risks...';
     let licenseRiskData = { warnings: [], stats: {}, projectLicense: 'MIT' };
     
@@ -506,7 +529,7 @@ async function analyze(options) {
       }
     }
     
-    // NEW v2.7.0 - Package Quality Analysis
+    // v2.7.0 - Package Quality Analysis
     spinner.text = 'Analyzing package quality...';
     let qualityData = { results: [], stats: {} };
     
@@ -550,8 +573,49 @@ async function analyze(options) {
       console.log(chalk.gray(`⚡ GitHub check completed in ${timeInSeconds}s (parallel processing)`));
     }
     
-    // NEW v2.7.0 - Generate Security Recommendations
-    // ✅ FIXED: Ensure supplyChainData.warnings is always an array
+    // NEW v3.2.1 - Save snapshot to history database
+    if (outputMode !== 'silent' && outputMode !== 'json') {
+      try {
+        // Build graph data structure for snapshot
+        const graphData = {
+          metadata: {
+            projectName: projectPackageJson.name || 'unknown',
+            projectVersion: projectPackageJson.version || '1.0.0'
+          },
+          nodes: Object.keys(dependencies).map(name => ({
+            id: name,
+            name,
+            version: dependencies[name],
+            depth: 0,
+            healthScore: score.total,
+            isVulnerable: securityData.vulnerabilities.some(v => v.name === name || v.package === name),
+            isDeprecated: qualityData.results?.find(r => r.package === name)?.status === 'deprecated',
+            isOutdated: outdatedDeps.some(d => d.name === name),
+            isUnused: unusedDeps.some(d => (typeof d === 'string' ? d : d.name) === name),
+            issues: []
+          })),
+          links: []
+        };
+        
+        const analysisData = {
+          dependencies: Object.entries(dependencies).map(([name, version]) => ({ name, version }))
+        };
+        
+        const snapshotResult = await saveHistorySnapshot(analysisData, graphData, projectPackageJson);
+        
+        if (snapshotResult) {
+          console.log(chalk.gray(`📸 Snapshot saved (ID: ${snapshotResult.snapshotId}, ${snapshotResult.duration}ms)\n`));
+          console.log(chalk.gray(`   Use "devcompass history list" to view all snapshots`));
+          console.log(chalk.gray(`   Use "devcompass compare <id1> <id2>" to compare snapshots\n`));
+        }
+      } catch (error) {
+        if (process.env.DEBUG) {
+          console.error(chalk.yellow('⚠️  Could not save snapshot:'), error.message);
+        }
+      }
+    }
+    
+    // v2.7.0 - Generate Security Recommendations
     const safeSupplyChainWarnings = Array.isArray(supplyChainData.warnings) 
       ? supplyChainData.warnings 
       : [];
@@ -568,7 +632,6 @@ async function analyze(options) {
     
     // Handle different output modes
     if (outputMode === 'json') {
-      // ✅ FIXED: Create safe supply chain data for JSON output
       const safeSupplyChainData = {
         ...supplyChainData,
         warnings: Array.isArray(supplyChainData.warnings) ? supplyChainData.warnings : []

@@ -1,7 +1,7 @@
 {
   "name": "devcompass",
-  "version": "3.2.0",
-  "description": "Dependency health checker with ecosystem intelligence, unified interactive dashboard with 5 dynamic layouts (Tree/Force/Radial/Conflict/Analytics), modular CSS/JS architecture, intelligent clustering, real-time filtering, advanced zoom controls, theme support (dark/light), supply chain security with auto-fix, license conflict resolution, package quality auto-fix, batch fix modes, backup & rollback, and professional dependency exploration.",
+  "version": "3.2.1",
+  "description": "Dependency health checker with ecosystem intelligence, unified interactive dashboard with 5 dynamic layouts (Tree/Force/Radial/Conflict/Analytics), historical tracking with SQLite, snapshot comparison, timeline visualization, modular CSS/JS architecture, intelligent clustering, real-time filtering, advanced zoom controls, theme support (dark/light), supply chain security with auto-fix, license conflict resolution, package quality auto-fix, batch fix modes, backup & rollback, and professional dependency exploration.",
   "main": "src/index.js",
   "bin": {
     "devcompass": "bin/devcompass.js"
@@ -147,11 +147,27 @@
     "interactive-analytics",
     "5-layouts",
     "no-duplication",
-    "performance-optimized"
+    "performance-optimized",
+    "historical-tracking",
+    "snapshot-comparison",
+    "timeline-visualization",
+    "sqlite-database",
+    "dependency-history",
+    "change-tracking",
+    "trend-analysis",
+    "before-after-comparison",
+    "dependency-evolution",
+    "time-series-analysis",
+    "health-score-tracking",
+    "vulnerability-tracking",
+    "package-quality-trends",
+    "dependency-metrics",
+    "historical-analysis"
   ],
   "author": "Ajay Thorat <ajaythorat988@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "better-sqlite3": "^11.7.0",
     "chalk": "4.1.2",
     "knip": "^5.88.1",
     "npm-check-updates": "^20.0.0",
