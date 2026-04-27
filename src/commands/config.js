@@ -12,6 +12,7 @@ async function config(options) {
       // Mask token for security
       const masked = token.substring(0, 7) + '***' + token.substring(token.length - 4);
       console.log(chalk.green('✓'), 'GitHub token configured:', chalk.dim(masked));
+      console.log(chalk.dim('  Stored encrypted in: ~/.devcompass/config.db'));
     } else {
       console.log(chalk.yellow('⚠'), 'No GitHub token configured');
       GitHubTokenManager.showTokenInstructions();
@@ -46,7 +47,8 @@ async function config(options) {
     if (tokenManager.saveToken(token)) {
       console.log(chalk.green('✓'), 'GitHub token saved successfully!');
       console.log('');
-      console.log('Token stored in:', chalk.dim(tokenManager.tokenFile));
+      console.log('🔒 Token encrypted with AES-256-GCM');
+      console.log('📁 Stored in:', chalk.dim('~/.devcompass/config.db'));
       console.log('');
       console.log('🎉 You can now use DevCompass without rate limits!');
     } else {

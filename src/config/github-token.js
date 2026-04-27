@@ -2,11 +2,49 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { getDatabase } = require('./database');
+const encryption = require('../utils/encryption');
 
 class GitHubTokenManager {
   constructor() {
     this.configDir = path.join(os.homedir(), '.devcompass');
-    this.tokenFile = path.join(this.configDir, 'github-token');
+    this.legacyTokenFile = path.join(this.configDir, 'github-token');
+    this.db = null;
+  }
+
+  /**
+   * Get database instance
+   */
+  getDb() {
+    if (!this.db) {
+      this.db = getDatabase();
+    }
+    return this.db;
+  }
+
+  /**
+   * Migrate legacy token file to database
+   */
+  migrateLegacyToken() {
+    try {
+      if (fs.existsSync(this.legacyTokenFile)) {
+        const token = fs.readFileSync(this.legacyTokenFile, 'utf8').trim();
+        if (token) {
+          // Save to database (encrypted)
+          this.saveToken(token);
+          
+          // Remove legacy file
+          fs.unlinkSync(this.legacyTokenFile);
+          
+          console.log('✓ Migrated GitHub token to encrypted database');
+        }
+      }
+    } catch (error) {
+      // Silent fail - migration is optional
+      if (process.env.DEBUG) {
+        console.error('Token migration failed:', error.message);
+      }
+    }
   }
 
   /**
@@ -14,28 +52,57 @@ class GitHubTokenManager {
    */
   getToken() {
     try {
-      if (fs.existsSync(this.tokenFile)) {
-        const token = fs.readFileSync(this.tokenFile, 'utf8').trim();
-        return token || null;
+      // Migrate legacy token if exists
+      this.migrateLegacyToken();
+      
+      const db = this.getDb();
+      const row = db.prepare('SELECT value, encrypted FROM config WHERE key = ?')
+        .get('github_token');
+      
+      if (!row) {
+        return null;
       }
+      
+      // Decrypt if encrypted
+      if (row.encrypted === 1) {
+        try {
+          return encryption.decrypt(row.value);
+        } catch (error) {
+          console.error('Failed to decrypt GitHub token:', error.message);
+          return null;
+        }
+      }
+      
+      return row.value;
     } catch (error) {
       // Silent fail - token is optional
+      if (process.env.DEBUG) {
+        console.error('Failed to get GitHub token:', error.message);
+      }
+      return null;
     }
-    return null;
   }
 
   /**
-   * Save GitHub token
+   * Save GitHub token (encrypted)
    */
   saveToken(token) {
     try {
-      // Create config directory if it doesn't exist
-      if (!fs.existsSync(this.configDir)) {
-        fs.mkdirSync(this.configDir, { recursive: true });
-      }
-
-      // Save token
-      fs.writeFileSync(this.tokenFile, token.trim(), { mode: 0o600 });
+      const db = this.getDb();
+      
+      // Encrypt token
+      const encrypted = encryption.encrypt(token.trim());
+      
+      // Upsert token
+      db.prepare(`
+        INSERT INTO config (key, value, encrypted, updated_at)
+        VALUES (?, ?, 1, datetime('now'))
+        ON CONFLICT(key) DO UPDATE SET
+          value = excluded.value,
+          encrypted = excluded.encrypted,
+          updated_at = datetime('now')
+      `).run('github_token', encrypted);
+      
       return true;
     } catch (error) {
       console.error('Failed to save GitHub token:', error.message);
@@ -55,9 +122,14 @@ class GitHubTokenManager {
    */
   removeToken() {
     try {
-      if (fs.existsSync(this.tokenFile)) {
-        fs.unlinkSync(this.tokenFile);
+      const db = this.getDb();
+      db.prepare('DELETE FROM config WHERE key = ?').run('github_token');
+      
+      // Also remove legacy file if exists
+      if (fs.existsSync(this.legacyTokenFile)) {
+        fs.unlinkSync(this.legacyTokenFile);
       }
+      
       return true;
     } catch (error) {
       console.error('Failed to remove GitHub token:', error.message);
@@ -88,8 +160,9 @@ class GitHubTokenManager {
     console.log('  8. Run: devcompass config --github-token <your-token>');
     console.log('');
     console.log('🔒 Security:');
-    console.log('  • Token is stored locally in ~/.devcompass/github-token');
-    console.log('  • Only you have access to this file');
+    console.log('  • Token is encrypted with AES-256-GCM');
+    console.log('  • Stored in ~/.devcompass/config.db');
+    console.log('  • Machine-specific encryption keys');
     console.log('  • Never commit or share your token');
     console.log('  • Token is optional - DevCompass works without it');
     console.log('');
