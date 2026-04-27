@@ -1,6 +1,6 @@
 {
   "name": "devcompass",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "Dependency health checker with ecosystem intelligence, unified interactive dashboard with 5 dynamic layouts (Tree/Force/Radial/Conflict/Analytics), historical tracking with SQLite, snapshot comparison, timeline visualization, modular CSS/JS architecture, intelligent clustering, real-time filtering, advanced zoom controls, theme support (dark/light), supply chain security with auto-fix, license conflict resolution, package quality auto-fix, batch fix modes, backup & rollback, and professional dependency exploration.",
   "main": "src/index.js",
   "bin": {
