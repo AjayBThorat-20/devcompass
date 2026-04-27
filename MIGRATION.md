@@ -1,5 +1,500 @@
 # Migration Guide
 
+## From v3.2.1 → v3.2.2
+
+### What's New
+- **🤖 AI-Powered Analysis**: Multi-provider LLM integration (OpenAI, Anthropic, Google, Ollama)
+- **🔒 Encrypted Token Storage**: AES-256-GCM encryption for API keys
+- **💬 Interactive AI Chat**: Multi-turn conversations with conversation history
+- **📊 Context-Aware Recommendations**: AI analyzes your specific project data
+- **⚡ Real-Time Streaming**: See AI responses as they're generated
+- **💰 Cost Tracking**: Monitor token usage and estimated costs per provider
+- **🆓 FREE Local Option**: Use Ollama at zero cost with complete privacy
+- **🔧 Security Fix**: Upgraded uuid from 9.0.1 to 14.0.0 (fixes CVE-2026-41907)
+- **No Breaking Changes**: Fully backward compatible
+
+### Migration Steps
+```bash
+npm install -g devcompass@3.2.2
+```
+
+### What Changed
+- **Added**: `src/ai/` module (11 files, 1,554 lines)
+  - `database.js` - SQLite schema for AI data
+  - `token-manager.js` - Encrypted token CRUD operations
+  - `context-builder.js` - Analysis context preparation (9 sections)
+  - `prompt-templates.js` - Optimized system prompts for AI
+  - `conversation.js` - Session and conversation history management
+  - `cost-tracker.js` - Token usage and cost statistics
+  - `providers/base-provider.js` - Abstract base class
+  - `providers/openai.js` - GPT-4, GPT-3.5 implementation
+  - `providers/anthropic.js` - Claude 3.5 Sonnet implementation
+  - `providers/google.js` - Gemini Pro implementation
+  - `providers/local.js` - Ollama (FREE local) implementation
+- **Added**: `src/commands/ai.js` - AI command suite (359 lines)
+- **Added**: `src/commands/llm.js` - LLM provider management (336 lines)
+- **Added**: `src/utils/encryption.js` - AES-256-GCM crypto utilities (74 lines)
+- **Added**: `src/utils/stream-formatter.js` - Real-time streaming formatter (49 lines)
+- **Modified**: `bin/devcompass.js` - Added llm/ai commands (506 lines)
+- **Modified**: `src/commands/analyze.js` - Added --ai flag integration
+- **Modified**: `package.json` - Upgraded uuid to 14.0.0
+- **Added**: `~/.devcompass/ai.db` - SQLite database (created automatically)
+
+### New Commands Available
+
+#### **LLM Provider Management**
+```bash
+# Add AI providers
+devcompass llm add --provider openai --token sk-xxx --model gpt-4o-mini
+devcompass llm add --provider anthropic --token sk-ant-xxx --model claude-3-5-sonnet
+devcompass llm add --provider google --token xxx --model gemini-pro
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+
+# Manage providers
+devcompass llm list                    # List all configured providers
+devcompass llm default openai          # Set default provider
+devcompass llm test openai            # Test provider connection
+devcompass llm enable openai          # Enable provider
+devcompass llm disable openai         # Disable provider
+devcompass llm update openai --token  # Update provider settings
+devcompass llm remove openai          # Remove provider
+devcompass llm stats                  # View usage statistics and costs
+```
+
+#### **AI Analysis**
+```bash
+# AI-powered analysis
+devcompass analyze --ai                                    # Get AI recommendations
+devcompass analyze --ai --ai-provider anthropic            # Use specific provider
+
+# Ask questions
+devcompass ai ask "Should I update axios to version 1.15.2?"
+devcompass ai ask "What are the security risks in my project?"
+devcompass ai ask "Why is my health score low?"
+
+# Get prioritized recommendations
+devcompass ai recommend
+
+# Find package alternatives
+devcompass ai alternatives moment
+devcompass ai alternatives request
+devcompass ai alternatives lodash
+
+# Interactive chat mode
+devcompass ai chat
+devcompass ai chat --provider openai
+```
+
+### Quick Start: FREE Local AI
+
+**Option 1: Ollama (Recommended - 100% FREE)**
+```bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Start Ollama
+ollama serve &
+
+# Pull a model (choose one):
+ollama pull llama3.2       # 2GB - Balanced
+ollama pull qwen2.5:0.5b   # 397MB - Smallest/Fastest
+ollama pull mistral        # 4GB - More capable
+
+# Add to DevCompass
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+
+# Test it
+devcompass llm test local
+
+# Use it!
+devcompass analyze --ai
+devcompass ai ask "What should I fix first?"
+devcompass ai chat
+```
+
+**Option 2: OpenAI (Paid)**
+```bash
+# Get API key from: https://platform.openai.com/api-keys
+
+# Add to DevCompass
+devcompass llm add --provider openai --token sk-your-key --model gpt-4o-mini
+
+# Test it
+devcompass llm test openai
+
+# Use it!
+devcompass analyze --ai
+```
+
+### AI Provider Comparison
+
+| Provider | Models | Cost per 1K tokens | Monthly Cost (50 queries) | Best For |
+|----------|--------|-------------------|--------------------------|----------|
+| **Ollama** | Llama 3, Mistral, Qwen | **$0.00 FREE** | **$0.00** | Privacy, unlimited use |
+| **Google** | Gemini Pro, 1.5 Pro | ~$0.00025 | ~$0.04 | Most cost-effective |
+| **Anthropic** | Claude 3.5 Sonnet | ~$0.003 | ~$0.90 | Detailed analysis |
+| **OpenAI** | GPT-4, GPT-4 Turbo | ~$0.03 | ~$4.50 | Fast, accurate |
+
+### Context-Aware Analysis
+
+AI receives 9 analysis sections from your project:
+
+1. **📋 Project Overview** - Name, version, health score
+2. **💊 Health Metrics** - Dependencies, vulnerabilities
+3. **🔒 Security Issues** - Vulnerabilities with severity levels
+4. **📦 Outdated Packages** - Current → latest versions
+5. **⚠️ Deprecated Packages** - Replacement suggestions
+6. **🗑️ Unused Dependencies** - Removal candidates
+7. **🛡️ Supply Chain Risks** - Typosquatting, malicious packages
+8. **⚖️ License Issues** - GPL/AGPL conflicts
+9. **📏 Bundle Size** - Heavy packages >1MB
+
+**Privacy:** Your source code is NEVER sent to AI!
+
+### Security & Privacy
+
+**Encrypted Token Storage:**
+- AES-256-GCM authenticated encryption
+- Machine-specific encryption keys
+- Stored locally in `~/.devcompass/ai.db`
+- Never transmitted to DevCompass servers
+- Tamper detection with auth tags
+
+**What Gets Sent to AI:**
+- ✅ Package names and versions
+- ✅ Vulnerability counts (not details)
+- ✅ Health scores
+- ✅ Outdated/unused package lists
+
+**What NEVER Gets Sent:**
+- ❌ Your source code
+- ❌ File contents
+- ❌ Environment variables
+- ❌ API keys
+- ❌ Sensitive data
+
+**FREE Local Option:**
+- Ollama runs 100% locally
+- No data leaves your machine
+- No API costs
+- No rate limits
+- Complete privacy
+
+### Cost Tracking
+
+Monitor your AI usage:
+
+```bash
+$ devcompass llm stats
+
+📊 AI Usage Statistics - 2026-04
+
+local (llama3.2)
+   Requests: 28
+   Tokens: 11,923
+   Cost: $0.0000
+
+openai (gpt-4o-mini)
+   Requests: 5
+   Tokens: 2,341
+   Cost: $0.0702
+
+──────────────────────────────────
+Total Requests: 33
+Total Tokens: 14,264
+Total Cost: $0.0702
+
+📈 Projected monthly cost: $2.11
+```
+
+### Example Interactions
+
+**Get AI-Powered Analysis:**
+```bash
+$ devcompass analyze --ai
+
+🤖 AI Recommendations
+
+🔴 CRITICAL (Do Now):
+- Security Vulnerabilities (24 total)
+  → Run: npm audit fix
+  → Why: 3 high-severity issues expose your app
+
+🟡 HIGH PRIORITY (This Week):
+- Update axios (0.21.1 → 1.15.2)
+  → Why: Contains known CVEs
+  → Breaking changes: Response format changed
+```
+
+**Ask Specific Questions:**
+```bash
+$ devcompass ai ask "Should I update axios from 0.21.1 to 1.15.2?"
+
+🤖 Yes, you should update axios:
+
+Security: Version 0.21.1 has critical vulnerabilities
+Breaking Changes: Response.data format changed
+Migration: Update interceptors, test error handling
+Command: npm install axios@latest
+
+Test thoroughly before deploying!
+```
+
+**Find Alternatives:**
+```bash
+$ devcompass ai alternatives moment
+
+🔍 Finding alternatives for "moment"
+
+🤖 Top 3 Alternatives:
+
+1️⃣ date-fns (~2KB vs 67KB)
+   - Tree-shakeable, modern API
+   - Migration: Easy
+
+2️⃣ dayjs (~2KB)
+   - moment.js compatible API
+   - Migration: Drop-in replacement
+
+3️⃣ Luxon (~15KB)
+   - Better timezone support
+   - Migration: Medium
+```
+
+**Interactive Chat:**
+```bash
+$ devcompass ai chat
+
+🤖 DevCompass AI Assistant
+Ask me anything about your dependencies!
+
+You: Should I remove lodash and moment since they're unused?
+
+🤖 Yes, remove them:
+- lodash: 1.3 MB saved
+- moment: 4.1 MB saved
+Total saved: 5.4 MB
+
+Command: npm uninstall lodash moment
+
+This will improve your health score from 0.5/10 to ~5.3/10!
+
+You: What's the best alternative to moment?
+
+🤖 I recommend date-fns:
+- Size: ~2KB (vs 67KB)
+- Tree-shakeable
+- Modern API
+
+You: exit
+👋 Chat ended. Used 245 tokens (~$0.0001)
+```
+
+### Database Location
+```bash
+~/.devcompass/ai.db
+```
+
+**Storage:**
+- ~2KB per conversation
+- SQLite with WAL mode
+- Encrypted API tokens
+- Conversation history (last 5 turns)
+
+### Performance
+
+| Operation | Time | Notes |
+|-----------|------|-------|
+| Token encryption | <1ms | AES-256-GCM |
+| Token decryption | <1ms | With auth verification |
+| Database save | 8-15ms | SQLite WAL mode |
+| AI first response | <2s | Streaming starts |
+| Full AI response | 5-10s | Depends on length |
+| Context building | <50ms | 9 analysis sections |
+
+### Benefits
+
+**For Developers:**
+- 💡 Get instant answers about dependency updates
+- 🔍 Understand breaking changes before updating
+- 🔄 Find modern alternatives to deprecated packages
+- 📚 Learn migration strategies from AI
+
+**For Teams:**
+- 🚀 Faster code reviews with AI insights
+- 📊 Data-driven dependency decisions
+- 🎓 Share AI knowledge across team
+- ⚠️ Catch issues before they become problems
+
+**For DevOps/CI/CD:**
+- 🤖 Automated dependency insights in pipelines
+- 📈 Smart alerts for critical issues
+- 🔧 AI-powered upgrade recommendations
+
+### Security Fix: uuid Vulnerability
+
+**Fixed in v3.2.2:**
+- Upgraded uuid from 9.0.1 to 14.0.0
+- Fixes CVE-2026-41907 (CVSS 6.3 Medium)
+- CWE-1285: Improper buffer validation
+- No breaking changes
+
+**Impact on DevCompass:** LOW
+- uuid used only for session ID generation
+- No external buffer manipulation
+- No user data exposure risk
+
+### Breaking Changes
+**None!** This is a drop-in upgrade.
+
+- All v3.2.1 features intact (history tracking, comparison, timeline)
+- All v3.2.0 features intact (unified dashboard, 5 layouts, themes)
+- All v3.1.x features intact (clustering, GitHub tokens, dynamic config)
+- All CLI commands work exactly the same
+- `--ai` flag is completely optional
+- AI features are opt-in (requires provider setup)
+- Snapshots still auto-save (disable with `--no-history`)
+
+### Verification
+After upgrading, verify everything works:
+
+```bash
+# Check version
+devcompass --version
+# Expected: 3.2.2
+
+# Setup FREE local AI
+curl -fsSL https://ollama.com/install.sh | sh
+ollama serve &
+ollama pull llama3.2
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+
+# Test AI features
+devcompass llm test local
+devcompass analyze --ai
+devcompass ai ask "What should I fix first?"
+devcompass ai chat
+
+# Verify history still works
+devcompass history list
+devcompass compare 1 2
+
+# Verify graph still works
+devcompass graph --open
+
+# Check costs
+devcompass llm stats
+```
+
+### Troubleshooting
+
+**No AI provider configured:**
+```bash
+# Add a provider first
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+
+# Or use OpenAI
+devcompass llm add --provider openai --token sk-xxx --model gpt-4o-mini
+```
+
+**Ollama connection failed:**
+```bash
+# Check Ollama is running
+ps aux | grep ollama
+
+# Restart Ollama
+ollama serve &
+
+# Test connection
+devcompass llm test local
+```
+
+**API key invalid:**
+```bash
+# Update token
+devcompass llm update openai --token sk-new-token
+
+# Test it
+devcompass llm test openai
+```
+
+**Quota exceeded:**
+```bash
+# Check usage
+devcompass llm stats
+
+# Switch to free provider
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+devcompass llm default local
+```
+
+**AI responses too verbose:**
+```bash
+# This is expected with smaller models like qwen2.5:0.5b
+# Upgrade to better model:
+ollama pull llama3.2
+devcompass llm update local --model llama3.2
+
+# Or use paid providers for concise responses:
+devcompass llm add --provider anthropic --token sk-ant-xxx --model claude-3-5-sonnet
+devcompass llm default anthropic
+```
+
+### Upgrade Path
+
+**From v3.2.1:**
+```bash
+npm install -g devcompass@3.2.2
+
+# Optional: Setup AI
+# Option 1: FREE local (recommended)
+curl -fsSL https://ollama.com/install.sh | sh
+ollama serve &
+ollama pull llama3.2
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+
+# Option 2: OpenAI (paid)
+devcompass llm add --provider openai --token sk-xxx --model gpt-4o-mini
+
+# Use it
+devcompass analyze --ai
+```
+
+**From v3.2.0 or earlier:**
+```bash
+npm install -g devcompass@3.2.2
+# You get ALL v3.2.1 features + v3.2.2 AI features
+# Historical tracking + unified dashboard + AI integration
+```
+
+### What You Get (Full v3.2.2 Feature Set)
+- ✅ **AI Integration** (v3.2.2) - Multi-provider, chat, recommendations
+- ✅ **Encrypted Tokens** (v3.2.2) - AES-256-GCM security
+- ✅ **Cost Tracking** (v3.2.2) - Monitor AI usage
+- ✅ **FREE Local AI** (v3.2.2) - Ollama support
+- ✅ **Historical Tracking** (v3.2.1) - SQLite database, auto-save
+- ✅ **Snapshot Comparison** (v3.2.1) - Side-by-side diff
+- ✅ **Timeline Visualization** (v3.2.1) - Interactive D3 charts
+- ✅ **Unified Dashboard** (v3.2.0) - 5 layouts, themes
+- ✅ **Dynamic Config** (v3.1.7) - JSON-based
+- ✅ **Clustering** (v3.1.6) - Ecosystem/Health/Depth
+- ✅ **GitHub Tokens** (v3.1.5) - 5,000 req/hr
+- ✅ All previous features (batch fixes, auto-fix, backup/rollback)
+
+### Rollback (if needed)
+```bash
+# Downgrade to v3.2.1
+npm install -g devcompass@3.2.1
+
+# AI database will remain (safe to delete if needed)
+rm ~/.devcompass/ai.db
+
+# History database still works
+devcompass history list
+```
+
+---
+
 ## From v3.2.0 → v3.2.1
 
 ### What's New
@@ -575,4 +1070,4 @@ devcompass backup restore --name <backup-name>
 
 ---
 
-*Last updated: April 25, 2026 (v3.2.0)*
+*Last updated: April 27, 2026 (v3.2.2)*
