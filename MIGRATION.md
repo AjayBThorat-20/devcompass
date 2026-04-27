@@ -344,6 +344,59 @@ You: exit
 - No external buffer manipulation
 - No user data exposure risk
 
+### Security Enhancement: GitHub Token Encryption
+
+**NEW in v3.2.2:**
+- GitHub tokens now encrypted with AES-256-GCM (was plain text)
+- Unified config database (`~/.devcompass/config.db`)
+- Auto-migration from legacy storage
+- Machine-specific encryption keys
+- Same security level as AI tokens
+
+**What Changed:**
+- Tokens moved from `~/.devcompass/github-token` (plain text)
+- To `~/.devcompass/config.db` (encrypted)
+- Legacy file automatically deleted after migration
+- Migration happens on first use after upgrade
+
+**Migration Behavior:**
+```bash
+# First command after upgrading
+$ devcompass analyze
+
+# You'll see:
+✓ Migrated GitHub token to encrypted database
+⚡ GitHub check completed in 1.13s
+
+# Verify migration
+$ devcompass config --show
+✓ GitHub token configured: ghp_s2y***6ybw
+  Stored encrypted in: ~/.devcompass/config.db
+
+# Legacy file is gone
+$ ls ~/.devcompass/github-token
+ls: No such file or directory  # ✅ Deleted
+```
+
+**Security Improvements:**
+- 🔒 AES-256-GCM authenticated encryption (was plain text)
+- 🔒 Machine-specific encryption keys
+- 🔒 Tamper detection with auth tags
+- 🔒 Consistent with AI token storage
+- 🔒 No manual action required
+
+**Impact on DevCompass:** None
+- Token still works for GitHub API calls
+- No rate limit changes
+- Fully backward compatible
+- Auto-migration is seamless
+
+**Breaking Changes:** None
+- Existing tokens auto-migrate on first use
+- No user action required
+- Fully backward compatible
+- Legacy file removed after migration
+
 ### Breaking Changes
 **None!** This is a drop-in upgrade.
 

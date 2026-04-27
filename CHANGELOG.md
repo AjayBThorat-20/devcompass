@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.2.2] - 2026-04-26
+## [3.2.2] - 2026-04-27
 
 ### 🤖 Major Feature: AI-Powered Dependency Analysis
 
@@ -559,6 +559,40 @@ devcompass ai ask "What should I fix first?"
 - Team knowledge base
 - AI audit reports
 - Voice commands
+
+### 🔒 Security Enhancements
+
+#### **GitHub Token Encryption**
+- **NEW:** GitHub tokens now encrypted with AES-256-GCM
+- **NEW:** Unified config database (~/.devcompass/config.db)
+- **NEW:** Auto-migration from legacy plain-text storage
+- **NEW:** Machine-specific encryption keys
+- **NEW:** Same security level as AI tokens
+
+**What Changed:**
+- GitHub tokens moved from `~/.devcompass/github-token` (plain text)
+- To `~/.devcompass/config.db` (encrypted)
+- Auto-migrates on first use
+- Displays: "✓ Migrated GitHub token to encrypted database"
+
+**Security Improvements:**
+- AES-256-GCM authenticated encryption
+- Machine-specific encryption keys
+- Tamper detection with auth tags
+- Consistent with AI token storage
+
+**Breaking Changes:** None
+- Existing tokens auto-migrate on first use
+- Fully backward compatible
+- No user action required
+
+### Security Fixes
+
+#### **uuid Vulnerability (CVE-2026-41907)**
+- ✅ Upgraded uuid from 9.0.1 to 14.0.0
+- ✅ Fixes CWE-1285 (Improper buffer validation)
+- ✅ CVSS 6.3 Medium severity
+- ✅ No breaking changes
 
 ---
 
