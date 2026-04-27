@@ -1,174 +1,106 @@
 # 🧭 DevCompass
 
-**Dependency health checker with unified interactive dashboard featuring 5 dynamic layouts (Tree/Force/Radial/Conflict/Analytics), modular CSS/JS architecture, intelligent clustering (Ecosystem/Health/Depth grouping), real-time filtering, advanced zoom controls, theme support (dark/light), supply chain security with auto-fix, license conflict resolution, package quality auto-fix, batch fix modes, backup & rollback, historical tracking with SQLite database, snapshot comparison, timeline visualization, and professional dependency exploration.**
+**AI-powered dependency health checker with unified interactive dashboard featuring 5 dynamic layouts (Tree/Force/Radial/Conflict/Analytics), intelligent AI recommendations, multi-provider LLM support, modular CSS/JS architecture, intelligent clustering (Ecosystem/Health/Depth grouping), real-time filtering, advanced zoom controls, theme support (dark/light), supply chain security with auto-fix, license conflict resolution, package quality auto-fix, batch fix modes, backup & rollback, historical tracking with SQLite database, snapshot comparison, timeline visualization, and professional dependency exploration.**
 
 [![npm version](https://img.shields.io/npm/v/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **monitor GitHub issues in real-time for 502 packages**, **configure your own GitHub token to avoid rate limits**, **customize all configuration via JSON files**, **visualize dependency graphs with 5 dynamic layouts including Analytics dashboard**, **modular architecture with zero code duplication**, **organize packages by ecosystem (React/Vue/Angular/Testing/Build Tools)**, **group by health status (Critical/Warning/Healthy)**, **analyze by depth levels**, **instant layout switching**, **dark/light theme toggle**, **real-time filtering**, **advanced zoom controls**, **track dependency changes over time with SQLite database**, **compare snapshots to see what changed**, **visualize evolution with interactive timelines**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
+Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **get AI-powered recommendations**, **ask questions about your dependencies**, **find package alternatives with AI**, **chat with AI about your project**, **monitor GitHub issues in real-time for 502 packages**, **configure your own GitHub token to avoid rate limits**, **customize all configuration via JSON files**, **visualize dependency graphs with 5 dynamic layouts including Analytics dashboard**, **modular architecture with zero code duplication**, **organize packages by ecosystem (React/Vue/Angular/Testing/Build Tools)**, **group by health status (Critical/Warning/Healthy)**, **analyze by depth levels**, **instant layout switching**, **dark/light theme toggle**, **real-time filtering**, **advanced zoom controls**, **track dependency changes over time with SQLite database**, **compare snapshots to see what changed**, **visualize evolution with interactive timelines**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
 
-> **📊 LATEST v3.2.1:** Historical Tracking System - Track changes, compare snapshots, visualize trends! 📊  
-> **🎨 v3.2.0:** Unified Dashboard Architecture - 50% less code, 5 layouts, dark/light themes! 🎨  
-> **🔧 v3.1.7:** Dynamic Data Configuration - Scalable JSON-based configuration system! 🔧
+> **🤖 LATEST v3.2.2:** AI-Powered Analysis - Get intelligent recommendations from OpenAI, Anthropic, Google, or FREE local AI! 🤖  
+> **📊 v3.2.1:** Historical Tracking System - Track changes, compare snapshots, visualize trends! 📊  
+> **🎨 v3.2.0:** Unified Dashboard Architecture - 50% less code, 5 layouts, dark/light themes! 🎨
 
-## 🎉 Latest Release: v3.2.1 (2026-04-26)
+## 🎉 Latest Release: v3.2.2 (2026-04-26)
 
-**Historical Tracking System - Track Your Dependency Evolution!**
+**AI-Powered Dependency Analysis - Smart Recommendations from AI!**
 
-### 🌟 What's New in v3.2.1:
+### 🌟 What's New in v3.2.2:
 
-#### **📊 Historical Tracking with SQLite**
+#### **🤖 AI-Powered Analysis**
 
-Complete dependency history tracking with SQLite database backend.
-
-**Features:**
-- ✅ **Auto-save snapshots** - Every analysis saved to database
-- ✅ **SQLite storage** - Fast, reliable, local database (~/.devcompass/history.db)
-- ✅ **Optimized performance** - 8-19ms save time (6-11× faster than target)
-- ✅ **Flexible date formats** - 9 formats including DD-MM-YYYY, MM-YYYY, YYYY
-- ✅ **Smart grouping** - Auto-groups >20 snapshots by month
-- ✅ **Monthly summaries** - Aggregated statistics per month
-- ✅ **Zero configuration** - Works automatically
-
-**Database Structure:**
-
-```
-~/.devcompass/history.db
-├── snapshots         # Project snapshots with metadata
-├── packages          # Package details per snapshot
-└── dependencies      # Dependency relationships
-```
-
-**Performance:**
-- Snapshot save: 8-19ms (6-11× faster than target)
-- Query speed: <10ms for all operations
-- Database size: ~3KB per snapshot (40% better than target)
-
-#### **🔍 Snapshot Comparison**
-
-Compare any two snapshots to see exactly what changed:
-
-```bash
-# Compare two snapshots
-devcompass compare 5 8
-
-# Detailed comparison
-devcompass compare 5 8 --verbose
-
-# Save to file
-devcompass compare 5 8 -o report.md
-```
-
-**What Gets Compared:**
-- ✅ Added/removed packages
-- ✅ Version changes
-- ✅ Health score changes
-- ✅ Vulnerability status changes
-- ✅ Deprecated status changes
-
-**Output Example:**
-
-```
-📊 Snapshot Comparison
-Snapshots: #5 → #8
-Health Score: 8.20 → 6.20 (-2.00) ❌
-🔄 Updated Packages (9):
-⟳ axios
-Health: 8.2 → 6.2 (-2.0)
-```
-
-📊 Snapshot Comparison
-Snapshots: #5 → #8
-Health Score: 8.20 → 6.20 (-2.00) ❌
-🔄 Updated Packages (9):
-⟳ axios
-Health: 8.2 → 6.2 (-2.0)
-
-```
-📊 Snapshot History (Grouped by Month)
-📅 April 2026 (22 snapshots, Avg Health: 7.71)
-────────────────────────────────────────────────────────────
-#24   25, 07:17 PM     Deps:   9 Health: 6.2
-#23   25, 07:17 PM     Deps:   9 Health: 6.2
-...
-#3    25, 06:15 PM     Deps:   7 Health: 7.7
-Total: 22 snapshots
-```
+Get intelligent, context-aware recommendations from AI to help you maintain healthier dependencies.
 
 **Features:**
-- ✅ Automatic grouping when >20 snapshots
-- ✅ Monthly average health scores
-- ✅ Snapshot count per month
-- ✅ Clean, organized display
+- ✅ **Multi-Provider Support** - OpenAI, Anthropic (Claude), Google (Gemini), Ollama (FREE local)
+- ✅ **Encrypted Token Storage** - AES-256-GCM encryption for API keys
+- ✅ **Context-Aware** - AI analyzes your specific project data
+- ✅ **Real-Time Streaming** - See responses as they're generated
+- ✅ **Interactive Chat** - Multi-turn conversations about your dependencies
+- ✅ **Cost Tracking** - Monitor token usage and estimated costs
+- ✅ **FREE Option** - Use local AI with Ollama (no API costs)
+- ✅ **Package Alternatives** - AI suggests better replacements
+- ✅ **Smart Prioritization** - Critical → High → Medium recommendations
 
-#### **🔧 Bug Fixes**
-
-**Fixed Typosquatting False Positives:**
-- ✅ Changed distance threshold from 2 to 1 character
-- ✅ Only flags real typosquats (1-char difference)
-- ✅ Added comprehensive whitelist for legitimate packages
-- ✅ Fixed `knip` → `knex` false alarm
-
-**Fixed Dynamic Security:**
-- ✅ Corrected `similarTo` property name
-- ✅ Added proper null checks
-- ✅ Improved error handling
-
-### 📊 Performance Metrics
-
-| Operation | Target | Actual | Improvement |
-|-----------|--------|--------|-------------|
-| Snapshot Save | <100ms | 8-19ms | **6-11× faster** |
-| Snapshot Load | <50ms | ~4ms | **12× faster** |
-| Comparison | <200ms | 4-5ms | **50× faster** |
-| Timeline Gen | <500ms | 6ms | **83× faster** |
-| Database Size | ~5KB | ~3KB | **40% smaller** |
-
-**Average Improvement: 40× faster than targets!**
-
-### 🚀 Upgrade Now:
-
+**AI Commands:**
 ```bash
-npm install -g devcompass@3.2.1
+# Setup AI provider
+devcompass llm add --provider openai --token sk-xxx --model gpt-4o-mini
+devcompass llm test openai
+
+# Or use FREE local AI
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+
+# Get AI-powered analysis
+devcompass analyze --ai
+
+# Ask questions
+devcompass ai ask "Should I update axios to version 1.15.2?"
+devcompass ai ask "What are the security risks in my project?"
+
+# Find alternatives
+devcompass ai alternatives moment
+
+# Interactive chat
+devcompass ai chat
+
+# View usage
+devcompass llm stats
 ```
 
-### 💡 What Changed for Users:
+**What AI Can Help With:**
+- 🔍 **Explain why** packages are outdated
+- 🛡️ **Identify** breaking changes in updates
+- 📝 **Suggest** migration strategies
+- 🔄 **Find** better package alternatives
+- ⚡ **Prioritize** updates by risk level
+- 🔒 **Explain** security vulnerabilities
+- 📋 **Provide** step-by-step fixes
 
-**New Commands:**
-```bash
-# History management
-devcompass history list
-devcompass history show <id>
-devcompass history summary
-devcompass history cleanup
-devcompass history stats
+**Privacy & Security:**
+- 🔒 Tokens encrypted with AES-256-GCM
+- 💾 Stored locally in `~/.devcompass/ai.db`
+- 🚫 Your code is never sent to AI (only analysis metadata)
+- 🆓 FREE local option with complete privacy
 
-# Comparison
-devcompass compare <id1> <id2>
+**Supported AI Providers:**
 
-# Timeline
-devcompass timeline
-devcompass timeline --open
-```
+| Provider | Models | Cost | Best For |
+|----------|--------|------|----------|
+| **OpenAI** | GPT-4, GPT-4 Turbo, GPT-3.5 | ~$0.03/1K tokens | Fast, accurate responses |
+| **Anthropic** | Claude 3.5 Sonnet, Opus, Haiku | ~$0.003/1K tokens | Detailed analysis |
+| **Google** | Gemini Pro, Gemini 1.5 Pro | ~$0.00025/1K tokens | Cost-effective |
+| **Ollama** | Llama 3, Mistral, CodeLlama | **FREE** | Privacy, no limits |
 
-**Auto-save Feature:**
-```bash
-# Snapshots auto-saved on analyze
-devcompass analyze   # Saves to database
+#### **💰 Cost Comparison**
 
-# Disable if needed
-devcompass analyze --no-history
-```
+**Example: 50 AI queries per month**
 
-**New Files Created:**
-- `~/.devcompass/history.db` - SQLite database
-- Timeline HTML files when exported
-
----
+| Provider | Monthly Cost |
+|----------|--------------|
+| OpenAI GPT-4 | ~$4.50 |
+| Anthropic Claude | ~$0.90 |
+| Google Gemini | ~$0.04 |
+| **Ollama (Local)** | **$0.00 FREE!** |
 
 ## ✨ All Features
 
+- 🤖 **AI-Powered Analysis** (v3.2.2) - Multi-provider LLM integration
+- 💬 **Interactive AI Chat** (v3.2.2) - Ask questions, get answers
+- 🔄 **Package Alternatives** (v3.2.2) - AI-suggested replacements
+- 🔒 **Encrypted Tokens** (v3.2.2) - AES-256-GCM security
+- 📊 **Cost Tracking** (v3.2.2) - Monitor AI usage
 - 📊 **Historical Tracking** (v3.2.1) - SQLite database, auto-save snapshots
 - 🔍 **Snapshot Comparison** (v3.2.1) - Side-by-side diff analysis
 - 📈 **Timeline Visualization** (v3.2.1) - Interactive D3 charts
@@ -181,29 +113,21 @@ devcompass analyze --no-history
 - 🔲 **Intelligent Clustering** (v3.1.6) - Ecosystem/Health/Depth grouping
 - 🔑 **GitHub Token Config** (v3.1.5) - User tokens, no rate limits
 - 📦 **502 Tracked Packages** (v3.1.5) - Comprehensive monitoring
-- 🔄 **Dynamic Issues** (v3.1.2) - Real-time npm audit
-- 🛡️ **Production Safety** (v3.1.1) - Bug fixes and hardening
-- 📊 **Multiple Layouts** (v3.1.0) - Tree/Force/Radial/Conflict
-- 📦 **Batch Fix Modes** (v2.8.5) - Granular control
-- 💾 **Backup & Rollback** (v2.8.4) - Safe management
-- 📦 **Quality Auto-Fix** (v2.8.3) - Replace abandoned packages
-- ⚖️ **License Auto-Fix** (v2.8.2) - GPL/AGPL replacement
-- 🛡️ **Supply Chain Auto-Fix** (v2.8.1) - Remove malicious packages
 
 ## 🚀 Installation
 
 ```bash
 # Global (recommended)
-npm install -g devcompass@3.2.1
+npm install -g devcompass@3.2.2
 
 # Local
-npm install --save-dev devcompass@3.2.1
+npm install --save-dev devcompass@3.2.2
 
 # One-time use
-npx devcompass@3.2.1 analyze
+npx devcompass@3.2.2 analyze
 
 # Upgrade from any version
-npm install -g devcompass@3.2.1
+npm install -g devcompass@3.2.2
 ```
 
 ## 📖 Usage
@@ -217,6 +141,7 @@ devcompass config --show
 
 # Analyze project (auto-saves snapshot!)
 devcompass analyze
+devcompass analyze --ai  # 🤖 With AI recommendations!
 devcompass analyze --no-history  # Skip snapshot
 
 # Generate graph (with 5 layouts + themes!)
@@ -226,84 +151,222 @@ devcompass graph --open
 devcompass fix
 devcompass fix --batch
 devcompass fix --dry-run
-
-# Batch modes
-devcompass fix --batch-mode critical
-devcompass fix --batch-mode high
-devcompass fix --batch-mode all
-
-# Category-specific
-devcompass fix --only quality
-devcompass fix --skip updates
-
-# Manage backups
-devcompass backup list
-devcompass backup restore --name <backup>
-
-# CI/CD
-devcompass analyze --json
-devcompass analyze --ci
 ```
 
-### History Commands (NEW in v3.2.1)
+### AI Commands (NEW in v3.2.2)
+
+```bash
+# Setup AI provider
+devcompass llm add --provider openai --token sk-xxx --model gpt-4o-mini
+devcompass llm add --provider anthropic --token sk-ant-xxx --model claude-3-5-sonnet
+devcompass llm add --provider google --token xxx --model gemini-pro
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+
+# Manage providers
+devcompass llm list
+devcompass llm default openai
+devcompass llm test openai
+devcompass llm remove openai
+devcompass llm stats
+
+# AI Analysis
+devcompass analyze --ai
+devcompass analyze --ai --ai-provider anthropic
+
+# Ask AI questions
+devcompass ai ask "Why is my health score low?"
+devcompass ai ask "Should I update axios now?"
+devcompass ai ask "What are the breaking changes in React 19?"
+
+# Get recommendations
+devcompass ai recommend
+
+# Find alternatives
+devcompass ai alternatives moment
+devcompass ai alternatives request
+devcompass ai alternatives lodash
+
+# Interactive chat
+devcompass ai chat
+devcompass ai chat --provider anthropic
+```
+
+### History Commands (v3.2.1)
 
 ```bash
 # List snapshots
 devcompass history list
 devcompass history list --limit 50
-devcompass history list --date 25-04-2026
 devcompass history list --month 04-2026
-devcompass history list --year 2026
-devcompass history list --from 01-04-2026 --to 30-04-2026
 
-# View snapshot details
-devcompass history show 5
-
-# Monthly summary
-devcompass history summary
-devcompass history summary --year 2026
-
-# Cleanup old snapshots
-devcompass history cleanup --keep 30
-
-# Statistics
-devcompass history stats
-```
-
-### Comparison Commands (NEW in v3.2.1)
-
-```bash
 # Compare snapshots
 devcompass compare 5 8
 devcompass compare 5 8 --verbose
-devcompass compare 5 8 -o report.md
-```
 
-### Timeline Commands (NEW in v3.2.1)
-
-```bash
-# Generate timeline
-devcompass timeline
-devcompass timeline --days 60
+# Timeline
 devcompass timeline --open
-devcompass timeline --output my-timeline.html --open
 ```
 
-### Graph Commands
+---
+
+## 🤖 AI-Powered Analysis Guide (v3.2.2)
+
+### Quick Start
+
+**1. Install Ollama (FREE local AI):**
 
 ```bash
-# Generate unified dashboard
-devcompass graph
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
 
-# Open in browser
-devcompass graph --open
+# Start Ollama
+ollama serve
 
-# Custom output
-devcompass graph --output my-deps.html --open
+# Pull a model
+ollama pull llama3.2
 
-# JSON export
-devcompass graph --format json --output data.json
+# Add to DevCompass
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+
+# Test it
+devcompass llm test local
+
+# Use it!
+devcompass analyze --ai
 ```
+
+**2. Or use OpenAI:**
+
+```bash
+# Get API key from: https://platform.openai.com/api-keys
+
+# Add provider
+devcompass llm add --provider openai --token sk-your-key --model gpt-4o-mini
+
+# Test connection
+devcompass llm test openai
+
+# Use it!
+devcompass analyze --ai
+```
+
+### Example AI Interactions
+
+**Get Analysis:**
+```bash
+$ devcompass analyze --ai
+
+🤖 AI Recommendations
+
+🔴 CRITICAL (Do Now):
+- Security Vulnerabilities (24 total)
+  → Run: npm audit fix
+  → Why: 3 high-severity issues expose your app to attacks
+
+🟡 HIGH PRIORITY (This Week):
+- Update axios (0.21.1 → 1.15.2)
+  → Why: Contains known CVEs
+  → Breaking changes: Response format changed
+```
+
+**Ask Questions:**
+```bash
+$ devcompass ai ask "Should I update axios from 0.21.1 to 1.15.2?"
+
+🤖 Yes, you should update axios:
+
+Security: Version 0.21.1 has critical vulnerabilities (CVE-2023-xxxx)
+Breaking Changes: Response.data format changed, error handling updated
+Migration: Update interceptors, test error handling
+Command: npm install axios@latest
+
+Test thoroughly before deploying!
+```
+
+**Find Alternatives:**
+```bash
+$ devcompass ai alternatives moment
+
+🔍 Finding alternatives for "moment"
+
+🤖 Top 3 Alternatives:
+
+1. date-fns (~2KB vs 67KB)
+   - Tree-shakeable, modern API
+   - Migration: Easy (similar methods)
+   
+2. dayjs (~2KB)
+   - moment.js compatible API
+   - Migration: Drop-in replacement
+   
+3. Luxon (~15KB)
+   - Better timezone support
+   - Migration: Medium (different API)
+
+Recommendation: Use date-fns for best bundle size
+```
+
+**Interactive Chat:**
+```bash
+$ devcompass ai chat
+
+🤖 DevCompass AI Assistant
+Ask me anything about your dependencies!
+
+You: Should I remove lodash and moment since they're unused?
+
+🤖 Yes, remove them:
+- lodash: 1.3 MB saved
+- moment: 4.1 MB saved
+Total saved: 5.4 MB
+
+Command: npm uninstall lodash moment
+
+This will improve your health score from 0.5/10 to ~5.3/10!
+
+You: exit
+👋 Chat ended. Used 245 tokens (~$0.0001)
+```
+
+### Cost Tracking
+
+```bash
+$ devcompass llm stats
+
+📊 AI Usage Statistics - 2026-04
+
+local (llama3.2)
+   Requests: 28
+   Tokens: 11,923
+   Cost: $0.0000
+
+──────────────────────────────────
+Total Requests: 28
+Total Tokens: 11,923
+Total Cost: $0.0000
+
+📈 Projected monthly cost: $0.00
+```
+
+### Privacy & Security
+
+**What Gets Sent to AI:**
+- ✅ Package names and versions
+- ✅ Vulnerability counts
+- ✅ Health score
+- ✅ Outdated/unused package lists
+
+**What Doesn't Get Sent:**
+- ❌ Your source code
+- ❌ File contents
+- ❌ Environment variables
+- ❌ API keys
+
+**Encryption:**
+- AES-256-GCM encryption for API tokens
+- Machine-specific encryption keys
+- Tokens stored in `~/.devcompass/ai.db`
+- Never sent to DevCompass servers
 
 ---
 
@@ -332,34 +395,10 @@ devcompass analyze
 devcompass history list
 ```
 
-**Output:**
-
-```
-📊 Snapshot History
-ID    Date & Time           Project          Deps    Health
-────────────────────────────────────────────────────────────
-40    Apr 26, 2026, 02:30 PMdevcompass       6       7.0
-39    Apr 25, 2026, 08:20 PMdevcompass       6       7.0
-38    Apr 25, 2026, 08:19 PMdevcompass       6       7.0
-```
-
 **3. Compare Changes**
 
 ```bash
 devcompass compare 38 40
-```
-
-**Output:**
-
-```
-📊 Snapshot Comparison
-Snapshots: #38 → #40
-Health Score: 7.00 → 7.00 (0.00)
-Changes:
-Added: 0
-Removed: 0
-Updated: 2
-Unchanged: 4
 ```
 
 **4. Visualize Trends**
@@ -368,260 +407,63 @@ Unchanged: 4
 devcompass timeline --open
 ```
 
-Opens interactive HTML chart showing:
-- Health score over time
-- Dependency count changes
-- Trend analysis (improving/declining/stable)
-
-### Date Filtering
-
-Query snapshots using flexible date formats:
-
-```bash
-# European formats
-devcompass history list --date 25-04-2026    # Specific day
-devcompass history list --month 04-2026      # Specific month
-
-# ISO formats
-devcompass history list --date 2026-04-25    # ISO day
-devcompass history list --month 2026-04      # ISO month
-
-# Year only
-devcompass history list --year 2026
-
-# Date ranges
-devcompass history list --from 01-04-2026 --to 30-04-2026
-devcompass history list --after 15-04-2026
-```
-
-### Grouped Display
-
-When you have >20 snapshots, they're automatically grouped by month:
-
-```bash
-devcompass history list --year 2026
-```
-
-**Output:**
-
-```
-📊 Snapshot History (Grouped by Month)
-📅 April 2026 (22 snapshots, Avg Health: 7.71)
-────────────────────────────────────────────────────────────
-#24   25, 07:17 PM     Deps:   9 Health: 6.2
-#23   25, 07:17 PM     Deps:   9 Health: 6.2
-...
-Total: 22 snapshots
-```
-
-### Monthly Summary
-
-```bash
-devcompass history summary
-```
-
-**Output:**
-
-```
-📊 Monthly Snapshot Summary
-April 2026            22 snapshots  Avg Health: 7.71/10  Avg Deps: 9
-March 2026            15 snapshots  Avg Health: 8.20/10  Avg Deps: 8
-```
-
-### Database Location
-
-All snapshots are stored in:
-
-```
-~/.devcompass/history.db
-```
-
-**Storage Efficiency:**
-- ~3KB per snapshot
-- SQLite database with WAL mode
-- 4 optimized indexes
-- Fast queries (<10ms)
-
-### Disable Auto-Save
-
-If you don't want automatic snapshots:
-
-```bash
-devcompass analyze --no-history
-```
-
----
-
-## 🔲 Clustering System (v3.1.6)
-
-The clustering system helps you understand and organize your dependencies by grouping them into meaningful categories.
-
-### How It Works
-
-**1. Choose a Clustering Mode**
-
-Click one of three buttons in the sidebar:
-- **⚛️ Ecosystem** - Group by technology
-- **🏥 Health** - Group by status
-- **📊 Depth** - Group by level
-
-**2. View Organized Clusters**
-
-See your packages organized in the sidebar with:
-- Cluster name and icon
-- Package count
-- Health badges (🔴 vulnerable, 🟡 outdated, 🟢 healthy)
-
-**3. Click to Highlight**
-
-Click any cluster to temporarily highlight those packages on the graph (highlights for 3 seconds, then fades back)
-
-### Ecosystem Clustering
-
-**Automatically detects and groups:**
-
-- **⚛️ React Ecosystem** - React, Redux, Next.js, React Router
-- **💚 Vue Ecosystem** - Vue, Vuex, Nuxt, Vite
-- **🅰️ Angular Ecosystem** - @angular/*, RxJS
-- **🧪 Testing Tools** - Jest, Cypress, Playwright, Testing Library
-- **🔧 Build & Bundle** - Webpack, Rollup, Vite, Babel
-- **✨ Code Quality** - ESLint, Prettier, Stylelint
-- **📘 TypeScript** - TypeScript, @types/*, ts-node
-- **🛠️ Utilities** - Lodash, date-fns, UUID
-- **🌐 HTTP & API** - Axios, Fetch, Got
-- **🖥️ Server & Backend** - Express, Fastify, NestJS
-- **💾 Database** - Prisma, TypeORM, Mongoose
-- **🎨 Styling** - Styled-components, Tailwind, Emotion
-
-**Plus "Other Dependencies" for uncategorized packages**
-
-### Health Clustering
-
-**Groups by status:**
-
-- **🔴 Critical Issues** - Vulnerable or deprecated packages (fix immediately)
-- **🟡 Needs Attention** - Outdated packages (update soon)
-- **🟢 Healthy** - Up-to-date, secure packages
-
-### Depth Clustering
-
-**Groups by dependency level:**
-
-- **📌 Direct Dependencies** - Packages in your package.json
-- **🔗 Level 1 Dependencies** - Dependencies of your direct dependencies
-- **🔗 Level 2 Dependencies** - Dependencies of level 1
-- **🔗 Level N Dependencies** - And so on...
-
----
-
-## 🔑 GitHub Token Configuration (v3.1.5)
-
-DevCompass supports user-configurable GitHub Personal Access Tokens to avoid API rate limiting.
-
-### Why Configure a Token?
-
-**Without Token:**
-- 60 requests/hour (GitHub API limit)
-- May hit rate limits during analysis
-- Cannot track all 502 packages
-
-**With Token:**
-- 5,000 requests/hour 🚀
-- No rate limit warnings
-- Full package health monitoring
-- Faster analysis
-
-### Quick Setup
-
-**1. Create GitHub Token**
-
-Visit: https://github.com/settings/tokens/new
-
-- Token name: `DevCompass CLI`
-- Expiration: `90 days` (or your preference)
-- Scope: ☑️ `public_repo` only
-
-**2. Configure Token**
-
-```bash
-devcompass config --github-token ghp_YOUR_TOKEN_HERE
-```
-
-**3. Verify**
-
-```bash
-devcompass config --show
-# Output: ✓ GitHub token configured: ghp_xxx***xxx
-```
-
-**4. Done!**
-
-```bash
-devcompass analyze
-# No rate limit warnings!
-```
-
 ---
 
 ## 🐛 Troubleshooting
 
-### Common Issues:
+### AI-Related Issues
+
+**"No AI provider configured"**
+```bash
+# Add a provider first
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+
+# Or use OpenAI
+devcompass llm add --provider openai --token sk-xxx --model gpt-4o-mini
+```
+
+**"Ollama connection failed"**
+```bash
+# Check Ollama is running
+ps aux | grep ollama
+
+# Restart Ollama
+ollama serve &
+
+# Test connection
+devcompass llm test local
+```
+
+**"API key invalid"**
+```bash
+# Update token
+devcompass llm update openai --token sk-new-token
+
+# Test it
+devcompass llm test openai
+```
+
+**"Quota exceeded"**
+```bash
+# Check usage
+devcompass llm stats
+
+# Switch to free provider
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+devcompass llm default local
+```
+
+### Common Issues
 
 **"Command not found"**
 ```bash
-npm install -g devcompass@3.2.1
+npm install -g devcompass@3.2.2
 ```
 
 **Old version**
 ```bash
 npm update -g devcompass
-devcompass --version  # Should show 3.2.1
-```
-
-**History database not saving**
-```bash
-# Check database exists
-ls -la ~/.devcompass/history.db
-
-# If missing, re-run analyze
-devcompass analyze
-
-# Check for errors
-DEBUG=1 devcompass analyze
-```
-
-**Date format not recognized**
-```bash
-# Supported formats:
-# DD-MM-YYYY: 25-04-2026
-# MM-YYYY: 04-2026
-# YYYY: 2026
-# YYYY-MM-DD: 2026-04-25
-# YYYY-MM: 2026-04
-
-# Example:
-devcompass history list --date 25-04-2026
-```
-
-**Timeline not generating**
-```bash
-# Ensure you have snapshots
-devcompass history list
-
-# Generate timeline
-devcompass timeline --open
-
-# Check output file
-ls -la devcompass-timeline.html
-```
-
-**Comparison showing no changes**
-```bash
-# Verify snapshot IDs exist
-devcompass history list
-
-# Compare different snapshots
-devcompass compare <older-id> <newer-id>
+devcompass --version  # Should show 3.2.2
 ```
 
 ---
@@ -636,13 +478,13 @@ Contributions welcome!
    - Edit `data/quality-alternatives.json`
    - Submit PR with new deprecated package alternatives
 
-2. **Expand License Database**
-   - Edit `data/license-risks.json`
-   - Add new license types and risk levels
+2. **Improve AI Prompts**
+   - Edit `src/ai/prompt-templates.js`
+   - Make recommendations more helpful
 
-3. **Improve Typosquatting Detection**
-   - Edit `data/popular-packages.json`
-   - Add more popular packages to track
+3. **Add AI Providers**
+   - Create new provider in `src/ai/providers/`
+   - Follow existing provider patterns
 
 4. **Code Contributions**
    - Fork the repository
@@ -663,23 +505,542 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 
 ### Completed Features:
 
+- [x] AI-powered analysis (v3.2.2) ✅
+- [x] Multi-provider LLM support (v3.2.2) ✅
+- [x] Interactive AI chat (v3.2.2) ✅
+- [x] Package alternatives with AI (v3.2.2) ✅
 - [x] Historical tracking (v3.2.1) ✅
 - [x] Snapshot comparison (v3.2.1) ✅
 - [x] Timeline visualization (v3.2.1) ✅
-- [x] Flexible date formats (v3.2.1) ✅
-- [x] Unified dashboard architecture (v3.2.0) ✅
-- [x] Analytics layout (v3.2.0) ✅
-- [x] Theme support (v3.2.0) ✅
-- [x] Performance optimizations (v3.2.0) ✅
-- [x] Dynamic data configuration (v3.1.7) ✅
-- [x] GitHub token configuration (v3.1.5) ✅
-- [x] 502 tracked packages (v3.1.5) ✅
-- [x] Unified graph system (v3.1.4) ✅
+- [x] Unified dashboard (v3.2.0) ✅
 - [x] Intelligent clustering (v3.1.6) ✅
 
 ### Planned Features:
-- [ ] **Web Dashboard** - Team health monitoring
-- [ ] **Monorepo Support** - Multi-project analysis
+- [ ] **Web Dashboard** - Team health monitoring with AI insights
+- [ ] **Monorepo Support** - Multi-project AI analysis
+
+Want to contribute? Pick a feature and open an issue! 🚀
+
+---# 🧭 DevCompass
+
+**AI-powered dependency health checker with unified interactive dashboard featuring 5 dynamic layouts (Tree/Force/Radial/Conflict/Analytics), intelligent AI recommendations, multi-provider LLM support, modular CSS/JS architecture, intelligent clustering (Ecosystem/Health/Depth grouping), real-time filtering, advanced zoom controls, theme support (dark/light), supply chain security with auto-fix, license conflict resolution, package quality auto-fix, batch fix modes, backup & rollback, historical tracking with SQLite database, snapshot comparison, timeline visualization, and professional dependency exploration.**
+
+[![npm version](https://img.shields.io/npm/v/devcompass.svg)](https://www.npmjs.com/package/devcompass)
+[![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect security vulnerabilities**, **get AI-powered recommendations**, **ask questions about your dependencies**, **find package alternatives with AI**, **chat with AI about your project**, **monitor GitHub issues in real-time for 502 packages**, **configure your own GitHub token to avoid rate limits**, **customize all configuration via JSON files**, **visualize dependency graphs with 5 dynamic layouts including Analytics dashboard**, **modular architecture with zero code duplication**, **organize packages by ecosystem (React/Vue/Angular/Testing/Build Tools)**, **group by health status (Critical/Warning/Healthy)**, **analyze by depth levels**, **instant layout switching**, **dark/light theme toggle**, **real-time filtering**, **advanced zoom controls**, **track dependency changes over time with SQLite database**, **compare snapshots to see what changed**, **visualize evolution with interactive timelines**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, **manage backups and rollback changes**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
+
+> **🤖 LATEST v3.2.2:** AI-Powered Analysis - Get intelligent recommendations from OpenAI, Anthropic, Google, or FREE local AI! 🤖  
+> **📊 v3.2.1:** Historical Tracking System - Track changes, compare snapshots, visualize trends! 📊  
+> **🎨 v3.2.0:** Unified Dashboard Architecture - 50% less code, 5 layouts, dark/light themes! 🎨
+
+## 🎉 Latest Release: v3.2.2 (2026-04-26)
+
+**AI-Powered Dependency Analysis - Smart Recommendations from AI!**
+
+### 🌟 What's New in v3.2.2:
+
+#### **🤖 AI-Powered Analysis**
+
+Get intelligent, context-aware recommendations from AI to help you maintain healthier dependencies.
+
+**Features:**
+- ✅ **Multi-Provider Support** - OpenAI, Anthropic (Claude), Google (Gemini), Ollama (FREE local)
+- ✅ **Encrypted Token Storage** - AES-256-GCM encryption for API keys
+- ✅ **Context-Aware** - AI analyzes your specific project data
+- ✅ **Real-Time Streaming** - See responses as they're generated
+- ✅ **Interactive Chat** - Multi-turn conversations about your dependencies
+- ✅ **Cost Tracking** - Monitor token usage and estimated costs
+- ✅ **FREE Option** - Use local AI with Ollama (no API costs)
+- ✅ **Package Alternatives** - AI suggests better replacements
+- ✅ **Smart Prioritization** - Critical → High → Medium recommendations
+
+**AI Commands:**
+```bash
+# Setup AI provider
+devcompass llm add --provider openai --token sk-xxx --model gpt-4o-mini
+devcompass llm test openai
+
+# Or use FREE local AI
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+
+# Get AI-powered analysis
+devcompass analyze --ai
+
+# Ask questions
+devcompass ai ask "Should I update axios to version 1.15.2?"
+devcompass ai ask "What are the security risks in my project?"
+
+# Find alternatives
+devcompass ai alternatives moment
+
+# Interactive chat
+devcompass ai chat
+
+# View usage
+devcompass llm stats
+```
+
+**What AI Can Help With:**
+- 🔍 **Explain why** packages are outdated
+- 🛡️ **Identify** breaking changes in updates
+- 📝 **Suggest** migration strategies
+- 🔄 **Find** better package alternatives
+- ⚡ **Prioritize** updates by risk level
+- 🔒 **Explain** security vulnerabilities
+- 📋 **Provide** step-by-step fixes
+
+**Privacy & Security:**
+- 🔒 Tokens encrypted with AES-256-GCM
+- 💾 Stored locally in `~/.devcompass/ai.db`
+- 🚫 Your code is never sent to AI (only analysis metadata)
+- 🆓 FREE local option with complete privacy
+
+**Supported AI Providers:**
+
+| Provider | Models | Cost | Best For |
+|----------|--------|------|----------|
+| **OpenAI** | GPT-4, GPT-4 Turbo, GPT-3.5 | ~$0.03/1K tokens | Fast, accurate responses |
+| **Anthropic** | Claude 3.5 Sonnet, Opus, Haiku | ~$0.003/1K tokens | Detailed analysis |
+| **Google** | Gemini Pro, Gemini 1.5 Pro | ~$0.00025/1K tokens | Cost-effective |
+| **Ollama** | Llama 3, Mistral, CodeLlama | **FREE** | Privacy, no limits |
+
+#### **💰 Cost Comparison**
+
+**Example: 50 AI queries per month**
+
+| Provider | Monthly Cost |
+|----------|--------------|
+| OpenAI GPT-4 | ~$4.50 |
+| Anthropic Claude | ~$0.90 |
+| Google Gemini | ~$0.04 |
+| **Ollama (Local)** | **$0.00 FREE!** |
+
+## ✨ All Features
+
+- 🤖 **AI-Powered Analysis** (v3.2.2) - Multi-provider LLM integration
+- 💬 **Interactive AI Chat** (v3.2.2) - Ask questions, get answers
+- 🔄 **Package Alternatives** (v3.2.2) - AI-suggested replacements
+- 🔒 **Encrypted Tokens** (v3.2.2) - AES-256-GCM security
+- 📊 **Cost Tracking** (v3.2.2) - Monitor AI usage
+- 📊 **Historical Tracking** (v3.2.1) - SQLite database, auto-save snapshots
+- 🔍 **Snapshot Comparison** (v3.2.1) - Side-by-side diff analysis
+- 📈 **Timeline Visualization** (v3.2.1) - Interactive D3 charts
+- 🗂️ **Flexible Dates** (v3.2.1) - 9 date formats supported
+- 🎨 **Unified Dashboard** (v3.2.0) - 5 layouts, modular architecture
+- 📊 **Analytics Layout** (v3.2.0) - Statistics dashboard
+- 🌙 **Theme Support** (v3.2.0) - Dark/light mode toggle
+- ⚡ **Performance** (v3.2.0) - 4-6× faster rendering
+- 🔧 **Dynamic Data Configuration** (v3.1.7) - JSON-based scalable config
+- 🔲 **Intelligent Clustering** (v3.1.6) - Ecosystem/Health/Depth grouping
+- 🔑 **GitHub Token Config** (v3.1.5) - User tokens, no rate limits
+- 📦 **502 Tracked Packages** (v3.1.5) - Comprehensive monitoring
+
+## 🚀 Installation
+
+```bash
+# Global (recommended)
+npm install -g devcompass@3.2.2
+
+# Local
+npm install --save-dev devcompass@3.2.2
+
+# One-time use
+npx devcompass@3.2.2 analyze
+
+# Upgrade from any version
+npm install -g devcompass@3.2.2
+```
+
+## 📖 Usage
+
+### Basic Commands
+
+```bash
+# Configure GitHub token (recommended)
+devcompass config --github-token <your-token>
+devcompass config --show
+
+# Analyze project (auto-saves snapshot!)
+devcompass analyze
+devcompass analyze --ai  # 🤖 With AI recommendations!
+devcompass analyze --no-history  # Skip snapshot
+
+# Generate graph (with 5 layouts + themes!)
+devcompass graph --open
+
+# Auto-fix issues
+devcompass fix
+devcompass fix --batch
+devcompass fix --dry-run
+```
+
+### AI Commands (NEW in v3.2.2)
+
+```bash
+# Setup AI provider
+devcompass llm add --provider openai --token sk-xxx --model gpt-4o-mini
+devcompass llm add --provider anthropic --token sk-ant-xxx --model claude-3-5-sonnet
+devcompass llm add --provider google --token xxx --model gemini-pro
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+
+# Manage providers
+devcompass llm list
+devcompass llm default openai
+devcompass llm test openai
+devcompass llm remove openai
+devcompass llm stats
+
+# AI Analysis
+devcompass analyze --ai
+devcompass analyze --ai --ai-provider anthropic
+
+# Ask AI questions
+devcompass ai ask "Why is my health score low?"
+devcompass ai ask "Should I update axios now?"
+devcompass ai ask "What are the breaking changes in React 19?"
+
+# Get recommendations
+devcompass ai recommend
+
+# Find alternatives
+devcompass ai alternatives moment
+devcompass ai alternatives request
+devcompass ai alternatives lodash
+
+# Interactive chat
+devcompass ai chat
+devcompass ai chat --provider anthropic
+```
+
+### History Commands (v3.2.1)
+
+```bash
+# List snapshots
+devcompass history list
+devcompass history list --limit 50
+devcompass history list --month 04-2026
+
+# Compare snapshots
+devcompass compare 5 8
+devcompass compare 5 8 --verbose
+
+# Timeline
+devcompass timeline --open
+```
+
+---
+
+## 🤖 AI-Powered Analysis Guide (v3.2.2)
+
+### Quick Start
+
+**1. Install Ollama (FREE local AI):**
+
+```bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Start Ollama
+ollama serve
+
+# Pull a model
+ollama pull llama3.2
+
+# Add to DevCompass
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+
+# Test it
+devcompass llm test local
+
+# Use it!
+devcompass analyze --ai
+```
+
+**2. Or use OpenAI:**
+
+```bash
+# Get API key from: https://platform.openai.com/api-keys
+
+# Add provider
+devcompass llm add --provider openai --token sk-your-key --model gpt-4o-mini
+
+# Test connection
+devcompass llm test openai
+
+# Use it!
+devcompass analyze --ai
+```
+
+### Example AI Interactions
+
+**Get Analysis:**
+```bash
+$ devcompass analyze --ai
+
+🤖 AI Recommendations
+
+🔴 CRITICAL (Do Now):
+- Security Vulnerabilities (24 total)
+  → Run: npm audit fix
+  → Why: 3 high-severity issues expose your app to attacks
+
+🟡 HIGH PRIORITY (This Week):
+- Update axios (0.21.1 → 1.15.2)
+  → Why: Contains known CVEs
+  → Breaking changes: Response format changed
+```
+
+**Ask Questions:**
+```bash
+$ devcompass ai ask "Should I update axios from 0.21.1 to 1.15.2?"
+
+🤖 Yes, you should update axios:
+
+Security: Version 0.21.1 has critical vulnerabilities (CVE-2023-xxxx)
+Breaking Changes: Response.data format changed, error handling updated
+Migration: Update interceptors, test error handling
+Command: npm install axios@latest
+
+Test thoroughly before deploying!
+```
+
+**Find Alternatives:**
+```bash
+$ devcompass ai alternatives moment
+
+🔍 Finding alternatives for "moment"
+
+🤖 Top 3 Alternatives:
+
+1. date-fns (~2KB vs 67KB)
+   - Tree-shakeable, modern API
+   - Migration: Easy (similar methods)
+   
+2. dayjs (~2KB)
+   - moment.js compatible API
+   - Migration: Drop-in replacement
+   
+3. Luxon (~15KB)
+   - Better timezone support
+   - Migration: Medium (different API)
+
+Recommendation: Use date-fns for best bundle size
+```
+
+**Interactive Chat:**
+```bash
+$ devcompass ai chat
+
+🤖 DevCompass AI Assistant
+Ask me anything about your dependencies!
+
+You: Should I remove lodash and moment since they're unused?
+
+🤖 Yes, remove them:
+- lodash: 1.3 MB saved
+- moment: 4.1 MB saved
+Total saved: 5.4 MB
+
+Command: npm uninstall lodash moment
+
+This will improve your health score from 0.5/10 to ~5.3/10!
+
+You: exit
+👋 Chat ended. Used 245 tokens (~$0.0001)
+```
+
+### Cost Tracking
+
+```bash
+$ devcompass llm stats
+
+📊 AI Usage Statistics - 2026-04
+
+local (llama3.2)
+   Requests: 28
+   Tokens: 11,923
+   Cost: $0.0000
+
+──────────────────────────────────
+Total Requests: 28
+Total Tokens: 11,923
+Total Cost: $0.0000
+
+📈 Projected monthly cost: $0.00
+```
+
+### Privacy & Security
+
+**What Gets Sent to AI:**
+- ✅ Package names and versions
+- ✅ Vulnerability counts
+- ✅ Health score
+- ✅ Outdated/unused package lists
+
+**What Doesn't Get Sent:**
+- ❌ Your source code
+- ❌ File contents
+- ❌ Environment variables
+- ❌ API keys
+
+**Encryption:**
+- AES-256-GCM encryption for API tokens
+- Machine-specific encryption keys
+- Tokens stored in `~/.devcompass/ai.db`
+- Never sent to DevCompass servers
+
+---
+
+## 📊 Historical Tracking System (v3.2.1)
+
+Track your dependency evolution over time with automatic snapshots, comparison tools, and timeline visualization.
+
+### How It Works
+
+**1. Auto-Save on Analyze**
+
+Every time you run `devcompass analyze`, a snapshot is automatically saved:
+
+```bash
+devcompass analyze
+
+# Output:
+# ✔ Scanned 6 dependencies in project
+# 📸 Snapshot saved (ID: 40, 19ms)
+#    Use "devcompass history list" to view all snapshots
+```
+
+**2. View Your History**
+
+```bash
+devcompass history list
+```
+
+**3. Compare Changes**
+
+```bash
+devcompass compare 38 40
+```
+
+**4. Visualize Trends**
+
+```bash
+devcompass timeline --open
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### AI-Related Issues
+
+**"No AI provider configured"**
+```bash
+# Add a provider first
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+
+# Or use OpenAI
+devcompass llm add --provider openai --token sk-xxx --model gpt-4o-mini
+```
+
+**"Ollama connection failed"**
+```bash
+# Check Ollama is running
+ps aux | grep ollama
+
+# Restart Ollama
+ollama serve &
+
+# Test connection
+devcompass llm test local
+```
+
+**"API key invalid"**
+```bash
+# Update token
+devcompass llm update openai --token sk-new-token
+
+# Test it
+devcompass llm test openai
+```
+
+**"Quota exceeded"**
+```bash
+# Check usage
+devcompass llm stats
+
+# Switch to free provider
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+devcompass llm default local
+```
+
+### Common Issues
+
+**"Command not found"**
+```bash
+npm install -g devcompass@3.2.2
+```
+
+**Old version**
+```bash
+npm update -g devcompass
+devcompass --version  # Should show 3.2.2
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! 
+
+### Ways to Contribute:
+
+1. **Add Package Alternatives**
+   - Edit `data/quality-alternatives.json`
+   - Submit PR with new deprecated package alternatives
+
+2. **Improve AI Prompts**
+   - Edit `src/ai/prompt-templates.js`
+   - Make recommendations more helpful
+
+3. **Add AI Providers**
+   - Create new provider in `src/ai/providers/`
+   - Follow existing provider patterns
+
+4. **Code Contributions**
+   - Fork the repository
+   - Create feature branch (`git checkout -b feature/amazing`)
+   - Commit changes (`git commit -m 'Add feature'`)
+   - Push branch (`git push origin feature/amazing`)
+   - Open Pull Request
+
+---
+
+## 📄 License
+
+MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
+
+---
+
+## 🌟 What's Next?
+
+### Completed Features:
+
+- [x] AI-powered analysis (v3.2.2) ✅
+- [x] Multi-provider LLM support (v3.2.2) ✅
+- [x] Interactive AI chat (v3.2.2) ✅
+- [x] Package alternatives with AI (v3.2.2) ✅
+- [x] Historical tracking (v3.2.1) ✅
+- [x] Snapshot comparison (v3.2.1) ✅
+- [x] Timeline visualization (v3.2.1) ✅
+- [x] Unified dashboard (v3.2.0) ✅
+- [x] Intelligent clustering (v3.1.6) ✅
+
+### Planned Features:
+- [ ] **Web Dashboard** - Team health monitoring with AI insights
+- [ ] **Monorepo Support** - Multi-project AI analysis
 
 Want to contribute? Pick a feature and open an issue! 🚀
 
@@ -687,46 +1048,71 @@ Want to contribute? Pick a feature and open an issue! 🚀
 
 ## 📊 Version History
 
+### v3.2.2 (2026-04-26) - AI-Powered Analysis
+- 🤖 Multi-provider AI integration (OpenAI, Anthropic, Google, Ollama)
+- 💬 Interactive AI chat with conversation history
+- 🔄 AI-powered package alternative suggestions
+- 🔒 AES-256-GCM encrypted token storage
+- 📊 Cost tracking and usage statistics
+- ⚡ Real-time streaming responses
+- 🆓 FREE local AI option with Ollama
+- 📝 Context-aware recommendations
+- ✅ Zero breaking changes (100% backward compatible)
+
 ### v3.2.1 (2026-04-26) - Historical Tracking System
 - 📊 SQLite database for snapshot storage
 - 🔍 Snapshot comparison with side-by-side diff
 - 📈 Timeline visualization with D3 charts
-- 🗂️ 9 flexible date formats (DD-MM-YYYY, MM-YYYY, YYYY, etc.)
-- 🎨 Auto-grouped display for >20 snapshots
-- 📊 Monthly summary with aggregated stats
-- ⚡ Performance: 6-83× faster than targets
-- 🐛 Fixed typosquatting false positives
-- 🐛 Fixed dynamic security property names
+- 🗂️ 9 flexible date formats
+- ⚡ 6-83× performance improvements
+- 🐛 Bug fixes for typosquatting and security
 
-### v3.2.0 (2026-04-25) - Unified Dashboard Architecture
-- 🎨 Unified modular dashboard (50% code reduction)
-- 📊 NEW Analytics layout - Statistics dashboard
-- 🌙 Dark/light theme support
+### v3.2.0 (2026-04-25) - Unified Dashboard
+- 🎨 Unified modular architecture (50% code reduction)
+- 📊 Analytics layout
+- 🌙 Dark/light themes
 - ⚡ 4-6× performance improvements
-- 🗂️ 12 modular files (6 JS, 5 CSS, 1 HTML)
-- ❌ Removed 5 duplicated files (3,600 lines → 1,800 lines)
-- ✅ 100% backward compatible
-
-### v3.1.7 (2026-04-22) - Dynamic Data Configuration
-- 🔧 8 new JSON configuration files
-- ✅ 7 source files refactored for dynamic loading
-- ✅ Zero hardcoded data in code
-- ✅ Scalable and customizable architecture
-
-### v3.1.6 (2026-04-22) - Intelligent Clustering
-- 🔲 Ecosystem clustering (12 categories)
-- 🔲 Health clustering (Critical/Warning/Healthy)
-- 🔲 Depth clustering (Direct → Level N)
-
-### v3.1.5 (2026-04-21) - GitHub Token Support
-- 🔑 User-configurable GitHub tokens
-- 📦 502 tracked packages database
-- ⚡ 5,000 requests/hour (vs 60)
 
 ---
 
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
 
-*DevCompass v3.2.1 - Track, Compare, Evolve!* 🧭
+*DevCompass v3.2.2 - AI-Powered Dependency Intelligence!* 🧭🤖
 
-**Like Lighthouse for your dependencies** ⚡
+**Like Lighthouse for your dependencies, now with AI superpowers** ⚡
+
+
+## 📊 Version History
+
+### v3.2.2 (2026-04-26) - AI-Powered Analysis
+- 🤖 Multi-provider AI integration (OpenAI, Anthropic, Google, Ollama)
+- 💬 Interactive AI chat with conversation history
+- 🔄 AI-powered package alternative suggestions
+- 🔒 AES-256-GCM encrypted token storage
+- 📊 Cost tracking and usage statistics
+- ⚡ Real-time streaming responses
+- 🆓 FREE local AI option with Ollama
+- 📝 Context-aware recommendations
+- ✅ Zero breaking changes (100% backward compatible)
+
+### v3.2.1 (2026-04-26) - Historical Tracking System
+- 📊 SQLite database for snapshot storage
+- 🔍 Snapshot comparison with side-by-side diff
+- 📈 Timeline visualization with D3 charts
+- 🗂️ 9 flexible date formats
+- ⚡ 6-83× performance improvements
+- 🐛 Bug fixes for typosquatting and security
+
+### v3.2.0 (2026-04-25) - Unified Dashboard
+- 🎨 Unified modular architecture (50% code reduction)
+- 📊 Analytics layout
+- 🌙 Dark/light themes
+- ⚡ 4-6× performance improvements
+
+---
+
+**Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
+
+*DevCompass v3.2.2 - AI-Powered Dependency Intelligence!* 🧭🤖
+
+**Like Lighthouse for your dependencies, now with AI superpowers** ⚡

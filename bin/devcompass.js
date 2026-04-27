@@ -3,6 +3,7 @@
 const { Command } = require('commander');
 const chalk = require('chalk');
 const path = require('path');
+const fs = require('fs');
 const { analyze } = require('../src/commands/analyze');
 const fix = require('../src/commands/fix');
 const backup = require('../src/commands/backup');
@@ -21,14 +22,15 @@ const program = new Command();
 
 program
   .name('devcompass')
-  .description('Dependency health checker with ecosystem intelligence')
+  .description('Dependency health checker with AI-powered insights')
   .version(packageJson.version, '-v, --version', 'Display version information')
   .addHelpText('after', `
 ${chalk.gray('Author:')} Ajay Thorat
 ${chalk.gray('GitHub:')} ${chalk.cyan('https://github.com/AjayBThorat-20/devcompass')}
+${chalk.gray('New in v3.2.2:')} 🤖 AI-powered dependency analysis
   `);
 
-// Analyze command
+// Analyze command (UPDATED with --ai flag)
 program
   .command('analyze')
   .description('Analyze your project dependencies')
@@ -37,13 +39,23 @@ program
   .option('--ci', 'CI mode - exit with error code if score below threshold')
   .option('--silent', 'Silent mode - no output')
   .option('--no-history', 'Skip saving snapshot to history database')
+  .option('--ai', '🤖 Get AI-powered insights and recommendations')
+  .option('--ai-provider <provider>', 'AI provider to use (openai, anthropic, google, local)')
   .addHelpText('after', `
 
 ${chalk.bold('Analysis Examples:')}
   ${chalk.cyan('devcompass analyze')}                 Analyze current project & save snapshot
+  ${chalk.cyan('devcompass analyze --ai')}            Analyze with AI insights 🤖
   ${chalk.cyan('devcompass analyze --no-history')}    Analyze without saving to history
   ${chalk.cyan('devcompass analyze --json')}          Output as JSON
   ${chalk.cyan('devcompass analyze --ci')}            CI mode with exit codes
+
+${chalk.bold('🤖 AI-Powered Analysis:')}
+  • Get intelligent recommendations
+  • Understand why packages are outdated
+  • Learn about breaking changes
+  • See migration paths
+  • Prioritized action plan
 
 ${chalk.bold('History Tracking:')}
   • Snapshots auto-saved to SQLite database
@@ -126,16 +138,13 @@ program
     await graphCommand(options);
   });
 
-// ===========================
-// NEW v3.2.1 - History command with FLEXIBLE DATE FORMATS
-// ===========================
+// History command with FLEXIBLE DATE FORMATS
 program
   .command('history <subcommand>')
   .description('Manage analysis history and snapshots')
   .option('--limit <number>', 'Limit number of results', parseInt, 30)
   .option('--project <name>', 'Filter by project name')
   .option('--keep <number>', 'Number of snapshots to keep (cleanup only)', parseInt, 30)
-  // ✅ UPDATED: Flexible date filtering options
   .option('--date <date>', 'Specific date (DD-MM-YYYY or YYYY-MM-DD)')
   .option('--from <date>', 'Start date (DD-MM-YYYY or YYYY-MM-DD)')
   .option('--to <date>', 'End date (DD-MM-YYYY or YYYY-MM-DD)')
@@ -166,35 +175,13 @@ ${chalk.bold('Basic Examples:')}
   ${chalk.gray('devcompass history summary')}                  Monthly breakdown
   ${chalk.gray('devcompass history cleanup --keep 20')}        Keep only last 20 snapshots
   ${chalk.gray('devcompass history stats')}                    Show overall statistics
-
-${chalk.bold('Date Filtering Examples:')}
-  ${chalk.gray('devcompass history list --date 25-04-2026')}           ${chalk.dim('# Specific day')}
-  ${chalk.gray('devcompass history list --month 04-2026')}             ${chalk.dim('# Specific month')}
-  ${chalk.gray('devcompass history list --year 2026')}                 ${chalk.dim('# Specific year')}
-  ${chalk.gray('devcompass history list --from 01-04-2026 --to 30-04-2026')}  ${chalk.dim('# Date range')}
-  ${chalk.gray('devcompass history list --after 15-04-2026')}          ${chalk.dim('# After date')}
-  ${chalk.gray('devcompass history summary --year 2026')}              ${chalk.dim('# Year summary')}
-
-${chalk.bold('Advanced Features:')}
-  • Auto-groups snapshots by month when >20 results
-  • Shows average health per month in grouped view
-  • Filters work with all subcommands (list, summary)
-  • Combine --project and date filters for targeted queries
-  • Supports both European (DD-MM-YYYY) and ISO (YYYY-MM-DD) formats
-
-${chalk.bold('Database Location:')}
-  ${chalk.dim('~/.devcompass/history.db')}
-
-${chalk.bold('Note:')}
-  Snapshots are automatically saved when running ${chalk.cyan('devcompass analyze')}
-  Use ${chalk.cyan('--no-history')} flag to skip snapshot saving
   `)
   .action(async (subcommand, options) => {
     const historyCommand = require('../src/commands/history');
     await historyCommand({ ...options, _: ['history', subcommand] });
   });
 
-// NEW v3.2.1 - Compare command
+// Compare command
 program
   .command('compare <id1> <id2>')
   .description('Compare two analysis snapshots')
@@ -212,20 +199,13 @@ ${chalk.bold('What Gets Compared:')}
   • Version changes
   • Health score changes
   • Vulnerability status changes
-  • Deprecated status changes
-
-${chalk.bold('Workflow:')}
-  1. Run ${chalk.cyan('devcompass history list')} to see snapshot IDs
-  2. Choose two snapshots to compare
-  3. Run ${chalk.cyan('devcompass compare <id1> <id2>')}
-  4. View side-by-side diff with changes highlighted
   `)
   .action(async (id1, id2, options) => {
     const compareCommand = require('../src/commands/compare');
     await compareCommand({ ...options, _: ['compare', id1, id2] });
   });
 
-// NEW v3.2.1 - Timeline command
+// Timeline command
 program
   .command('timeline')
   .description('View dependency evolution timeline')
@@ -239,27 +219,286 @@ ${chalk.bold('Timeline Examples:')}
   ${chalk.cyan('devcompass timeline')}                Show last 30 days
   ${chalk.cyan('devcompass timeline --days 60')}      Show last 60 days
   ${chalk.cyan('devcompass timeline --open')}         Open interactive chart
-  ${chalk.cyan('devcompass timeline --days 90 --open')} 90-day interactive timeline
-
-${chalk.bold('Timeline Visualizations:')}
-  • Health score trend over time
-  • Dependency count changes
-  • Vulnerability trends
-  • Package quality evolution
-
-${chalk.bold('Interactive Features:')}
-  • Zoom and pan
-  • Click points for details
-  • Compare date ranges
-  • Export as PNG
-
-${chalk.bold('Note:')}
-  Timeline requires multiple snapshots over time
-  Run ${chalk.cyan('devcompass analyze')} regularly to build history
   `)
   .action(async (options) => {
     const timelineCommand = require('../src/commands/timeline');
     await timelineCommand(options);
+  });
+
+// ===========================
+// NEW v3.2.2 - LLM Management Command - FIXED
+// ===========================
+program
+  .command('llm')
+  .description('🤖 Manage AI/LLM providers and settings')
+  .argument('[subcommand]', 'LLM subcommand (add, list, default, update, remove, enable, disable, test, stats)')
+  .argument('[provider]', 'Provider name for specific operations')
+  .option('--provider <name>', 'Provider name (openai, anthropic, google, local)')
+  .option('--token <token>', 'API token/key')
+  .option('--model <model>', 'Model name')
+  .option('--base-url <url>', 'Base URL (for local models)')
+  .option('--year <year>', 'Year for stats (default: current)')
+  .option('--month <month>', 'Month for stats (1-12)')
+  .addHelpText('after', `
+
+${chalk.bold('🤖 LLM Subcommands:')}
+  ${chalk.cyan('add')}        Add a new AI provider
+  ${chalk.cyan('list')}       List all configured providers
+  ${chalk.cyan('default')}    Set default provider
+  ${chalk.cyan('update')}     Update provider settings
+  ${chalk.cyan('remove')}     Remove a provider
+  ${chalk.cyan('enable')}     Enable a provider
+  ${chalk.cyan('disable')}    Disable a provider
+  ${chalk.cyan('test')}       Test provider connection
+  ${chalk.cyan('stats')}      Show AI usage statistics
+
+${chalk.bold('Provider Setup Examples:')}
+
+  ${chalk.bold('OpenAI (GPT-4):')}
+  ${chalk.gray('devcompass llm add --provider openai --token sk-xxx --model gpt-4')}
+  ${chalk.gray('devcompass llm add --provider openai --token sk-xxx --model gpt-4-turbo')}
+  ${chalk.gray('devcompass llm add --provider openai --token sk-xxx --model gpt-3.5-turbo')}
+
+  ${chalk.bold('Anthropic (Claude):')}
+  ${chalk.gray('devcompass llm add --provider anthropic --token sk-ant-xxx --model claude-3-5-sonnet-20241022')}
+  ${chalk.gray('devcompass llm add --provider anthropic --token sk-ant-xxx --model claude-3-opus-20240229')}
+  ${chalk.gray('devcompass llm add --provider anthropic --token sk-ant-xxx --model claude-3-haiku-20240307')}
+
+  ${chalk.bold('Google (Gemini):')}
+  ${chalk.gray('devcompass llm add --provider google --token xxx --model gemini-pro')}
+  ${chalk.gray('devcompass llm add --provider google --token xxx --model gemini-1.5-pro')}
+
+  ${chalk.bold('Local Models (Ollama):')}
+  ${chalk.gray('devcompass llm add --provider local --model llama3 --base-url http://localhost:11434')}
+  ${chalk.gray('devcompass llm add --provider local --model mistral --base-url http://localhost:11434')}
+  ${chalk.gray('devcompass llm add --provider local --model codellama --base-url http://localhost:11434')}
+
+${chalk.bold('Management Examples:')}
+  ${chalk.gray('devcompass llm list')}                          List all providers
+  ${chalk.gray('devcompass llm default openai')}                Set OpenAI as default
+  ${chalk.gray('devcompass llm test openai')}                   Test OpenAI connection
+  ${chalk.gray('devcompass llm update openai --token sk-new')}  Update token
+  ${chalk.gray('devcompass llm remove openai')}                 Remove OpenAI
+  ${chalk.gray('devcompass llm stats')}                         Show usage stats
+
+${chalk.bold('How to Get API Tokens:')}
+
+  ${chalk.bold('OpenAI:')}
+  1. Visit: ${chalk.cyan('https://platform.openai.com/api-keys')}
+  2. Create new API key
+  3. Copy token (starts with sk-)
+
+  ${chalk.bold('Anthropic:')}
+  1. Visit: ${chalk.cyan('https://console.anthropic.com/settings/keys')}
+  2. Create API key
+  3. Copy token (starts with sk-ant-)
+
+  ${chalk.bold('Google:')}
+  1. Visit: ${chalk.cyan('https://makersuite.google.com/app/apikey')}
+  2. Create API key
+  3. Copy token
+
+  ${chalk.bold('Local (Ollama):')}
+  1. Install: ${chalk.gray('curl -fsSL https://ollama.com/install.sh | sh')}
+  2. Start: ${chalk.gray('ollama serve')}
+  3. Pull model: ${chalk.gray('ollama pull llama3')}
+  4. No token needed!
+
+${chalk.bold('Database Location:')}
+  ${chalk.dim('~/.devcompass/ai.db')}
+
+${chalk.bold('Security:')}
+  • Tokens encrypted with AES-256-GCM
+  • Stored locally (never sent to DevCompass)
+  • Machine-specific encryption key
+  `)
+  .action(async (subcommand, provider, options) => {
+    const llmCommand = require('../src/commands/llm');
+
+    // Handle provider from either argument or option
+    const providerName = provider || options.provider;
+
+    switch (subcommand) {
+      case 'add':
+        await llmCommand.addProvider(options);
+        break;
+      case 'list':
+        llmCommand.listProviders();
+        break;
+      case 'default':
+        llmCommand.setDefaultProvider(providerName);
+        break;
+      case 'update':
+        llmCommand.updateProvider(providerName, options);
+        break;
+      case 'remove':
+        llmCommand.removeProvider(providerName);
+        break;
+      case 'enable':
+        llmCommand.toggleProvider(providerName, true);
+        break;
+      case 'disable':
+        llmCommand.toggleProvider(providerName, false);
+        break;
+      case 'test':
+        await llmCommand.testProvider(providerName);
+        break;
+      case 'stats':
+        llmCommand.showStats(options);
+        break;
+      default:
+        llmCommand.showHelp();
+    }
+  });
+
+// ===========================
+// NEW v3.2.2 - AI Analysis Command - FIXED
+// ===========================
+program
+  .command('ai')
+  .description('🤖 AI-powered dependency analysis and recommendations')
+  .argument('[subcommand]', 'AI subcommand (ask, recommend, alternatives, chat)')
+  .argument('[args...]', 'Additional arguments')
+  .option('--provider <name>', 'AI provider to use (openai, anthropic, google, local)')
+  .option('--stream', 'Stream responses in real-time', true)
+  .option('--no-stream', 'Wait for complete response')
+  .option('--verbose', 'Show detailed information (token usage, cost)')
+  .option('--max-tokens <number>', 'Maximum tokens per request', parseInt, 3000)
+  .addHelpText('after', `
+
+${chalk.bold('🤖 AI Subcommands:')}
+  ${chalk.cyan('ask')}           Ask AI about your dependencies
+  ${chalk.cyan('recommend')}     Get AI-powered recommendations
+  ${chalk.cyan('alternatives')}  Find package alternatives with AI
+  ${chalk.cyan('chat')}          Start interactive AI chat
+
+${chalk.bold('AI Analysis Examples:')}
+
+  ${chalk.bold('Ask Questions:')}
+  ${chalk.gray('devcompass ai ask "Why is my health score low?"')}
+  ${chalk.gray('devcompass ai ask "Should I update axios now?"')}
+  ${chalk.gray('devcompass ai ask "What are the risks of updating to React 19?"')}
+  ${chalk.gray('devcompass ai ask "How do I fix this security vulnerability?"')}
+
+  ${chalk.bold('Get Recommendations:')}
+  ${chalk.gray('devcompass analyze --ai')}                  ${chalk.dim('# Analyze with AI insights')}
+  ${chalk.gray('devcompass ai recommend')}                  ${chalk.dim('# After analyze command')}
+
+  ${chalk.bold('Find Alternatives:')}
+  ${chalk.gray('devcompass ai alternatives moment')}        ${chalk.dim('# Better alternatives to moment.js')}
+  ${chalk.gray('devcompass ai alternatives request')}       ${chalk.dim('# Alternatives to deprecated packages')}
+  ${chalk.gray('devcompass ai alternatives lodash')}        ${chalk.dim('# Smaller alternatives')}
+
+  ${chalk.bold('Interactive Chat:')}
+  ${chalk.gray('devcompass ai chat')}                       ${chalk.dim('# Start conversation')}
+  ${chalk.gray('devcompass ai chat --provider anthropic')}  ${chalk.dim('# Use specific provider')}
+
+${chalk.bold('What AI Can Help With:')}
+  • Explain why packages are outdated
+  • Identify breaking changes in updates
+  • Suggest migration strategies
+  • Find better alternatives
+  • Prioritize updates by risk
+  • Explain security vulnerabilities
+  • Provide step-by-step fixes
+  • Answer questions about dependencies
+
+${chalk.bold('AI Capabilities:')}
+  • Context-aware (knows your project details)
+  • Real-time streaming responses
+  • Natural language Q&A
+  • Code examples and migration guides
+  • Cost tracking (tokens + estimated $)
+  • Conversation history
+
+${chalk.bold('Provider Selection:')}
+  Use ${chalk.cyan('--provider')} flag to choose:
+  • ${chalk.cyan('openai')} - GPT-4, GPT-3.5-turbo (fast, accurate)
+  • ${chalk.cyan('anthropic')} - Claude 3.5 Sonnet (smart, detailed)
+  • ${chalk.cyan('google')} - Gemini Pro (good, free tier)
+  • ${chalk.cyan('local')} - Llama3, Mistral (free, private)
+
+  If not specified, uses default provider from ${chalk.cyan('devcompass llm default')}
+
+${chalk.bold('Cost Information:')}
+  • OpenAI GPT-4: ~$0.03 per 1K input tokens, ~$0.06 per 1K output
+  • Anthropic Claude: ~$0.003 per 1K input, ~$0.015 per 1K output
+  • Google Gemini: ~$0.00025 per 1K input, ~$0.0005 per 1K output
+  • Local models: FREE! (runs on your machine)
+
+  View usage: ${chalk.cyan('devcompass llm stats')}
+
+${chalk.bold('Privacy & Security:')}
+  • Your code is never sent to AI (only analysis metadata)
+  • Tokens stored encrypted locally
+  • Conversations saved locally for context
+  • You control which provider to use
+  • Local models = complete privacy
+
+${chalk.bold('First Time Setup:')}
+  1. Add an AI provider:
+     ${chalk.gray('devcompass llm add --provider openai --token sk-xxx --model gpt-4')}
+  
+  2. Test connection:
+     ${chalk.gray('devcompass llm test openai')}
+  
+  3. Start using AI:
+     ${chalk.gray('devcompass analyze --ai')}
+     ${chalk.gray('devcompass ai ask "Help me understand my dependencies"')}
+  `)
+  .action(async (subcommand, args, options) => {
+    const aiCommand = require('../src/commands/ai');
+    const contextBuilder = require('../src/ai/context-builder');
+
+    // Get current analysis context if available
+    let context = null;
+    try {
+      const cacheFile = path.join(process.cwd(), '.devcompass-cache.json');
+      if (fs.existsSync(cacheFile)) {
+        const cacheData = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+        context = contextBuilder.buildAnalysisContext(cacheData);
+      }
+    } catch (error) {
+      // No context available, continue without it
+    }
+
+    switch (subcommand) {
+      case 'ask':
+        const question = args.join(' ');
+        if (!question) {
+          console.log(chalk.red('❌ Error: Question is required'));
+          console.log('\nUsage: devcompass ai ask "your question here"');
+          return;
+        }
+        await aiCommand.askQuestion(question, context, options);
+        break;
+
+      case 'recommend':
+        if (!context) {
+          console.log(chalk.yellow('⚠️  No recent analysis found. Run "devcompass analyze" first.'));
+          return;
+        }
+        const analysisData = JSON.parse(fs.readFileSync(path.join(process.cwd(), '.devcompass-cache.json'), 'utf8'));
+        await aiCommand.getRecommendations(analysisData, options);
+        break;
+
+      case 'alternatives':
+        const packageName = args[0];
+        if (!packageName) {
+          console.log(chalk.red('❌ Error: Package name is required'));
+          console.log('\nUsage: devcompass ai alternatives <package-name>');
+          return;
+        }
+        await aiCommand.getAlternatives(packageName, options);
+        break;
+
+      case 'chat':
+        await aiCommand.startChat(context, options);
+        break;
+
+      default:
+        aiCommand.showHelp();
+    }
   });
 
 // Config command
@@ -280,23 +519,7 @@ ${chalk.bold('Why Configure a Token?')}
   • Avoid GitHub API rate limits (60 → 5,000 requests/hour)
   • Enable full package health monitoring
   • Track 500+ popular npm packages
-
-${chalk.bold('How to Get a Token:')}
-  1. Go to: ${chalk.cyan('https://github.com/settings/tokens/new')}
-  2. Select: "Classic" token
-  3. Description: "DevCompass CLI"
-  4. Expiration: 90 days (or your preference)
-  5. Scopes: Select "${chalk.green('public_repo')}" (read access only)
-  6. Click "Generate token"
-  7. Copy the token (starts with ghp_)
-  8. Run: ${chalk.cyan('devcompass config --github-token <your-token>')}
-
-${chalk.bold('Security:')}
-  • Token stored locally in ${chalk.dim('~/.devcompass/github-token')}
-  • Only you have access to this file
-  • Never committed to git
-  • Optional - DevCompass works without it (with rate limits)
   `)
   .action(config);
-  
+
 program.parse();

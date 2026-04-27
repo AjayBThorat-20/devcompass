@@ -42,6 +42,12 @@ const {
 const snapshotSaver = require('../history/snapshot-saver');
 const db = require('../history/database');
 
+// NEW v3.2.2 - AI imports
+const tokenManager = require('../ai/token-manager');
+const contextBuilder = require('../ai/context-builder');
+const aiCommand = require('./ai');
+const streamFormatter = require('../utils/stream-formatter');
+
 const packageJson = require('../../package.json');
 
 
@@ -199,9 +205,7 @@ async function analyzeProject(projectPath, options = {}) {
   }
 }
 
-/**
- * NEW v3.2.1 - Save analysis snapshot to history database
- */
+
 async function saveHistorySnapshot(analysisData, graphData, projectPackageJson) {
   try {
     // Only save if --no-history flag is NOT present
@@ -224,6 +228,37 @@ async function saveHistorySnapshot(analysisData, graphData, projectPackageJson) 
       console.error('[saveHistorySnapshot] Error:', error.message);
     }
     return null;
+  }
+}
+
+async function getAIInsights(analysisResults, options = {}) {
+  try {
+    // Check if AI provider is configured
+    const providers = tokenManager.listProviders();
+    if (providers.length === 0) {
+      console.log(chalk.yellow('\n⚠️  No AI provider configured'));
+      console.log(chalk.gray('   Add one with: devcompass llm add --provider openai --token sk-xxx --model gpt-4'));
+      console.log(chalk.gray('   Or use local models: devcompass llm add --provider local --model llama3\n'));
+      return;
+    }
+
+    // Build context from analysis results
+    const context = contextBuilder.buildAnalysisContext(analysisResults);
+    
+    // Get AI recommendations
+    await aiCommand.getRecommendations(analysisResults, {
+      provider: options.aiProvider,
+      stream: true,
+      verbose: false
+    });
+    
+  } catch (error) {
+    if (error.message.includes('not found') || error.message.includes('No default provider')) {
+      console.log(chalk.yellow('\n⚠️  No AI provider configured'));
+      console.log(chalk.gray('   Add one with: devcompass llm add --provider openai --token sk-xxx --model gpt-4\n'));
+    } else {
+      console.error(chalk.red('\n❌ AI Error: ' + error.message + '\n'));
+    }
   }
 }
 
@@ -613,6 +648,27 @@ async function analyze(options) {
           console.error(chalk.yellow('⚠️  Could not save snapshot:'), error.message);
         }
       }
+    }
+    
+    if (options.ai && outputMode === 'normal') {
+      // Build analysis results object for AI
+      const analysisResults = {
+        projectName: projectPackageJson.name || 'Unknown',
+        projectVersion: projectPackageJson.version || '1.0.0',
+        projectPath: projectPath,
+        healthScore: score.total,
+        totalDependencies: totalDeps,
+        vulnerabilities: securityData.vulnerabilities || [],
+        outdated: outdatedDeps || [],
+        deprecated: qualityData.results?.filter(r => r.status === 'deprecated') || [],
+        unused: unusedDeps || [],
+        supplyChain: supplyChainData.warnings || [],
+        licenseIssues: licenseRiskData.warnings || [],
+        heavyPackages: findHeavyPackages(bundleSizes)
+      };
+      
+      // Get AI insights
+      await getAIInsights(analysisResults, options);
     }
     
     // v2.7.0 - Generate Security Recommendations
