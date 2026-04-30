@@ -7,6 +7,16 @@ const BackupRestorer = require('../utils/backup-restorer');
 
 async function backup(action, options = {}) {
   const projectPath = options.path || process.cwd();
+  
+  // ====== VALIDATION ======
+  // Check if package.json exists
+  const packageJsonPath = path.join(projectPath, 'package.json');
+  if (!fs.existsSync(packageJsonPath)) {
+    console.error(chalk.red('\n❌ No package.json found in project directory'));
+    console.log(chalk.yellow('\n💡 Run this command from a valid Node.js project\n'));
+    process.exit(1);
+  }
+  
   const backupManager = new BackupManager(projectPath);
   const backupRestorer = new BackupRestorer(projectPath);
 
@@ -35,7 +45,7 @@ async function backup(action, options = {}) {
   } catch (error) {
     console.error(chalk.red('\n❌ Backup operation failed:'), error.message);
     if (process.env.DEBUG) {
-      console.error(error.stack);
+      console.error(chalk.dim(error.stack));
     }
     process.exit(1);
   }
@@ -407,3 +417,5 @@ function getTimeAgo(date) {
 }
 
 module.exports = backup;
+module.exports.showHelp = showHelp;
+module.exports.showHelp = showHelp;

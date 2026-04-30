@@ -11,7 +11,7 @@ const GraphExporter = require('../graph/exporter');
 /**
  * Graph command - Generate unified interactive dependency visualization
  */
-async function graphCommand(options) {
+async function graphCommand(options = {}) {
   const {
     path: projectPath = process.cwd(),
     output = 'dependency-graph.html',
@@ -26,6 +26,25 @@ async function graphCommand(options) {
 
   console.log(chalk.bold('\n📊 DevCompass - Dependency Graph\n'));
 
+  // ====== VALIDATION ======
+  // 1. Check if package.json exists
+  const packageJsonPath = path.join(projectPath, 'package.json');
+  if (!fs.existsSync(packageJsonPath)) {
+    console.log(chalk.red('❌ No package.json found in project directory'));
+    console.log(chalk.yellow('\n💡 Run this command from a valid Node.js project\n'));
+    process.exit(1);
+  }
+
+  // 2. Check if analysis cache exists (for enrichment, not required)
+  const cacheFile = path.join(projectPath, '.devcompass-cache.json');
+  const hasCachedAnalysis = fs.existsSync(cacheFile);
+  
+  if (!hasCachedAnalysis) {
+    console.log(chalk.yellow('⚠️  No analysis cache found'));
+    console.log(chalk.gray('   Graph will be generated without enrichment data'));
+    console.log(chalk.gray('   Run "devcompass analyze" first for better results\n'));
+  }
+
   // For JSON export, use traditional single-layout approach
   const isJSONExport = format === 'json' || output.endsWith('.json');
   
@@ -39,6 +58,7 @@ async function graphCommand(options) {
   const spinner = ora('Generating dependency graph...').start();
 
   try {
+    // ====== DATA LOADING ======
     // Generate graph data
     const generator = new GraphGenerator(projectPath);
     
@@ -46,22 +66,28 @@ async function graphCommand(options) {
     let analysisLoaded = false;
     let analysisResults = null;
     
-    try {
-      const analyzeModule = require('./analyze');
-      
-      if (typeof analyzeModule.analyzeProject === 'function') {
-        spinner.text = 'Running analysis for graph enrichment...';
-        analysisResults = await analyzeModule.analyzeProject(projectPath, { silent: true });
+    if (hasCachedAnalysis) {
+      try {
+        const analyzeModule = require('./analyze');
         
-        if (analysisResults) {
-          generator.setAnalysisResults(analysisResults);
-          analysisLoaded = true;
+        if (typeof analyzeModule.analyzeProject === 'function') {
+          spinner.text = 'Running analysis for graph enrichment...';
+          analysisResults = await analyzeModule.analyzeProject(projectPath, { silent: true });
+          
+          if (analysisResults) {
+            generator.setAnalysisResults(analysisResults);
+            analysisLoaded = true;
+          }
+        }
+      } catch (error) {
+        // Analysis not available, continue without enrichment
+        if (process.env.DEBUG) {
+          console.log(chalk.dim(`[DEBUG] Analysis enrichment skipped: ${error.message}`));
         }
       }
-    } catch (error) {
-      // Analysis not available, continue without enrichment
     }
 
+    // ====== GRAPH GENERATION ======
     spinner.text = 'Building dependency graph...';
     
     const graphData = await generator.generate({
@@ -72,9 +98,20 @@ async function graphCommand(options) {
 
     if (!graphData) {
       spinner.fail('Failed to generate graph data');
-      return;
+      console.log(chalk.red('\n❌ Could not build dependency graph'));
+      console.log(chalk.gray('   Check if your project has valid dependencies\n'));
+      process.exit(1);
     }
 
+    // Validate graph data structure
+    if (!graphData.nodes || graphData.nodes.length === 0) {
+      spinner.fail('No dependencies found');
+      console.log(chalk.yellow('\n⚠️  No dependencies found to visualize'));
+      console.log(chalk.gray('   Your project has no dependencies.\n'));
+      process.exit(0);
+    }
+
+    // ====== METADATA PREPARATION ======
     // Add metadata for unified HTML
     graphData.metadata = graphData.metadata || {};
     graphData.metadata.availableLayouts = ['tree', 'force', 'radial', 'conflict'];
@@ -88,6 +125,7 @@ async function graphCommand(options) {
     const issueCount = graphData.nodes.filter(n => n.issues && n.issues.length > 0).length;
     spinner.succeed(`Generated graph with ${chalk.cyan(graphData.nodes.length)} nodes${issueCount > 0 ? ` (${chalk.yellow(issueCount)} with issues)` : ''}`);
 
+    // ====== FORMAT DETECTION ======
     // Detect format
     let detectedFormat = format;
     if (!detectedFormat) {
@@ -95,6 +133,7 @@ async function graphCommand(options) {
       detectedFormat = ext.substring(1) || 'html';
     }
 
+    // ====== EXPORT ======
     const exportSpinner = ora(`Exporting to ${detectedFormat.toUpperCase()}...`).start();
 
     const exporter = new GraphExporter(graphData, {
@@ -107,13 +146,18 @@ async function graphCommand(options) {
 
     // Ensure output path has correct extension
     let outputPath = output;
+    if (!path.isAbsolute(output)) {
+      outputPath = path.join(projectPath, output);
+    }
+    
     if (!output.endsWith(`.${detectedFormat}`)) {
       const basename = path.basename(output, path.extname(output));
-      outputPath = path.join(path.dirname(output), `${basename}.${detectedFormat}`);
+      outputPath = path.join(path.dirname(outputPath), `${basename}.${detectedFormat}`);
     }
 
     const result = await exporter.export(outputPath);
 
+    // ====== OUTPUT HANDLING ======
     if (result.success) {
       exportSpinner.succeed(`Graph exported: ${chalk.cyan(result.path)}`);
 
@@ -136,6 +180,9 @@ async function graphCommand(options) {
 
     } else {
       exportSpinner.fail(`Export failed: ${result.error}`);
+      console.log(chalk.red('\n❌ Failed to export graph'));
+      console.log(chalk.gray(`   Error: ${result.error}\n`));
+      process.exit(1);
     }
 
   } catch (error) {
@@ -145,6 +192,8 @@ async function graphCommand(options) {
     if (process.env.DEBUG) {
       console.error(chalk.gray(error.stack));
     }
+    
+    process.exit(1);
   }
 }
 
@@ -258,4 +307,40 @@ function getFileSize(filePath) {
   }
 }
 
+/**
+ * Show help information
+ */
+function showHelp() {
+  console.log(chalk.bold.cyan('\n📊 DevCompass Graph Command\n'));
+  console.log(chalk.bold('Usage:'));
+  console.log(chalk.gray('  devcompass graph [options]\n'));
+  console.log(chalk.bold('Options:'));
+  console.log(chalk.cyan('  --output <path>       ') + chalk.gray('Output file path (default: dependency-graph.html)'));
+  console.log(chalk.cyan('  --format <type>       ') + chalk.gray('Output format: html, json (default: html)'));
+  console.log(chalk.cyan('  --layout <type>       ') + chalk.gray('Default layout: tree, force, radial, conflict (default: tree)'));
+  console.log(chalk.cyan('  --filter <type>       ') + chalk.gray('Default filter: all, vulnerable, outdated, unused, deprecated (default: all)'));
+  console.log(chalk.cyan('  --depth <n>           ') + chalk.gray('Maximum dependency depth (default: unlimited)'));
+  console.log(chalk.cyan('  --width <n>           ') + chalk.gray('Graph width in pixels (default: 1200)'));
+  console.log(chalk.cyan('  --height <n>          ') + chalk.gray('Graph height in pixels (default: 800)'));
+  console.log(chalk.cyan('  --open                ') + chalk.gray('Open in browser after generation'));
+  console.log(chalk.cyan('  --help                ') + chalk.gray('Show this help message\n'));
+  console.log(chalk.bold('Examples:'));
+  console.log(chalk.gray('  devcompass graph'));
+  console.log(chalk.gray('  devcompass graph --output dashboard.html'));
+  console.log(chalk.gray('  devcompass graph --layout force --filter vulnerable'));
+  console.log(chalk.gray('  devcompass graph --open'));
+  console.log(chalk.gray('  devcompass graph --format json --output graph-data.json'));
+  console.log(chalk.gray('  devcompass graph --depth 3 --width 1600 --height 900\n'));
+  console.log(chalk.bold('Prerequisites:'));
+  console.log(chalk.gray('  Optional: devcompass analyze (for enriched data)\n'));
+  console.log(chalk.bold('Interactive Features (HTML):'));
+  console.log(chalk.gray('  • Switch between 4 different layouts'));
+  console.log(chalk.gray('  • Apply filters dynamically'));
+  console.log(chalk.gray('  • Search for packages'));
+  console.log(chalk.gray('  • Zoom and pan navigation'));
+  console.log(chalk.gray('  • Export as PNG or JSON\n'));
+}
+
+// Export both the main function and help
 module.exports = graphCommand;
+module.exports.showHelp = showHelp;

@@ -134,7 +134,6 @@ class LicenseConflictFixer {
   
   /**
    * Get summary statistics
-   * @returns {Object}
    */
   getSummary() {
     return {

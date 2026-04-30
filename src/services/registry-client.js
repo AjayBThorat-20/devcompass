@@ -226,7 +226,6 @@ function clearCache() {
 
 /**
  * Get cache statistics
- * @returns {Object}
  */
 function getCacheStats() {
   let diskCount = 0;

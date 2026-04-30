@@ -99,7 +99,7 @@ ${chalk.bold('Available Categories:')}
   `)
   .action(fix);
 
-// Backup command
+// Backup command (UPDATED)
 program
   .command('backup <action>')
   .description('Manage backups (list, restore, clean, info)')
@@ -115,12 +115,20 @@ ${chalk.bold('Backup Examples:')}
   ${chalk.cyan('devcompass backup info --name <backup-name>')}     Show backup details
   ${chalk.cyan('devcompass backup clean')}                         Remove old backups (keeps 5)
   ${chalk.cyan('devcompass backup clean --keep 3')}                Keep only 3 backups
+
+${chalk.bold('What Gets Backed Up:')}
+  • package.json
+  • package-lock.json
+  • Metadata (timestamp, reason, health score)
+
+${chalk.bold('Backup Location:')}
+  .devcompass-backups/ (in project directory)
   `)
   .action((action, options) => {
     backup(action, options);
   });
 
-// Graph command
+// Graph command (UPDATED)
 program
   .command('graph')
   .description('Generate dependency graph visualization')
@@ -133,6 +141,36 @@ program
   .option('-w, --width <number>', 'Graph width in pixels', parseInt, 1200)
   .option('-h, --height <number>', 'Graph height in pixels', parseInt, 800)
   .option('--open', 'Open in browser (HTML only)', false)
+  .addHelpText('after', `
+
+${chalk.bold('Graph Examples:')}
+  ${chalk.cyan('devcompass graph')}                            Generate interactive graph
+  ${chalk.cyan('devcompass graph --output dashboard.html')}    Custom output file
+  ${chalk.cyan('devcompass graph --layout force')}             Force-directed layout
+  ${chalk.cyan('devcompass graph --filter vulnerable')}        Show only vulnerable packages
+  ${chalk.cyan('devcompass graph --open')}                     Open in browser
+  ${chalk.cyan('devcompass graph --format json')}              Export as JSON data
+
+${chalk.bold('Available Layouts:')}
+  • tree - Hierarchical tree layout
+  • force - Force-directed graph
+  • radial - Radial tree layout
+  • conflict - Highlight conflicting dependencies
+
+${chalk.bold('Available Filters:')}
+  • all - Show all packages
+  • vulnerable - Only vulnerable packages
+  • outdated - Only outdated packages
+  • unused - Only unused packages
+  • deprecated - Only deprecated packages
+
+${chalk.bold('Interactive Features (HTML):')}
+  • Switch layouts dynamically
+  • Apply filters in real-time
+  • Search for packages
+  • Zoom and pan navigation
+  • Export as PNG or JSON
+  `)
   .action(async (options) => {
     const graphCommand = require('../src/commands/graph');
     await graphCommand(options);
@@ -181,7 +219,7 @@ ${chalk.bold('Basic Examples:')}
     await historyCommand({ ...options, _: ['history', subcommand] });
   });
 
-// Compare command
+// Compare command (UPDATED)
 program
   .command('compare <id1> <id2>')
   .description('Compare two analysis snapshots')
@@ -199,10 +237,81 @@ ${chalk.bold('What Gets Compared:')}
   • Version changes
   • Health score changes
   • Vulnerability status changes
+  • Deprecated package status
   `)
   .action(async (id1, id2, options) => {
     const compareCommand = require('../src/commands/compare');
     await compareCommand({ ...options, _: ['compare', id1, id2] });
+  });
+
+// Snapshot command (NEW)
+program
+  .command('snapshot <subcommand> [id]')
+  .description('Manage dependency snapshots')
+  .option('--project <name>', 'Filter by project name (list)')
+  .option('--limit <number>', 'Limit results (default: 20)', parseInt, 20)
+  .option('-v, --verbose', 'Show detailed information (view)', false)
+  .option('-y, --yes', 'Skip confirmation (delete)', false)
+  .addHelpText('after', `
+
+${chalk.bold('Snapshot Subcommands:')}
+  ${chalk.cyan('save')}      Save current state as snapshot
+  ${chalk.cyan('list')}      List all snapshots
+  ${chalk.cyan('view')}      View snapshot details
+  ${chalk.cyan('delete')}    Delete a snapshot
+
+${chalk.bold('Snapshot Examples:')}
+  ${chalk.cyan('devcompass snapshot save')}                    Save current analysis
+  ${chalk.cyan('devcompass snapshot list')}                    List all snapshots
+  ${chalk.cyan('devcompass snapshot list --project myapp')}    Filter by project
+  ${chalk.cyan('devcompass snapshot view 123')}                View snapshot #123
+  ${chalk.cyan('devcompass snapshot view 123 --verbose')}      Detailed view
+  ${chalk.cyan('devcompass snapshot delete 123')}              Delete snapshot #123
+  ${chalk.cyan('devcompass snapshot delete 123 --yes')}        Delete without confirmation
+
+${chalk.bold('What Gets Saved:')}
+  • Complete dependency state
+  • Health scores and metrics
+  • Package versions
+  • Issues and vulnerabilities
+  • Project metadata
+  • Timestamp
+
+${chalk.bold('Use Cases:')}
+  • Track dependency evolution
+  • Compare before/after updates
+  • Audit dependency history
+  • Rollback reference points
+  `)
+  .action(async (subcommand, id, options) => {
+    const snapshotCommand = require('../src/commands/snapshot');
+    
+    switch (subcommand) {
+      case 'save':
+        await snapshotCommand.saveSnapshot(options);
+        break;
+      case 'list':
+        await snapshotCommand.listSnapshots(options);
+        break;
+      case 'view':
+        if (!id) {
+          console.log(chalk.red('❌ Snapshot ID is required for view command'));
+          console.log(chalk.gray('\nUsage: devcompass snapshot view <id>\n'));
+          process.exit(1);
+        }
+        await snapshotCommand.viewSnapshot(id, options);
+        break;
+      case 'delete':
+        if (!id) {
+          console.log(chalk.red('❌ Snapshot ID is required for delete command'));
+          console.log(chalk.gray('\nUsage: devcompass snapshot delete <id>\n'));
+          process.exit(1);
+        }
+        await snapshotCommand.deleteSnapshot(id, options);
+        break;
+      default:
+        snapshotCommand.showHelp();
+    }
   });
 
 // Timeline command

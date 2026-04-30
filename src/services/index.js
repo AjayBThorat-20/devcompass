@@ -194,7 +194,6 @@ class DynamicAnalyzer {
   
   /**
    * Get cache statistics
-   * @returns {Object}
    */
   getCacheStats() {
     return this.registry.getCacheStats();
