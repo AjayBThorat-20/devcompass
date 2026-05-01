@@ -1,5 +1,5 @@
 // src/commands/analyze.js
-// v3.1.3 - Added analyzeProject() for graph enrichment
+// v3.2.4 - Added CVE vulnerability checking with OSV + NVD
 const chalk = require('chalk');
 const ora = require('ora');
 const path = require('path');
@@ -38,15 +38,19 @@ const {
   calculateExpectedImpact 
 } = require('../analyzers/security-recommendations');
 
-// NEW v3.2.1 - History tracking imports
+// v3.2.1 - History tracking imports
 const snapshotSaver = require('../history/snapshot-saver');
 const db = require('../history/database');
 
-// NEW v3.2.2 - AI imports
+// v3.2.2 - AI imports
 const tokenManager = require('../ai/token-manager');
 const contextBuilder = require('../ai/context-builder');
 const aiCommand = require('./ai');
 const streamFormatter = require('../utils/stream-formatter');
+
+// v3.2.4 - CVE vulnerability checking imports
+const vulnerabilityChecker = require('../cve/vulnerability-checker');
+const cacheManager = require('../cve/cache-manager');
 
 const packageJson = require('../../package.json');
 
@@ -82,6 +86,7 @@ async function analyzeProject(projectPath, options = {}) {
         outdatedPackages: [],
         unusedDependencies: [],
         ecosystemAlerts: [],
+        cveVulnerabilities: [], // v3.2.4
         summary: { totalDeps: 0 }
       };
     }
@@ -152,6 +157,22 @@ async function analyzeProject(projectPath, options = {}) {
       }
     }
     
+    // NEW v3.2.4 - CVE Vulnerability Checking
+    let cveResults = [];
+    try {
+      const packages = Object.entries(dependencies).map(([name, version]) => ({
+        name,
+        version: version.replace(/[\^~]/, '')
+      }));
+      
+      cveResults = await vulnerabilityChecker.checkPackages(packages, true);
+    } catch (error) {
+      if (process.env.DEBUG) {
+        console.error('[CVE Check] Error:', error.message);
+      }
+      cveResults = [];
+    }
+    
     // Return structured data for graph enrichment
     return {
       security: {
@@ -188,12 +209,16 @@ async function analyzeProject(projectPath, options = {}) {
         affected: alert.affected
       })),
       
+      // NEW v3.2.4 - CVE vulnerabilities
+      cveVulnerabilities: cveResults || [],
+      
       summary: {
         totalDeps,
         unusedCount: unusedDeps?.length || 0,
         outdatedCount: outdatedDeps?.length || 0,
         alertCount: alerts?.length || 0,
-        vulnerabilityCount: securityData.metadata?.total || 0
+        vulnerabilityCount: securityData.metadata?.total || 0,
+        cveVulnerabilityCount: cveResults.filter(r => r.vulnerabilities.length > 0).length || 0
       }
     };
     
@@ -396,6 +421,7 @@ async function analyze(options) {
     }
     
     // Check security vulnerabilities
+// Check security vulnerabilities
     spinner.text = 'Checking security vulnerabilities...';
     let securityData = { vulnerabilities: [], metadata: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 } };
     
@@ -418,6 +444,37 @@ async function analyze(options) {
       }
     }
     
+    // ✅ ADD THE NEW CVE CODE RIGHT HERE (AFTER security check, BEFORE predictive warnings)
+    
+    // NEW v3.2.4 - CVE Vulnerability Checking
+    spinner.text = 'Checking CVE vulnerability databases (OSV + NVD)...';
+    let cveResults = [];
+    let cveSummary = { total: 0, vulnerable: 0, critical: 0, high: 0, medium: 0, low: 0, unknown: 0 };
+    
+    try {
+      // Clear expired cache entries first
+      const cleared = cacheManager.clearExpired();
+      if (cleared > 0 && process.env.DEBUG) {
+        console.log(chalk.gray(`  Cleared ${cleared} expired cache entries`));
+      }
+      
+      const packages = Object.entries(dependencies).map(([name, version]) => ({
+        name,
+        version: version.replace(/[\^~]/, '') // Remove semver modifiers
+      }));
+      
+      cveResults = await vulnerabilityChecker.checkPackages(packages, true);
+      cveSummary = vulnerabilityChecker.getSummary(cveResults);
+      
+    } catch (error) {
+      if (outputMode !== 'silent') {
+        console.log(chalk.yellow('\n⚠️  Could not check CVE databases'));
+        console.log(chalk.gray(`   Error: ${error.message}`));
+        console.log(chalk.gray('   Continuing with npm audit data only...\n'));
+      }
+      cveResults = [];
+      cveSummary = { total: 0, vulnerable: 0, critical: 0, high: 0, medium: 0, low: 0, unknown: 0 };
+    }
     // Check for predictive warnings (GitHub Issues) - v2.6.0
     const { getTrackedPackageCount, TRACKED_REPOS } = require('../alerts/github-tracker');
     const totalTracked = getTrackedPackageCount();
@@ -608,6 +665,51 @@ async function analyze(options) {
       console.log(chalk.gray(`⚡ GitHub check completed in ${timeInSeconds}s (parallel processing)`));
     }
     
+    // NEW v3.2.4 - Display CVE results
+    if (outputMode === 'normal' && cveResults.length > 0) {
+      const cachedCount = cveResults.filter(r => r.cached).length;
+      if (cachedCount > 0) {
+        console.log(chalk.gray(`📦 CVE check completed (${cachedCount}/${cveResults.length} from cache)`));
+      }
+      
+      if (cveSummary.vulnerable > 0) {
+        console.log(chalk.red(`\n🔴 CVE VULNERABILITIES DETECTED (${cveSummary.vulnerable} packages)\n`));
+        
+        if (cveSummary.critical > 0) {
+          console.log(chalk.red(`  🔴 CRITICAL: ${cveSummary.critical}`));
+        }
+        if (cveSummary.high > 0) {
+          console.log(chalk.red(`  🟠 HIGH: ${cveSummary.high}`));
+        }
+        if (cveSummary.medium > 0) {
+          console.log(chalk.yellow(`  🟡 MEDIUM: ${cveSummary.medium}`));
+        }
+        if (cveSummary.low > 0) {
+          console.log(chalk.gray(`  ⚪ LOW: ${cveSummary.low}`));
+        }
+        
+        // Show top critical vulnerabilities
+        const critical = cveResults.filter(r => 
+          r.vulnerabilities.some(v => v.severity === 'CRITICAL' || v.severity === 'HIGH')
+        ).slice(0, 5);
+        
+        if (critical.length > 0) {
+          console.log(chalk.red('\n  Top Critical Vulnerabilities:'));
+          critical.forEach(pkg => {
+            console.log(chalk.red(`    • ${pkg.package}@${pkg.version}`));
+            pkg.vulnerabilities.slice(0, 2).forEach(v => {
+              const summary = v.summary || 'No description available';
+              console.log(chalk.gray(`      ${v.id} - ${summary.substring(0, 60)}...`));
+            });
+          });
+        }
+        
+        console.log('');
+      } else {
+        console.log(chalk.green('✅ No known CVE vulnerabilities detected!\n'));
+      }
+    }
+    
     // NEW v3.2.1 - Save snapshot to history database
     if (outputMode !== 'silent' && outputMode !== 'json') {
       try {
@@ -627,6 +729,7 @@ async function analyze(options) {
             isDeprecated: qualityData.results?.find(r => r.package === name)?.status === 'deprecated',
             isOutdated: outdatedDeps.some(d => d.name === name),
             isUnused: unusedDeps.some(d => (typeof d === 'string' ? d : d.name) === name),
+            hasCVE: cveResults.some(r => r.package === name && r.vulnerabilities.length > 0), // v3.2.4
             issues: []
           })),
           links: []
@@ -659,6 +762,8 @@ async function analyze(options) {
         healthScore: score.total,
         totalDependencies: totalDeps,
         vulnerabilities: securityData.vulnerabilities || [],
+        cveVulnerabilities: cveResults || [], // v3.2.4
+        cveSummary: cveSummary, // v3.2.4
         outdated: outdatedDeps || [],
         deprecated: qualityData.results?.filter(r => r.status === 'deprecated') || [],
         unused: unusedDeps || [],
@@ -683,7 +788,9 @@ async function analyze(options) {
       securityVulnerabilities: securityData.metadata,
       ecosystemAlerts: alerts,
       unusedDeps,
-      outdatedPackages: outdatedDeps
+      outdatedPackages: outdatedDeps,
+      cveVulnerabilities: cveResults, // v3.2.4
+      cveSummary: cveSummary // v3.2.4
     });
     
     // Handle different output modes
@@ -706,7 +813,9 @@ async function analyze(options) {
         safeSupplyChainData,
         licenseRiskData,
         qualityData,
-        recommendations
+        recommendations,
+        cveResults, // v3.2.4
+        cveSummary // v3.2.4
       );
       console.log(jsonOutput);
     } else if (outputMode === 'ci') {
@@ -723,7 +832,9 @@ async function analyze(options) {
         supplyChainData,
         licenseRiskData,
         qualityData,
-        recommendations
+        recommendations,
+        cveResults, // v3.2.4
+        cveSummary // v3.2.4
       );
       handleCiMode(score, config, alerts, unusedDeps);
     } else if (outputMode === 'silent') {
@@ -742,7 +853,9 @@ async function analyze(options) {
         supplyChainData,
         licenseRiskData,
         qualityData,
-        recommendations
+        recommendations,
+        cveResults, // v3.2.4
+        cveSummary // v3.2.4
       );
     }
     
@@ -769,18 +882,85 @@ function displayResults(
   supplyChainData = { warnings: [], total: 0 },
   licenseRiskData = {},
   qualityData = {},
-  recommendations = []
+  recommendations = [],
+  cveResults = [], // v3.2.4
+  cveSummary = {} // v3.2.4
 ) {
   logDivider();
   
-  // SECURITY VULNERABILITIES
+  // NEW v3.2.4 - CVE VULNERABILITIES (Show first, most critical)
+  if (cveSummary && cveSummary.vulnerable > 0) {
+    logSection('🛡️  CVE VULNERABILITY DATABASE', cveSummary.vulnerable);
+    
+    const criticalCount = cveSummary.critical || 0;
+    const highCount = cveSummary.high || 0;
+    const mediumCount = cveSummary.medium || 0;
+    const lowCount = cveSummary.low || 0;
+    
+    if (criticalCount > 0) {
+      log(chalk.red.bold(`\n  🔴 CRITICAL: ${criticalCount}`));
+    }
+    if (highCount > 0) {
+      log(chalk.red(`  🟠 HIGH: ${highCount}`));
+    }
+    if (mediumCount > 0) {
+      log(chalk.yellow(`  🟡 MEDIUM: ${mediumCount}`));
+    }
+    if (lowCount > 0) {
+      log(chalk.gray(`  ⚪ LOW: ${lowCount}`));
+    }
+    
+    // Show affected packages
+    const vulnerable = cveResults.filter(r => r.vulnerabilities.length > 0);
+    if (vulnerable.length > 0) {
+      log(chalk.cyan('\n  Affected Packages:\n'));
+      
+      vulnerable.slice(0, 5).forEach(pkg => {
+        log(`  ${chalk.bold(pkg.package)}@${pkg.version}`);
+        
+        pkg.vulnerabilities.slice(0, 2).forEach(vuln => {
+          const severityColor = vuln.severity === 'CRITICAL' || vuln.severity === 'HIGH' 
+            ? chalk.red 
+            : vuln.severity === 'MEDIUM' 
+              ? chalk.yellow 
+              : chalk.gray;
+          
+          log(`    ${severityColor('●')} ${vuln.id} - ${vuln.severity}`);
+          
+          if (vuln.cvssScore) {
+            log(chalk.gray(`      CVSS Score: ${vuln.cvssScore}/10`));
+          }
+          
+          const summary = vuln.summary || 'No description available';
+          log(chalk.gray(`      ${summary.substring(0, 80)}...`));
+        });
+        
+        log('');
+      });
+      
+      if (vulnerable.length > 5) {
+        log(chalk.gray(`  ... and ${vulnerable.length - 5} more packages with CVE vulnerabilities\n`));
+      }
+    }
+    
+    log(chalk.cyan('  💡 Sources: OSV (Open Source Vulnerabilities) + NVD (National Vulnerability Database)'));
+    log(chalk.cyan('  Run') + chalk.bold(' npm audit fix ') + chalk.cyan('to fix known vulnerabilities\n'));
+    
+  } else if (cveResults && cveResults.length > 0) {
+    logSection('✅ CVE VULNERABILITY DATABASE');
+    log(chalk.green('  No known CVE vulnerabilities detected!\n'));
+  }
+  
+  logDivider();
+  
+  // SECURITY VULNERABILITIES (npm audit)
   if (securityData.metadata.total > 0) {
     const criticalCount = securityData.metadata.critical;
     const highCount = securityData.metadata.high;
     const moderateCount = securityData.metadata.moderate;
     const lowCount = securityData.metadata.low;
     
-    logSection('🔐 SECURITY VULNERABILITIES', securityData.metadata.total);
+    logSection('🔐 NPM AUDIT VULNERABILITIES', securityData.metadata.total);
     
     if (criticalCount > 0) {
       log(chalk.red.bold(`\n  🔴 CRITICAL: ${criticalCount}`));
@@ -797,14 +977,13 @@ function displayResults(
     
     log(chalk.cyan('\n  Run') + chalk.bold(' npm audit fix ') + chalk.cyan('to fix vulnerabilities\n'));
   } else {
-    logSection('✅ SECURITY VULNERABILITIES');
+    logSection('✅ NPM AUDIT VULNERABILITIES');
     log(chalk.green('  No vulnerabilities detected!\n'));
   }
   
   logDivider();
   
-  // NEW v2.7.0 / v3.1.0 - SUPPLY CHAIN SECURITY (✅ FIXED)
-  // ✅ FIXED: Always ensure warnings is an array before any operations
+  // v2.7.0 - SUPPLY CHAIN SECURITY
   const safeWarnings = Array.isArray(supplyChainData.warnings) ? supplyChainData.warnings : [];
   
   if (supplyChainData.total > 0 && safeWarnings.length > 0) {
@@ -932,6 +1111,9 @@ function displayResults(
   }
   
   logDivider();
+  
+  // Continue with remaining sections (LICENSE RISK, PACKAGE QUALITY, etc.) - same as before...
+  // [Rest of displayResults function remains unchanged from original]
   
   // NEW v2.7.0 - LICENSE RISK ANALYSIS
   if (licenseRiskData.warnings && licenseRiskData.warnings.length > 0) {

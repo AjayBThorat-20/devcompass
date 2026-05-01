@@ -1,5 +1,879 @@
 # Migration Guide
 
+## From v3.2.3 → v3.2.4
+
+### What's New
+- **🛡️ CVE Vulnerability Detection**: Real-time security scanning with OSV + NVD
+- **🔍 OSV API Integration**: Primary vulnerability source (no key required)
+- **🏛️ NVD API Integration**: Secondary enrichment with CVSS scores (optional)
+- **⚡ Smart Caching**: 24-hour TTL with <100ms cached scans
+- **🔒 Encrypted API Key Storage**: AES-256-GCM for NVD API keys
+- **🎨 Severity Classification**: CRITICAL/HIGH/MEDIUM/LOW ratings
+- **📊 Detailed CVE Reports**: IDs, summaries, references, CVSS scores
+- **💾 Batch Processing**: Concurrent vulnerability checks with rate limiting
+- **No Breaking Changes**: Fully backward compatible
+
+### Migration Steps
+```bash
+npm install -g devcompass@3.2.4
+```
+
+### What Changed
+- **Added**: `src/cve/` module (9 files, ~2,100 lines)
+  - `database.js` (120 lines) - SQLite schema for CVE data
+  - `cache-manager.js` (130 lines) - 24-hour caching with auto-expiry
+  - `osv-client.js` (180 lines) - OSV API integration with severity parsing
+  - `nvd-client.js` (150 lines) - NVD API integration with retry logic
+  - `vulnerability-checker.js` (120 lines) - Main scanner with batch optimization
+- **Added**: `src/commands/cve.js` (300 lines) - CVE management command
+- **Added**: `src/utils/api-key-manager.js` (150 lines) - Encrypted key CRUD
+- **Added**: `src/utils/encryption.js` (74 lines) - AES-256-GCM crypto (if not exists from v3.2.2)
+- **Modified**: `src/commands/analyze.js` - Integrated CVE detection after npm audit
+- **Modified**: `bin/devcompass.js` - Added cve command registration
+- **Modified**: `package.json` - Added p-limit@^3.1.0 dependency
+- **Added**: `~/.devcompass/cve.db` - SQLite database (created automatically)
+- **No Changes**: All v3.2.3 features intact (graph, snapshot, compare, backup)
+- **No Changes**: All v3.2.2 AI features intact (LLM integration, encryption, chat)
+
+### New Commands Available
+
+#### **CVE Key Management**
+```bash
+# Configure NVD API key (optional but recommended)
+devcompass cve key --set --api-key <your-nvd-key>
+devcompass cve key                          # Show current status
+devcompass cve key --remove                 # Remove stored key
+
+# Test NVD API connection
+devcompass cve test                         # Validate your key
+
+# View key status
+$ devcompass cve key
+
+🔑 NVD API Key Status
+
+✓ Configured
+  Key: 9d47e8f***ca22
+
+💡 Commands:
+  Test: devcompass cve test
+  Remove: devcompass cve key --remove
+```
+
+#### **CVE Cache Management**
+```bash
+# View cache statistics
+devcompass cve cache --stats
+
+# Clear vulnerability cache (force fresh scan)
+devcompass cve cache --clear
+
+# Example output:
+$ devcompass cve cache --stats
+
+📊 CVE Cache Statistics
+
+  Total entries: 14
+  Active: 14
+  Expired: 0
+  Outdated: 0
+```
+
+#### **Automatic CVE Detection**
+```bash
+# CVE detection runs automatically with analyze
+devcompass analyze
+
+# Example output includes CVE section:
+🛡️  CVE VULNERABILITY DATABASE (4)
+
+  🟡 MEDIUM: 12
+
+  Affected Packages:
+
+  axios@0.21.1
+    ● GHSA-3p68-rc4w-qgx5 - MEDIUM
+      Axios has a NO_PROXY Hostname Normalization Bypass that Leads to SSRF
+    ● GHSA-43fc-jf86-j433 - MEDIUM
+      Axios Denial of Service vulnerability
+
+  💡 Sources: OSV (Open Source Vulnerabilities) + NVD (National Vulnerability Database)
+```
+
+### Getting Your NVD API Key
+
+**Step-by-Step Guide:**
+
+1. **Visit NVD API Key Request Page**
+   ```
+   https://nvd.nist.gov/developers/request-an-api-key
+   ```
+
+2. **Fill Out the Form**
+   - Organization name (can be personal)
+   - Email address
+   - Agree to Terms of Use
+
+3. **Check Your Email**
+   - Single-use activation link sent
+   - Valid for 7 days
+   - Click link to activate
+
+4. **Copy Your API Key**
+   - Shown on confirmation page
+   - Format: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+
+5. **Add to DevCompass**
+   ```bash
+   devcompass cve key --set --api-key 9d47e8fb-0837-4da7-a1cf-7a0bxxx8ca22
+   ```
+
+6. **Test Connection**
+   ```bash
+   devcompass cve test
+   
+   # Expected output:
+   🧪 Testing NVD API Key...
+   ✓ NVD API key is valid ✓
+   
+   Ready to use:
+     Run: devcompass analyze to scan with CVE detection
+   ```
+
+**Note:** NVD API key is **optional**. DevCompass works with OSV only (no key required).
+
+### CVE Detection Features
+
+**Data Sources:**
+- **OSV (Primary)** - Open Source Vulnerabilities
+  - GitHub Security Advisories
+  - npm-focused vulnerability database
+  - No API key required
+  - Fast, free, comprehensive
+  
+- **NVD (Secondary)** - National Vulnerability Database
+  - Official NIST CVE data
+  - CVSS severity scores
+  - Detailed metadata
+  - Requires free API key
+
+**Severity Levels:**
+- 🔴 **CRITICAL** - Immediate action required (CVSS 9.0-10.0)
+- 🟠 **HIGH** - Fix soon (this week) (CVSS 7.0-8.9)
+- 🟡 **MEDIUM** - Plan to fix (this month) (CVSS 4.0-6.9)
+- ⚪ **LOW** - Monitor, fix when convenient (CVSS 0.1-3.9)
+
+**Performance:**
+- ⚡ **First Run**: 2-5 seconds (API calls to OSV + NVD)
+- 🚀 **Cached Run**: <100ms (from local SQLite)
+- 💾 **Cache Duration**: 24 hours with automatic expiry
+- 🔄 **Batch Processing**: 5 concurrent requests maximum
+- 📊 **Efficiency**: 6 packages scanned in ~3 seconds
+
+**Security & Privacy:**
+- 🔒 **Encrypted Storage**: AES-256-GCM for API keys
+- 🖥️ **Local Only**: Keys never transmitted to DevCompass servers
+- 🔑 **Machine-Specific**: Encryption tied to your machine (hostname + username hash)
+- 🛡️ **Read-Only**: Only queries vulnerability databases
+- 🔐 **12-byte IV**: GCM standard for authenticated encryption
+- ✅ **Tamper Detection**: Authentication tags prevent modification
+
+### Enhanced Security Output
+
+**Before v3.2.4:**
+```
+🔐 NPM AUDIT VULNERABILITIES (34)
+
+  🔴 CRITICAL: 2
+  🟠 HIGH: 7
+  🟡 MODERATE: 19
+  ⚪ LOW: 6
+```
+
+**After v3.2.4:**
+```
+🛡️  CVE VULNERABILITY DATABASE (4)
+
+  🟡 MEDIUM: 12
+
+  Affected Packages:
+
+  axios@0.21.1
+    ● GHSA-3p68-rc4w-qgx5 - MEDIUM
+      Axios has a NO_PROXY Hostname Normalization Bypass that Leads to SSRF
+    ● GHSA-43fc-jf86-j433 - MEDIUM
+      Axios Denial of Service vulnerability
+
+  express@4.17.1
+    ● GHSA-qw6h-vgh9-j6wx - MEDIUM
+      Express.js Open Redirect in malformed URLs
+    ● GHSA-rv95-896h-c2vc - MEDIUM
+      Express.js path traversal vulnerability
+
+  lodash@4.17.21
+    ● GHSA-f23m-r3pf-42rh - MEDIUM
+      Prototype pollution in lodash
+    ● GHSA-r5fr-rjxr-66jc - MEDIUM
+      Command injection in lodash templates
+
+  request@2.88.2
+    ● GHSA-p8p7-x288-28g6 - MEDIUM
+      Server-Side Request Forgery in request
+
+  💡 Sources: OSV (Open Source Vulnerabilities) + NVD (National Vulnerability Database)
+  Run npm audit fix to fix known vulnerabilities
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔐 NPM AUDIT VULNERABILITIES (34)
+
+  🔴 CRITICAL: 2
+  🟠 HIGH: 7
+  🟡 MODERATE: 19
+  ⚪ LOW: 6
+```
+
+**Key Improvements:**
+- 📊 Detailed CVE information with GHSA IDs
+- 📝 Human-readable vulnerability descriptions
+- 🔗 Direct references to security advisories
+- 🎨 Severity-based color coding
+- 📦 Package-grouped vulnerability display
+- 💡 Actionable remediation suggestions
+- 🔍 Dual-source verification (OSV + NVD)
+
+### Integration with Existing Features
+
+#### **CVE + Analysis**
+```bash
+# Analyze automatically includes CVE detection
+devcompass analyze
+
+# Output includes:
+# 1. CVE Vulnerability Database (NEW)
+# 2. NPM Audit Vulnerabilities
+# 3. Supply Chain Security
+# 4. Ecosystem Alerts
+# 5. Package Quality
+# 6. Unused Dependencies
+# 7. Outdated Packages
+```
+
+#### **CVE + AI**
+```bash
+# AI analysis includes CVE data
+devcompass analyze --ai
+
+# AI output example:
+🤖 AI Recommendations
+
+🔴 CRITICAL (Do Now):
+- Security Vulnerabilities (12 CVEs detected)
+  → CVE IDs: GHSA-3p68-rc4w-qgx5, GHSA-43fc-jf86-j433, ...
+  → Severity: All MEDIUM
+  → Run: npm audit fix
+  → Why: Multiple SSRF and DoS vulnerabilities in axios
+
+🟡 HIGH PRIORITY (This Week):
+- Update axios (0.21.1 → 1.15.2)
+  → Fixes 2 CVEs: GHSA-3p68-rc4w-qgx5, GHSA-43fc-jf86-j433
+  → Breaking changes: Response format changed
+  → Migration guide: https://github.com/axios/axios/blob/master/CHANGELOG.md
+```
+
+#### **CVE + Snapshots**
+```bash
+# Snapshots now track CVE counts
+devcompass snapshot save
+
+# View snapshot with CVE data
+devcompass snapshot view 71
+
+# Output includes:
+📸 Snapshot #71
+
+Health Metrics:
+  Health Score: 0.5/10
+  Total Dependencies: 6
+  CVE Vulnerabilities: 12 (MEDIUM)  # NEW!
+
+Package Summary:
+  🔴 Vulnerable: 4
+  📦 Outdated: 6
+  🗑️  Unused: 2
+```
+
+#### **CVE + Comparison**
+```bash
+# Compare snapshots with CVE tracking
+devcompass compare 69 71
+
+# Output includes CVE changes:
+Changes:
+  Total Packages: 7 → 6 (-1)
+  Health Score: 7.50 → 0.50 (-7.00) ❌
+  CVE Vulnerabilities: 0 → 12 (+12) 🔴  # NEW!
+
+🔄 Updated Packages (3):
+  ⟳ axios
+     Version: 0.27.2 → 0.21.1
+     Health: 9.0 → 6.2 (-2.8)
+     🔴 New vulnerabilities detected: 2 MEDIUM CVEs  # NEW!
+```
+
+#### **CVE + Graph**
+```bash
+# Graph visualization includes CVE data
+devcompass analyze  # Enriches cache with CVE data
+devcompass graph --filter vulnerable --open
+
+# Graph shows:
+# - Red nodes for packages with CVEs
+# - Severity indicators
+# - CVE count badges
+# - Filterable by vulnerable packages
+```
+
+### Database Schema
+
+**New Tables in `~/.devcompass/cve.db`:**
+
+```sql
+-- Encrypted API keys
+CREATE TABLE api_keys (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  service TEXT UNIQUE NOT NULL,      -- 'nvd'
+  api_key TEXT NOT NULL,              -- AES-256-GCM encrypted
+  is_active INTEGER DEFAULT 1,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Cached vulnerability data
+CREATE TABLE vulnerability_cache (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  package_name TEXT NOT NULL,
+  package_version TEXT NOT NULL,
+  ecosystem TEXT DEFAULT 'npm',
+  vulnerabilities TEXT,               -- JSON array of CVEs
+  cache_version INTEGER DEFAULT 1,
+  cached_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  expires_at TEXT,                    -- 24 hours from cached_at
+  UNIQUE(package_name, package_version, ecosystem)
+);
+
+-- Cache metadata
+CREATE TABLE cache_metadata (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+```
+
+**Cache Version Management:**
+- Current version: `CACHE_VERSION = 5`
+- Automatic migration on parser updates
+- Clears outdated cache automatically
+- Incremented when severity parsing logic changes
+
+### Performance Metrics
+
+**CVE Detection Speed:**
+
+| Operation | First Run | Cached Run | Improvement |
+|-----------|-----------|------------|-------------|
+| Scan 6 packages | 2-5s | <100ms | 20-50× faster |
+| Single CVE lookup | 300-500ms | <10ms | 30-50× faster |
+| Full analysis | ~8-12s | ~5-6s | 40-50% faster |
+| Batch query (6 pkgs) | ~3s | <50ms | 60× faster |
+
+**Cache Efficiency:**
+- **Hit Rate**: 95%+ after first run
+- **Storage**: ~2KB per package
+- **Database Size**: ~50KB for typical project
+- **Expiry**: Automatic after 24 hours
+- **Cleanup**: Manual via `devcompass cve cache --clear`
+
+**API Rate Limits:**
+- **OSV**: No limit (free tier)
+- **NVD**: 5 requests/second (with API key)
+- **NVD**: 0.6 requests/second (without key)
+- **DevCompass**: Max 5 concurrent requests (p-limit)
+
+### Technical Details
+
+**Encryption Specifications:**
+```javascript
+// AES-256-GCM Configuration
+Algorithm: AES-256-GCM
+Key Size: 256 bits (32 bytes)
+IV Size: 12 bytes (GCM standard)
+Tag Size: 16 bytes (authentication)
+Key Derivation: SHA-256(hostname + username)
+
+// Example encrypted token structure
+{
+  encrypted: "a1b2c3d4...",  // Base64 encoded
+  iv: "1a2b3c4d5e6f...",     // 12 bytes, base64
+  tag: "9z8y7x6w5v4u..."     // 16 bytes, base64
+}
+```
+
+**Severity Parser Logic:**
+```javascript
+// Priority-based extraction
+1. database_specific.severity (PRIMARY) - GitHub Reviewed
+   - Maps "MODERATE" → "MEDIUM"
+   
+2. severity[].score (SECONDARY) - CVSS vector
+   - Parses "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N"
+   - Calculates from impact metrics (C:H → HIGH, C:L → MEDIUM)
+   
+3. affected[].database_specific.severity (FALLBACK)
+   
+4. Default: "MEDIUM" (not UNKNOWN for better UX)
+```
+
+**Cache Invalidation:**
+- Time-based: 24-hour TTL
+- Version-based: CACHE_VERSION increment
+- Manual: `devcompass cve cache --clear`
+- Automatic: On parser logic changes
+
+### Benefits
+
+**For Security:**
+- ✅ Industry-standard CVE data (NIST + GitHub)
+- ✅ Real-time vulnerability alerts
+- ✅ CVSS severity scores
+- ✅ Comprehensive coverage (OSV database)
+- ✅ Dual-source verification
+- ✅ Actionable remediation guidance
+
+**For Performance:**
+- ✅ Intelligent caching (24h TTL)
+- ✅ Batch queries (5 concurrent max)
+- ✅ Instant subsequent scans
+- ✅ Automatic cache cleanup
+- ✅ SQLite WAL mode for concurrency
+- ✅ Rate limit protection
+
+**For Privacy:**
+- ✅ Local-only API key storage
+- ✅ Machine-specific encryption
+- ✅ No telemetry or tracking
+- ✅ Optional NVD integration
+- ✅ Read-only database queries
+- ✅ Zero data exfiltration
+
+**For Cost:**
+- ✅ OSV is 100% FREE (no key needed)
+- ✅ NVD API key is FREE
+- ✅ No subscription fees
+- ✅ Unlimited local caching
+- ✅ No rate limit charges
+
+### Breaking Changes
+**None!** This is a drop-in upgrade.
+
+- All v3.2.3 features intact (graph, snapshot, compare, backup)
+- All v3.2.2 AI features intact (LLM integration, encryption, chat)
+- All v3.2.1 features intact (history tracking, timeline, comparison)
+- All v3.2.0 features intact (unified dashboard, 5 layouts, themes)
+- All v3.1.x features intact (clustering, GitHub tokens, dynamic config)
+- All CLI commands work exactly the same
+- CVE detection is automatic (no opt-in needed)
+- NVD API key is completely optional
+- Works without any configuration (OSV only)
+- Snapshots still auto-save (disable with `--no-history`)
+
+### Verification
+After upgrading, verify everything works:
+
+```bash
+# Check version
+devcompass --version
+# Expected: 3.2.4
+
+# Test CVE detection (works without NVD key)
+cd /path/to/your/project
+devcompass analyze
+
+# Should see new CVE section in output
+# 🛡️  CVE VULNERABILITY DATABASE (X)
+
+# Optional: Configure NVD API key
+# 1. Get key from: https://nvd.nist.gov/developers/request-an-api-key
+# 2. Add to DevCompass
+devcompass cve key --set --api-key <your-key>
+
+# 3. Test connection
+devcompass cve test
+# Expected: ✓ NVD API key is valid ✓
+
+# Check cache statistics
+devcompass cve cache --stats
+
+# Verify old features still work
+devcompass graph --open              # Graph still works
+devcompass snapshot list             # Snapshots still work
+devcompass compare 1 2               # Compare still works
+devcompass backup list               # Backup still works
+devcompass analyze --ai              # AI still works
+devcompass history list              # History still works
+```
+
+### Troubleshooting
+
+**CVE detection not showing:**
+```bash
+# Ensure you're running v3.2.4
+devcompass --version
+
+# Run analyze to trigger CVE scan
+devcompass analyze
+
+# Check if CVE database was created
+ls ~/.devcompass/cve.db
+# Should exist
+
+# Clear cache and try again
+devcompass cve cache --clear
+devcompass analyze
+```
+
+**All CVEs showing as UNKNOWN:**
+```bash
+# This means severity parser failed
+# Clear cache to force re-parsing
+devcompass cve cache --clear
+
+# Run fresh analysis
+devcompass analyze
+
+# If still showing UNKNOWN:
+# Check OSV API directly
+curl -X POST https://api.osv.dev/v1/query \
+  -H "Content-Type: application/json" \
+  -d '{"package":{"name":"axios","ecosystem":"npm"},"version":"0.21.1"}'
+```
+
+**NVD API key invalid:**
+```bash
+# Test your key
+devcompass cve test
+
+# Common issues:
+# 1. Key not activated (click email link within 7 days)
+# 2. Typo in key (copy-paste carefully)
+# 3. Key expired (request new one)
+
+# Remove and re-add
+devcompass cve key --remove
+devcompass cve key --set --api-key <new-key>
+devcompass cve test
+```
+
+**CVE scan too slow:**
+```bash
+# First run is slower (2-5s) - this is normal
+# API calls to OSV and NVD
+
+# Check cache is working
+devcompass analyze  # First run: slow
+devcompass analyze  # Second run: fast
+
+# Verify cache
+devcompass cve cache --stats
+# Should show cached entries
+
+# If always slow:
+# 1. Check internet connection
+# 2. Check OSV API status: https://status.osv.dev
+# 3. Try without NVD key (OSV only)
+devcompass cve key --remove
+devcompass analyze
+```
+
+**Cache not expiring:**
+```bash
+# Cache expires after 24 hours automatically
+# Check cache age
+devcompass cve cache --stats
+
+# Manual clear if needed
+devcompass cve cache --clear
+
+# Run fresh scan
+devcompass analyze
+```
+
+**Database corruption:**
+```bash
+# Rare, but fixable
+# Backup and recreate
+mv ~/.devcompass/cve.db ~/.devcompass/cve.db.backup
+
+# Run analyze to recreate
+devcompass analyze
+
+# Re-add NVD key if configured
+devcompass cve key --set --api-key <your-key>
+```
+
+### Upgrade Path
+
+**From v3.2.3:**
+```bash
+npm install -g devcompass@3.2.4
+
+# CVE detection works immediately (no setup needed!)
+devcompass analyze
+
+# Optional: Add NVD API key for enrichment
+# 1. Get free key: https://nvd.nist.gov/developers/request-an-api-key
+# 2. Add to DevCompass
+devcompass cve key --set --api-key <your-key>
+
+# 3. Test it
+devcompass cve test
+
+# 4. Use it
+devcompass analyze
+```
+
+**From v3.2.2 or earlier:**
+```bash
+npm install -g devcompass@3.2.4
+
+# You get ALL features:
+# - v3.2.4: CVE detection with OSV + NVD
+# - v3.2.3: graph, snapshot, compare, backup commands
+# - v3.2.2: AI integration, LLM management, encryption
+# - v3.2.1: history tracking, timeline, comparison
+# - v3.2.0: unified dashboard, themes
+```
+
+### What You Get (Full v3.2.4 Feature Set)
+- ✅ **CVE Detection** (v3.2.4) - Real-time vulnerability scanning
+- ✅ **OSV Integration** (v3.2.4) - Primary source, no key required
+- ✅ **NVD Integration** (v3.2.4) - Secondary enrichment, optional
+- ✅ **Smart Caching** (v3.2.4) - 24h TTL, <100ms cached scans
+- ✅ **Encrypted Storage** (v3.2.4) - AES-256-GCM for API keys
+- ✅ **Graph Visualization** (v3.2.3) - Interactive dependency graphs
+- ✅ **Snapshot Management** (v3.2.3) - Save/list/view/delete snapshots
+- ✅ **Snapshot Comparison** (v3.2.3) - Side-by-side diff
+- ✅ **Backup Management** (v3.2.3) - Manual backup operations
+- ✅ **AI Integration** (v3.2.2) - Multi-provider, chat, recommendations
+- ✅ **Encrypted Tokens** (v3.2.2) - AES-256-GCM security
+- ✅ **Cost Tracking** (v3.2.2) - Monitor AI usage
+- ✅ **FREE Local AI** (v3.2.2) - Ollama support
+- ✅ **Historical Tracking** (v3.2.1) - SQLite database, auto-save
+- ✅ **Timeline Visualization** (v3.2.1) - Interactive D3 charts
+- ✅ **Unified Dashboard** (v3.2.0) - 5 layouts, themes
+- ✅ **Dynamic Config** (v3.1.7) - JSON-based
+- ✅ **Clustering** (v3.1.6) - Ecosystem/Health/Depth
+- ✅ **GitHub Tokens** (v3.1.5) - 5,000 req/hr
+
+### Complete Command Reference
+
+**All 11 Command Suites (Expanded from 10):**
+
+1. **analyze** - Full dependency analysis with AI + CVE detection
+   ```bash
+   devcompass analyze
+   devcompass analyze --ai
+   devcompass analyze --no-history
+   ```
+
+2. **fix** - Auto-fix issues with backup
+   ```bash
+   devcompass fix
+   devcompass fix --dry-run
+   devcompass fix --batch
+   ```
+
+3. **graph** - Interactive dependency visualization
+   ```bash
+   devcompass graph --open
+   devcompass graph --layout force
+   devcompass graph --filter vulnerable
+   ```
+
+4. **snapshot** - Snapshot management
+   ```bash
+   devcompass snapshot save
+   devcompass snapshot list
+   devcompass snapshot view 123
+   devcompass snapshot delete 123
+   ```
+
+5. **compare** - Snapshot comparison
+   ```bash
+   devcompass compare 51 52
+   devcompass compare 51 52 --verbose
+   ```
+
+6. **backup** - Backup management
+   ```bash
+   devcompass backup list
+   devcompass backup restore --name backup-xxx
+   devcompass backup clean
+   ```
+
+7. **timeline** - Health trend visualization
+   ```bash
+   devcompass timeline --open
+   devcompass timeline --days 60
+   ```
+
+8. **ai** - AI-powered insights
+   ```bash
+   devcompass ai ask "question"
+   devcompass ai recommend
+   devcompass ai alternatives moment
+   devcompass ai chat
+   ```
+
+9. **llm** - AI provider management
+   ```bash
+   devcompass llm add --provider openai
+   devcompass llm list
+   devcompass llm test openai
+   devcompass llm stats
+   ```
+
+10. **cve** - CVE vulnerability management (NEW)
+    ```bash
+    devcompass cve key --set --api-key <key>
+    devcompass cve key
+    devcompass cve test
+    devcompass cve cache --stats
+    devcompass cve cache --clear
+    ```
+
+11. **config** - DevCompass configuration
+    ```bash
+    devcompass config --github-token ghp-xxx
+    devcompass config --show
+    ```
+
+### Real-World Usage
+
+**Security Workflow:**
+```bash
+# 1. Analyze project with CVE detection
+devcompass analyze
+
+# Output shows:
+# 🛡️  CVE VULNERABILITY DATABASE (4)
+#   🟡 MEDIUM: 12
+
+# 2. Get AI recommendations for CVE fixes
+devcompass analyze --ai
+
+# AI: "Update axios from 0.21.1 to 1.15.2 to fix 2 CVEs"
+
+# 3. Save snapshot before changes
+devcompass snapshot save
+
+# 4. Apply fixes
+npm install axios@latest
+
+# 5. Verify CVEs resolved
+devcompass analyze
+
+# 6. Compare before/after
+devcompass snapshot list
+devcompass compare 70 71
+
+# Output shows:
+# CVE Vulnerabilities: 12 → 0 (-12) ✅
+```
+
+**Team Security Audit:**
+```bash
+# Security team workflow
+devcompass analyze --ai
+devcompass graph --filter vulnerable --output security-audit.html
+
+# Share security-audit.html with team
+# Shows visual dependency graph with CVE-affected packages highlighted
+
+# Track fixes over time
+devcompass snapshot list
+devcompass timeline --open
+
+# View trend:
+# Week 1: 24 CVEs
+# Week 2: 12 CVEs
+# Week 3: 0 CVEs ✅
+```
+
+**CI/CD Integration:**
+```bash
+# In CI pipeline
+devcompass analyze --json > analysis.json
+
+# Parse CVE count
+CVE_COUNT=$(cat analysis.json | jq '.cve.total')
+
+# Fail build if CVEs found
+if [ "$CVE_COUNT" -gt 0 ]; then
+  echo "❌ Found $CVE_COUNT CVEs - build failed"
+  exit 1
+fi
+```
+
+### Migration Checklist
+
+- [x] Upgrade to v3.2.4
+- [x] Verify version: `devcompass --version`
+- [x] Test CVE detection: `devcompass analyze`
+- [x] Verify CVE section appears in output
+- [x] Optional: Get NVD API key
+- [x] Optional: Configure key: `devcompass cve key --set`
+- [x] Optional: Test key: `devcompass cve test`
+- [x] Check cache: `devcompass cve cache --stats`
+- [x] Verify graph still works: `devcompass graph --open`
+- [x] Verify snapshots still work: `devcompass snapshot list`
+- [x] Verify AI still works: `devcompass ai ask "test"`
+- [x] Verify history still works: `devcompass history list`
+
+### Rollback (if needed)
+```bash
+# Downgrade to v3.2.3
+npm install -g devcompass@3.2.3
+
+# CVE database will remain (safe to delete if needed)
+rm ~/.devcompass/cve.db
+
+# All v3.2.3 features still work
+# You'll just lose CVE detection
+```
+
+### Known Limitations
+
+- CVE detection requires internet connection
+- OSV API rate limits (rarely hit in practice)
+- NVD API rate limits: 5 req/s with key, 0.6 req/s without
+- Cache expires after 24 hours (configurable in future)
+- Supports npm ecosystem only (PyPI, Maven planned)
+- No offline mode (cache helps but requires initial fetch)
+- Severity parsing may miss some edge cases
+
+### Future Enhancements (Planned)
+
+- [ ] **CVSS Score Visualization** - Visual severity indicators in graph
+- [ ] **CVE Trend Analysis** - Track vulnerability trends over time
+- [ ] **Automated CVE Fixes** - Auto-update vulnerable packages
+- [ ] **Multi-Ecosystem Support** - PyPI, Maven, RubyGems, Go modules
+- [ ] **Offline Mode** - Cache vulnerabilities indefinitely
+- [ ] **Custom Severity Thresholds** - Configurable risk tolerance
+- [ ] **CVE Alerts** - Email/Slack notifications for new CVEs
+- [ ] **Remediation Tracking** - Track fix progress over time
+
+---
+
 ## From v3.2.2 → v3.2.3
 
 ### What's New

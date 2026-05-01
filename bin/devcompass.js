@@ -22,18 +22,20 @@ const program = new Command();
 
 program
   .name('devcompass')
-  .description('Dependency health checker with AI-powered insights')
+  .description('Dependency health checker with AI-powered insights & CVE detection')
   .version(packageJson.version, '-v, --version', 'Display version information')
   .addHelpText('after', `
 ${chalk.gray('Author:')} Ajay Thorat
 ${chalk.gray('GitHub:')} ${chalk.cyan('https://github.com/AjayBThorat-20/devcompass')}
+${chalk.gray('New in v3.2.4:')} 🛡️  CVE vulnerability detection (OSV + NVD)
+${chalk.gray('New in v3.2.3:')} 🎯 All 10 commands now working!
 ${chalk.gray('New in v3.2.2:')} 🤖 AI-powered dependency analysis
   `);
 
 // Analyze command (UPDATED with --ai flag)
 program
   .command('analyze')
-  .description('Analyze your project dependencies')
+  .description('Analyze your project dependencies with CVE detection')
   .option('-p, --path <path>', 'Project path', process.cwd())
   .option('--json', 'Output results as JSON')
   .option('--ci', 'CI mode - exit with error code if score below threshold')
@@ -49,6 +51,13 @@ ${chalk.bold('Analysis Examples:')}
   ${chalk.cyan('devcompass analyze --no-history')}    Analyze without saving to history
   ${chalk.cyan('devcompass analyze --json')}          Output as JSON
   ${chalk.cyan('devcompass analyze --ci')}            CI mode with exit codes
+
+${chalk.bold('🛡️  NEW: CVE Vulnerability Detection (v3.2.4):')}
+  • Real-time CVE database checking (OSV + NVD)
+  • CVSS severity scores
+  • Official vulnerability IDs
+  • 24-hour caching for performance
+  • Industry-standard security data
 
 ${chalk.bold('🤖 AI-Powered Analysis:')}
   • Get intelligent recommendations
@@ -99,7 +108,7 @@ ${chalk.bold('Available Categories:')}
   `)
   .action(fix);
 
-// Backup command (UPDATED)
+// Backup command
 program
   .command('backup <action>')
   .description('Manage backups (list, restore, clean, info)')
@@ -128,7 +137,7 @@ ${chalk.bold('Backup Location:')}
     backup(action, options);
   });
 
-// Graph command (UPDATED)
+// Graph command
 program
   .command('graph')
   .description('Generate dependency graph visualization')
@@ -219,7 +228,7 @@ ${chalk.bold('Basic Examples:')}
     await historyCommand({ ...options, _: ['history', subcommand] });
   });
 
-// Compare command (UPDATED)
+// Compare command
 program
   .command('compare <id1> <id2>')
   .description('Compare two analysis snapshots')
@@ -244,7 +253,7 @@ ${chalk.bold('What Gets Compared:')}
     await compareCommand({ ...options, _: ['compare', id1, id2] });
   });
 
-// Snapshot command (NEW)
+// Snapshot command
 program
   .command('snapshot <subcommand> [id]')
   .description('Manage dependency snapshots')
@@ -274,6 +283,7 @@ ${chalk.bold('What Gets Saved:')}
   • Health scores and metrics
   • Package versions
   • Issues and vulnerabilities
+  • CVE vulnerability status (v3.2.4)
   • Project metadata
   • Timestamp
 
@@ -335,7 +345,73 @@ ${chalk.bold('Timeline Examples:')}
   });
 
 // ===========================
-// NEW v3.2.2 - LLM Management Command - FIXED
+// NEW v3.2.4 - CVE Management Command
+// ===========================
+program
+  .command('cve')
+  .description('🛡️  Manage CVE vulnerability databases and API keys')
+  .argument('[subcommand]', 'CVE subcommand (key, test, cache)')
+  .option('--set', 'Set API key')
+  .option('--api-key <key>', 'API key value')
+  .option('--key <key>', 'API key value (alias)')
+  .option('--remove', 'Remove API key')
+  .option('--list', 'List all API keys')
+  .option('--clear', 'Clear cache')
+  .option('--stats', 'Show cache statistics')
+  .addHelpText('after', `
+
+${chalk.bold('🛡️  CVE Management:')}
+  Manage NVD API keys and vulnerability cache
+
+${chalk.bold('Subcommands:')}
+  ${chalk.cyan('key')}     Manage NVD API keys
+  ${chalk.cyan('test')}    Test API key connection
+  ${chalk.cyan('cache')}   Manage vulnerability cache
+
+${chalk.bold('Examples:')}
+  ${chalk.gray('# Set NVD API key')}
+  ${chalk.cyan('devcompass cve key --set --api-key abc123xyz')}
+
+  ${chalk.gray('# Test API key')}
+  ${chalk.cyan('devcompass cve test')}
+
+  ${chalk.gray('# View cache stats')}
+  ${chalk.cyan('devcompass cve cache --stats')}
+
+  ${chalk.gray('# Clear cache')}
+  ${chalk.cyan('devcompass cve cache --clear')}
+
+${chalk.bold('Getting NVD API Key:')}
+  1. Visit: ${chalk.cyan('https://nvd.nist.gov/developers/request-an-api-key')}
+  2. Enter your organization name and email
+  3. Agree to Terms of Use
+  4. Check email for API key
+  5. Run: ${chalk.cyan('devcompass cve key --set --api-key <your-key>')}
+
+${chalk.bold('Why CVE Integration?')}
+  ✓ Real-time vulnerability detection
+  ✓ CVSS severity scores
+  ✓ Official CVE database (NIST)
+  ✓ Industry-standard security
+  ✓ AI-powered recommendations
+
+${chalk.bold('Features:')}
+  • OSV API (no key required) - Primary scanning
+  • NVD API (key required) - CVSS scores & enrichment
+  • 24-hour caching for performance
+  • Batch scanning for efficiency
+  • Encrypted API key storage
+
+${chalk.bold('Database Location:')}
+  ${chalk.dim('~/.devcompass/cve.db')}
+  `)
+  .action(async (subcommand, options) => {
+    const cveCommand = require('../src/commands/cve');
+    await cveCommand(subcommand, options);
+  });
+  
+// ===========================
+// v3.2.2 - LLM Management Command
 // ===========================
 program
   .command('llm')
@@ -461,7 +537,7 @@ ${chalk.bold('Security:')}
   });
 
 // ===========================
-// NEW v3.2.2 - AI Analysis Command - FIXED
+// v3.2.2 - AI Analysis Command
 // ===========================
 program
   .command('ai')
@@ -487,7 +563,7 @@ ${chalk.bold('AI Analysis Examples:')}
   ${chalk.gray('devcompass ai ask "Why is my health score low?"')}
   ${chalk.gray('devcompass ai ask "Should I update axios now?"')}
   ${chalk.gray('devcompass ai ask "What are the risks of updating to React 19?"')}
-  ${chalk.gray('devcompass ai ask "How do I fix this security vulnerability?"')}
+  ${chalk.gray('devcompass ai ask "How do I fix this CVE vulnerability?"')}
 
   ${chalk.bold('Get Recommendations:')}
   ${chalk.gray('devcompass analyze --ai')}                  ${chalk.dim('# Analyze with AI insights')}
@@ -508,12 +584,13 @@ ${chalk.bold('What AI Can Help With:')}
   • Suggest migration strategies
   • Find better alternatives
   • Prioritize updates by risk
-  • Explain security vulnerabilities
+  • Explain CVE vulnerabilities (NEW v3.2.4)
   • Provide step-by-step fixes
   • Answer questions about dependencies
 
 ${chalk.bold('AI Capabilities:')}
   • Context-aware (knows your project details)
+  • CVE vulnerability context (v3.2.4)
   • Real-time streaming responses
   • Natural language Q&A
   • Code examples and migration guides
@@ -539,6 +616,7 @@ ${chalk.bold('Cost Information:')}
 
 ${chalk.bold('Privacy & Security:')}
   • Your code is never sent to AI (only analysis metadata)
+  • CVE data used for security recommendations (v3.2.4)
   • Tokens stored encrypted locally
   • Conversations saved locally for context
   • You control which provider to use

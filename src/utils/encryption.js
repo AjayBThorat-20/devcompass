@@ -4,7 +4,7 @@ const os = require('os');
 
 const ALGORITHM = 'aes-256-gcm';
 const KEY_LENGTH = 32;
-const IV_LENGTH = 16;
+const IV_LENGTH = 12; // ✅ FIXED: GCM uses 12-byte IV, not 16
 const AUTH_TAG_LENGTH = 16;
 
 // Generate encryption key from machine-specific data
