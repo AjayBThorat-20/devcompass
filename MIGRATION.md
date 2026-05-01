@@ -861,17 +861,6 @@ rm ~/.devcompass/cve.db
 - No offline mode (cache helps but requires initial fetch)
 - Severity parsing may miss some edge cases
 
-### Future Enhancements (Planned)
-
-- [ ] **CVSS Score Visualization** - Visual severity indicators in graph
-- [ ] **CVE Trend Analysis** - Track vulnerability trends over time
-- [ ] **Automated CVE Fixes** - Auto-update vulnerable packages
-- [ ] **Multi-Ecosystem Support** - PyPI, Maven, RubyGems, Go modules
-- [ ] **Offline Mode** - Cache vulnerabilities indefinitely
-- [ ] **Custom Severity Thresholds** - Configurable risk tolerance
-- [ ] **CVE Alerts** - Email/Slack notifications for new CVEs
-- [ ] **Remediation Tracking** - Track fix progress over time
-
 ---
 
 ## From v3.2.2 → v3.2.3

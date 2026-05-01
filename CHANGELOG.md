@@ -724,17 +724,6 @@ devcompass analyze --ai              # AI still works
 - ✅ Unlimited local caching
 - ✅ No rate limit charges
 
-### Future Enhancements (v3.3.0+)
-
-- CVSS Score Visualization - Visual severity indicators in graph
-- CVE Trend Analysis - Track vulnerability trends over time
-- Automated CVE Fixes - Auto-update vulnerable packages
-- Multi-Ecosystem Support - PyPI, Maven, RubyGems, Go modules
-- Offline Mode - Cache vulnerabilities indefinitely
-- Custom Severity Thresholds - Configurable risk tolerance
-- CVE Alerts - Email/Slack notifications for new CVEs
-- Remediation Tracking - Track fix progress over time
-
 ### Getting NVD API Key
 
 **Step-by-Step Guide:**
@@ -1235,15 +1224,6 @@ devcompass backup list
 - Snapshots stored locally only (no cloud sync)
 - Backups require manual cleanup (auto-cleanup available)
 - Comparison requires 2 different snapshots
-
-### Future Enhancements (v3.3.0+)
-
-- Cloud snapshot sync
-- Automated backup policies
-- Graph export to multiple formats (PDF, SVG)
-- Snapshot diff visualization
-- Backup compression
-- Team collaboration features
 
 ### 🎯 Production Ready
 
@@ -1804,15 +1784,6 @@ devcompass ai ask "What should I fix first?"
 - ✅ **Automated Insights** - AI in CI/CD pipelines
 - ✅ **Smart Alerts** - AI prioritizes critical issues
 - ✅ **Migration Help** - AI suggests upgrade paths
-
-### Future Enhancements (v3.3.0+)
-
-- AI-powered PR comments
-- Automated dependency upgrade plans
-- Custom AI model training
-- Team knowledge base
-- AI audit reports
-- Voice commands
 
 ### 🔒 Security Enhancements
 
@@ -2646,15 +2617,6 @@ devcompass graph --open
 - Analytics cards static (no real-time updates without regeneration)
 - Window exports required (functions must be global for onclick handlers)
 
-### Future Enhancements (v3.3.0+)
-
-- Real-time analytics updates
-- Customizable dashboard cards
-- Export dashboard as PDF
-- Share dashboard link
-- Custom theme creation
-- Dashboard templates
-
 ### Benefits Summary
 
 **For Users:**
@@ -2886,15 +2848,6 @@ devcompass analyze
 - Data files must be valid JSON (syntax errors will cause loading failures)
 - Changes to data files require restart (not hot-reloaded)
 - File paths are relative to package installation directory
-
-### Future Enhancements (v3.2.0+)
-
-- Hot-reload configuration without restart
-- Configuration validation on startup
-- User-specific config overrides
-- Visual configuration editor (web UI)
-- Configuration presets (team/company templates)
-- Schema validation for JSON files
 
 ---
 
@@ -3408,14 +3361,6 @@ devcompass config --show
 # ✓ GitHub token configured: ghp_xxx***xxx
 ```
 
-### Future Enhancements (v3.2.0+)
-
-- Token expiration warnings
-- Multiple token support (per-organization)
-- Token rotation helper
-- GitHub App authentication
-- Rate limit status display
-
 ---
 
 ## [3.1.4] - 2026-04-20
@@ -3808,23 +3753,6 @@ const exporter = new GraphExporter(graphData, {
 - Use Zoom In for closer view
 - Switch to Force layout
 - Increase depth filter
-
-### Future Enhancements (v3.2.0+)
-
-Planned improvements:
-- [ ] Minimap for large graphs
-- [ ] Node grouping/clustering
-- [ ] Timeline view (dependency changes over time)
-- [ ] Dependency path tracing
-- [ ] Compare mode (before/after fixes)
-- [ ] Dark/light theme toggle
-- [ ] Custom color schemes
-- [ ] Advanced search (regex, multiple packages)
-- [ ] Keyboard shortcuts panel
-- [ ] Touch gestures for mobile
-- [ ] WebGL rendering for 1000+ nodes
-- [ ] Graph layout persistence
-- [ ] Shareable URLs with filters
 
 ### Acknowledgments
 
@@ -4758,13 +4686,6 @@ devcompass analyze
 - Improves: Unused dependency detection accuracy
 - Enhances: TypeScript project support
 - Maintains: Backward compatibility
-
-### Future Enhancements
-With knip integration, future improvements include:
-- Monorepo support (v3.1.0)
-- Workspace dependency analysis (v3.1.0)
-- Better plugin ecosystem integration (v3.1.0)
-- Advanced TypeScript type checking integration (v3.2.0)
 
 ---
 
@@ -6394,16 +6315,6 @@ devcompass analyze
 - Shell: /bin/sh, /bin/bash, powershell
 - Suspicious keywords: bitcoin, mining, keylogger, backdoor
 
-### Future Enhancements (v2.8.0+)
-
-Planned improvements:
-- Expanded malicious package database (community contributions)
-- More license compatibility rules
-- Package reputation scoring
-- Automated security fix PRs
-- Integration with OSSF Scorecard
-- Custom security policy configuration
-
 ### 🔗 Links
 
 - **Documentation:** Updated with security features
@@ -6556,14 +6467,6 @@ const results = await checkGitHubIssues(packages, {
 });
 ```
 
-### Future Enhancements (v2.7.0+)
-
-- Configurable concurrency via CLI flag (e.g., `--concurrency 10`)
-- Adaptive rate limiting based on GitHub API responses
-- Progress bar with percentage complete
-- Estimated time remaining display
-- GitHub API authentication for higher rate limits
-
 ---
 
 ## [2.5.0] - 2026-04-03
@@ -6705,13 +6608,6 @@ Smart filtering ensures zero performance degradation despite 35x more tracked pa
 - `src/alerts/predictive.js` - Enhanced with smart filtering
 - `src/commands/analyze.js` - Updated spinner messages and display text
 - `package.json` - Version bump to 2.5.0, description updated
-
-### Future Enhancements (v2.6.0+)
-- Performance optimizations for parallel GitHub checks
-- Category-based filtering in config
-- Historical trend tracking across versions
-- Custom package tracking via config file
-- Rate limit optimization with GitHub authentication
 
 ---
 
@@ -6895,14 +6791,6 @@ To disable predictive warnings (if needed):
 - Only tracks packages in TRACKED_REPOS list (14 packages currently)
 - Requires internet connection for GitHub data
 - Cache prevents real-time updates (1 hour TTL)
-
-### Future Enhancements (v2.5.0+)
-- Expand to top 500 npm packages
-- GitHub authentication for higher rate limits
-- Configurable tracked packages list
-- Historical trend tracking
-- Email/Slack notifications for critical warnings
-- Custom risk thresholds
 
 ---
 

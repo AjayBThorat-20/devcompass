@@ -1128,15 +1128,7 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 - [x] **Intelligent clustering** (v3.1.6) ✅
 
 ### Planned Features:
-- [ ] **CVSS Score Visualization** - Visual severity indicators
-- [ ] **CVE Trend Analysis** - Track vulnerability trends over time
-- [ ] **Automated CVE Fixes** - Auto-update vulnerable packages
-- [ ] **Cloud Snapshot Sync** - Sync snapshots across team
-- [ ] **Graph Export Formats** - PDF, SVG export
 - [ ] **Web Dashboard** - Team health monitoring with AI insights
-- [ ] **Monorepo Support** - Multi-project AI analysis
-- [ ] **Automated Backup Policies** - Schedule automatic backups
-- [ ] **Snapshot Diff Visualization** - Visual diff tool
 
 Want to contribute? Pick a feature and open an issue! 🚀
 
