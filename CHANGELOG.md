@@ -6760,6 +6760,7 @@ No migration needed. All features are opt-in via flags or config.
 
 ---
 
+[3.2.3]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.2.3
 [3.2.2]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.2.2
 [3.2.1]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.2.1
 [3.2.0]: https://github.com/AjayBThorat-20/devcompass/releases/tag/v3.2.0
