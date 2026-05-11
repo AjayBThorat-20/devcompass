@@ -1,398 +1,470 @@
 # 🧭 DevCompass
 
-**AI-powered dependency health checker with 10 complete CLI commands featuring CVE vulnerability detection, interactive graph visualization, snapshot management, backup system, unified dashboard with 5 dynamic layouts (Tree/Force/Radial/Conflict/Analytics), intelligent AI recommendations, multi-provider LLM support, historical tracking with SQLite database, snapshot comparison, timeline visualization, modular CSS/JS architecture, intelligent clustering (Ecosystem/Health/Depth grouping), real-time filtering, advanced zoom controls, theme support (dark/light), supply chain security with auto-fix, license conflict resolution, package quality auto-fix, batch fix modes, and professional dependency exploration.**
+> **Professional dependency health checker with AI-powered insights, real-time CVE detection, and comprehensive project analysis**
 
 [![npm version](https://img.shields.io/npm/v/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/node/v/devcompass.svg)](https://nodejs.org)
 
-Analyze your JavaScript projects to find unused dependencies, outdated packages, **detect CVE vulnerabilities with OSV + NVD**, **visualize dependency graphs with interactive controls**, **manage snapshots of your project state**, **compare changes over time**, **backup and restore package files**, **get AI-powered recommendations**, **ask questions about your dependencies**, **find package alternatives with AI**, **chat with AI about your project**, **monitor GitHub issues in real-time for 502 packages**, **configure your own GitHub token to avoid rate limits**, **customize all configuration via JSON files**, **organize packages by ecosystem (React/Vue/Angular/Testing/Build Tools)**, **group by health status (Critical/Warning/Healthy)**, **analyze by depth levels**, **instant layout switching**, **dark/light theme toggle**, **real-time filtering**, **advanced zoom controls**, **track dependency changes over time with SQLite database**, **visualize evolution with interactive timelines**, **check bundle sizes**, **verify licenses**, **detect and auto-fix supply chain attacks**, **resolve license conflicts automatically**, **replace abandoned/deprecated packages automatically**, **analyze package quality**, **batch fix with granular control**, and **automatically fix issues with dry-run, progress tracking, and backups**. Perfect for **CI/CD pipelines** with JSON output and exit codes.
+**DevCompass** is a comprehensive dependency analysis platform that combines security scanning, health monitoring, and AI-powered recommendations into a single powerful CLI tool. Built for modern JavaScript projects, it provides enterprise-grade insights with developer-friendly workflows.
 
-> **🛡️ LATEST v3.2.4:** CVE Vulnerability Detection - Real-time security scanning with OSV + NVD! 🛡️  
-> **🎯 v3.2.3:** Feature Complete - All 10 commands now working! Graph, Snapshot, Compare, Backup! 🎯  
-> **🤖 v3.2.2:** AI-Powered Analysis - Get intelligent recommendations from OpenAI, Anthropic, Google, or FREE local AI! 🤖
+---
 
-## 🎉 Latest Release: v3.2.4 (2026-05-01)
+## 🎯 What is DevCompass?
 
-**🛡️ CVE Vulnerability Detection - Industry-Standard Security Scanning!**
+DevCompass analyzes your project dependencies to provide actionable insights about:
 
-### 🌟 What's New in v3.2.4:
+- **🛡️ Security** - Real-time CVE detection with OSV + NVD integration
+- **📊 Health** - Dependency quality, maintenance status, and project health scores
+- **🤖 Intelligence** - AI-powered recommendations and package alternatives
+- **📈 History** - Track changes over time with snapshots and timeline visualization
+- **🎨 Visualization** - Interactive dependency graphs with multiple layouts
+- **🔧 Automation** - Auto-fix issues with intelligent risk classification
 
-#### **🛡️ Real-Time CVE Detection**
-DevCompass now integrates with industry-standard vulnerability databases to detect security issues in real-time!
+---
 
-**Key Features:**
+## ✨ Key Features
 
-1. **🔍 OSV API Integration** (Primary Source - No Key Required)
-   - Open Source Vulnerabilities database
-   - npm-focused vulnerability detection
-   - Fast, free, comprehensive coverage
-   - GitHub Security Advisories integration
+### 🛡️ **Security & Vulnerability Detection**
 
-2. **🏛️ NVD API Integration** (Secondary Enrichment - Optional Key)
-   - National Vulnerability Database (NIST)
-   - Official CVE data with CVSS scores
-   - Detailed vulnerability metadata
-   - Enhanced severity classification
+Real-time CVE scanning with industry-standard databases:
 
-3. **⚡ Intelligent Caching System**
-   - 24-hour TTL with automatic expiry
-   - SQLite-based local storage
-   - Instant subsequent scans (<100ms)
-   - Cache version management
-   - Batch queries with concurrency control
+- **Dual-Source Detection** - OSV (free) + NVD (optional API key)
+- **CVSS Severity Scoring** - CRITICAL/HIGH/MEDIUM/LOW classification
+- **Smart Caching** - 24-hour local cache for instant subsequent scans
+- **Encrypted Storage** - AES-256-GCM for API keys
+- **Batch Processing** - Concurrent vulnerability checks for performance
 
-4. **🔒 Encrypted API Key Storage**
-   - AES-256-GCM encryption
-   - Machine-specific encryption keys
-   - Local-only storage (never transmitted)
-   - Secure token management
+### 🤖 **AI-Powered Analysis**
 
-**CVE Commands:**
+Get intelligent insights with multi-provider LLM support:
+
+- **4 AI Providers** - OpenAI, Anthropic, Google, or local Ollama
+- **Interactive Chat** - Ask questions about your dependencies
+- **Smart Alternatives** - AI-suggested package replacements
+- **Context-Aware** - Recommendations based on your project state
+- **FREE Option** - Use local Ollama for zero-cost AI analysis
+
+### 📊 **Historical Tracking**
+
+Monitor dependency evolution with comprehensive tracking:
+
+- **Auto-Snapshots** - Automatic state capture on every analysis
+- **Comparison Tools** - Side-by-side diff between snapshots
+- **Timeline Visualization** - Interactive D3 charts showing trends
+- **SQLite Database** - Fast, reliable local storage
+
+### 🎨 **Interactive Visualization**
+
+Explore dependencies with rich, interactive graphs:
+
+- **4 Layout Modes** - Tree, Force-directed, Radial, Conflict
+- **Real-Time Filtering** - Show only vulnerable, outdated, or unused packages
+- **Dark/Light Themes** - Comfortable viewing in any environment
+- **Export Options** - PNG, JSON, or interactive HTML
+
+### 🔧 **Intelligent Fixing**
+
+Automated issue resolution with safety guarantees:
+
+- **Risk Classification** - Safe, moderate, and risky fixes identified
+- **Preview Mode** - See all changes before applying
+- **Automatic Backups** - Restore point before any modifications
+- **Interactive Confirmation** - Review and approve changes
+
+---
+
+## 🚀 Quick Start
+
+### Installation
+
 ```bash
-# Configure NVD API key (optional but recommended)
-devcompass cve key --set --api-key <your-key>
-devcompass cve test                         # Test connection
-devcompass cve key                          # Show status
+# Global installation (recommended)
+npm install -g devcompass
+
+# Local project installation
+npm install --save-dev devcompass
+
+# One-time use with npx
+npx devcompass analyze
+```
+
+### First Analysis
+
+```bash
+# Run your first analysis (shows Top 3 critical issues)
+devcompass analyze
+
+# Get full detailed report
+devcompass analyze --deep
+
+# Get AI-powered recommendations
+devcompass analyze --ai
+
+# Generate interactive dependency graph
+devcompass graph --open
+```
+
+### Configure Security Scanning
+
+```bash
+# Get free NVD API key from: https://nvd.nist.gov/developers/request-an-api-key
+devcompass cve key --set --api-key YOUR_KEY
+
+# Test connection
+devcompass cve test
+
+# Run analysis with CVE detection
+devcompass analyze
+```
+
+---
+
+## 📖 Complete Command Reference
+
+### Core Analysis
+
+#### `analyze` - Analyze Project Dependencies
+
+Comprehensive dependency analysis with security scanning and health metrics.
+
+```bash
+# Basic analysis (Top 3 critical issues)
+devcompass analyze
+
+# Full detailed report (all issues)
+devcompass analyze --deep
+
+# With AI recommendations
+devcompass analyze --ai
+
+# JSON output for CI/CD
+devcompass analyze --json
+
+# Silent mode (no output)
+devcompass analyze --silent
+
+# CI mode (exit code based on health)
+devcompass analyze --ci
+
+# CI mode with custom threshold
+devcompass analyze --ci --threshold 8.0
+```
+
+**Output Modes:**
+- **Default** - Top 3 critical issues (clean, focused output)
+- **Deep** - Complete analysis with all issues categorized
+- **JSON** - Structured data for automation
+- **Silent** - No output (exit code only for scripting)
+
+**Health Score Icons:**
+- 🟢 **9.0-10.0** - Excellent (Outstanding health)
+- ✅ **8.0-8.9** - Good (Healthy project)
+- ⚠️ **6.0-7.9** - Needs Attention (Some issues)
+- 🟠 **4.0-5.9** - Poor (Many issues)
+- 🔴 **0.0-3.9** - Critical (Urgent action needed)
+
+---
+
+### Security Commands
+
+#### `cve` - CVE Vulnerability Management
+
+Manage CVE detection settings and vulnerability database.
+
+```bash
+# Configure NVD API key
+devcompass cve key --set --api-key YOUR_KEY
+devcompass cve key                    # Show current status
+devcompass cve key --remove           # Remove stored key
+
+# Test API connection
+devcompass cve test
 
 # Cache management
-devcompass cve cache --stats                # View statistics
-devcompass cve cache --clear                # Clear cache
-
-# Analysis includes CVE detection automatically
-devcompass analyze                          # CVE scan included!
+devcompass cve cache --stats          # View cache statistics
+devcompass cve cache --clear          # Clear cached data
 ```
 
 **Getting NVD API Key:**
-1. Visit: https://nvd.nist.gov/developers/request-an-api-key
-2. Enter your email and organization name
-3. Agree to Terms of Use
-4. Check email for activation link (valid 7 days)
-5. Activate and copy your API key
-6. Run: `devcompass cve key --set --api-key <key>`
+1. Visit [NVD Developer Portal](https://nvd.nist.gov/developers/request-an-api-key)
+2. Enter email and organization
+3. Activate via email link (valid 7 days)
+4. Configure in DevCompass
 
-#### **🎯 CVE Detection Features**
-- 🔍 **Automatic Scanning** - Every `analyze` run checks for CVEs
-- 🎨 **Severity Classification** - CRITICAL/HIGH/MEDIUM/LOW ratings
-- ⚡ **Fast Performance** - 2-5s first run, <100ms cached
-- 📊 **Summary Statistics** - Count by severity level
-- 🔗 **Reference Links** - Direct links to CVE details
-- 💾 **Smart Caching** - 24-hour local cache with auto-expiry
-- 🔒 **Privacy First** - API keys encrypted, never shared
-- 🆓 **Free Option** - Works without NVD key (OSV only)
+**Cache Behavior:**
+- **TTL:** 24 hours
+- **Performance:** First run 2-5s, cached <100ms
+- **Storage:** SQLite local database
 
-#### **📊 Enhanced Security Output**
-```bash
-🛡️  CVE VULNERABILITY DATABASE (4)
+---
 
-  🟡 MEDIUM: 12
+### Fixing & Automation
 
-  Affected Packages:
+#### `fix` - Automated Issue Resolution
 
-  axios@0.21.1
-    ● GHSA-3p68-rc4w-qgx5 - MEDIUM
-      Axios has a NO_PROXY Hostname Normalization Bypass that Leads to SSRF
-    ● GHSA-43fc-jf86-j433 - MEDIUM
-      Axios Denial of Service vulnerability
-
-  express@4.17.1
-    ● GHSA-qw6h-vgh9-j6wx - MEDIUM
-      Express.js Open Redirect in malformed URLs
-
-  💡 Sources: OSV (Open Source Vulnerabilities) + NVD (National Vulnerability Database)
-  Run npm audit fix to fix known vulnerabilities
-```
-
-## ✨ All Features
-
-### **Command Suite (10/10 Complete) ✅**
-- 📊 **analyze** - Full dependency analysis with AI + CVE detection
-- 🔧 **fix** - Auto-fix issues with backup
-- 📊 **graph** - Interactive dependency visualization
-- 📸 **snapshot** - Snapshot management
-- 🔄 **compare** - Snapshot comparison
-- 💾 **backup** - Backup management
-- 📈 **timeline** - Health trend visualization
-- 🤖 **ai** - AI-powered insights
-- 🔑 **llm** - AI provider management
-- 🛡️ **cve** (v3.2.4) - CVE vulnerability management
-- ⚙️ **config** - DevCompass configuration
-
-### **Security & Vulnerability Detection (v3.2.4)**
-- 🛡️ **CVE Detection** - OSV + NVD integration
-- 🔍 **Real-Time Scanning** - Check every package
-- 🎨 **Severity Classification** - CRITICAL/HIGH/MEDIUM/LOW
-- ⚡ **Smart Caching** - 24-hour TTL for performance
-- 🔒 **Encrypted Storage** - AES-256-GCM for API keys
-- 📊 **Detailed Reports** - CVE IDs, summaries, references
-- 💾 **Batch Processing** - Concurrent vulnerability checks
-- 🆓 **Free Tier** - Works without API keys
-
-### **AI & Intelligence (v3.2.2)**
-- 🤖 **AI-Powered Analysis** - Multi-provider LLM integration
-- 💬 **Interactive AI Chat** - Ask questions, get answers
-- 🔄 **Package Alternatives** - AI-suggested replacements
-- 🔒 **Encrypted Tokens** - AES-256-GCM security
-- 📊 **Cost Tracking** - Monitor AI usage
-
-### **Tracking & History (v3.2.1 + v3.2.3)**
-- 📊 **Historical Tracking** - SQLite database, auto-save snapshots
-- 🔍 **Snapshot Comparison** - Side-by-side diff analysis
-- 📈 **Timeline Visualization** - Interactive D3 charts
-- 💾 **Backup Management** - Manual backup/restore operations
-- 🗂️ **Flexible Dates** - 9 date formats supported
-
-### **Visualization (v3.2.0 + v3.2.3)**
-- 🎨 **Unified Dashboard** - 5 layouts, modular architecture
-- 📊 **Interactive Graphs** - Multiple layouts with real-time filtering
-- 📊 **Analytics Layout** - Statistics dashboard
-- 🌙 **Theme Support** - Dark/light mode toggle
-- ⚡ **Performance** - 4-6× faster rendering
-- 🔲 **Intelligent Clustering** - Ecosystem/Health/Depth grouping
-
-### **Configuration & Security**
-- 🔧 **Dynamic Data Configuration** - JSON-based scalable config
-- 🔑 **GitHub Token Config** - User tokens, no rate limits
-- 🔒 **Encrypted Storage** - AES-256-GCM for sensitive data
-- 📦 **502 Tracked Packages** - Comprehensive monitoring
-
-## 🚀 Installation
+Fix dependency issues with intelligent risk classification and safety guarantees.
 
 ```bash
-# Global (recommended)
-npm install -g devcompass@3.2.4
-
-# Local
-npm install --save-dev devcompass@3.2.4
-
-# One-time use
-npx devcompass@3.2.4 analyze
-
-# Upgrade from any version
-npm install -g devcompass@3.2.4
-```
-
-## 📖 Usage
-
-### Basic Commands
-
-```bash
-# Configure GitHub token (recommended)
-devcompass config --github-token <your-token>
-devcompass config --show
-
-# Analyze project (includes CVE detection!)
-devcompass analyze
-devcompass analyze --ai  # 🤖 With AI recommendations!
-devcompass analyze --no-history  # Skip snapshot
-
-# Generate interactive graph
-devcompass graph --open
-devcompass graph --layout force --filter vulnerable
-
-# Auto-fix issues
+# Interactive fix with preview (NEW default behavior)
 devcompass fix
-devcompass fix --batch
+
+# Skip confirmation
+devcompass fix --yes
+
+# Include all fixes (including risky)
+devcompass fix --all
+
+# Preview only (no changes)
 devcompass fix --dry-run
 ```
 
-### CVE Commands (NEW in v3.2.4)
+**Safety Features:**
+- Automatic backup before changes
+- Risk classification (safe/moderate/risky)
+- Interactive preview and confirmation
+- Health score tracking (before → after)
+- Rollback support
+
+---
+
+### Visualization
+
+#### `graph` - Dependency Graph Visualization
+
+Generate interactive dependency graphs with multiple layouts and filters.
 
 ```bash
-# Configure NVD API key (optional)
-devcompass cve key --set --api-key <your-nvd-key>
-devcompass cve key                          # Show current status
-devcompass cve key --remove                 # Remove stored key
+# Generate graph with default settings
+devcompass graph
 
-# Test NVD API connection
-devcompass cve test                         # Validate your key
-
-# Cache management
-devcompass cve cache --stats                # View cache statistics
-devcompass cve cache --clear                # Clear vulnerability cache
-
-# CVE detection runs automatically with analyze
-devcompass analyze                          # Includes CVE scan!
-```
-
-**Getting Your NVD API Key:**
-```bash
-# 1. Visit: https://nvd.nist.gov/developers/request-an-api-key
-# 2. Fill in:
-#    - Email address
-#    - Organization name
-#    - Agree to Terms of Use
-# 3. Check your email for single-use activation link
-# 4. Click link to activate (must activate within 7 days)
-# 5. Copy your API key from the confirmation page
-# 6. Add to DevCompass:
-devcompass cve key --set --api-key 9d47e8fb-0837-4da7-a1cf-7a0bxxx8ca22
-
-# 7. Test it:
-devcompass cve test
-
-# Output:
-# 🧪 Testing NVD API Key...
-# ✓ NVD API key is valid ✓
-```
-
-### Graph Commands (v3.2.3)
-
-```bash
-# Generate interactive dependency graph
-devcompass graph                            # Default tree layout
-devcompass graph --layout force             # Force-directed layout
-devcompass graph --layout radial            # Radial tree layout
-devcompass graph --layout conflict          # Highlight conflicts
+# Specify layout
+devcompass graph --layout force       # Force-directed
+devcompass graph --layout radial      # Radial tree
+devcompass graph --layout conflict    # Highlight conflicts
 
 # Apply filters
-devcompass graph --filter vulnerable        # Show only vulnerable
-devcompass graph --filter outdated          # Show only outdated
-devcompass graph --filter unused            # Show only unused
+devcompass graph --filter vulnerable  # Security issues only
+devcompass graph --filter outdated    # Outdated packages
+devcompass graph --filter unused      # Unused dependencies
 
 # Customize output
-devcompass graph --output my-graph.html     # Custom filename
-devcompass graph --width 1600 --height 900  # Custom dimensions
-devcompass graph --depth 5                  # Limit depth to 5 levels
-devcompass graph --open                     # Open in browser
+devcompass graph --output my-deps.html
+devcompass graph --width 1600 --height 900
+devcompass graph --depth 5
 
-# Export formats
-devcompass graph --format json              # Export as JSON
-devcompass graph --format html              # Export as HTML (default)
+# Open in browser
+devcompass graph --open
 ```
 
-### Snapshot Commands (v3.2.3)
+**Interactive Features:**
+- Switch layouts without reload
+- Real-time filtering
+- Depth control slider
+- Search functionality
+- Zoom and pan
+- Export as PNG/JSON
+
+---
+
+### History & Tracking
+
+#### `snapshot` - Snapshot Management
+
+Manage project state snapshots for comparison and tracking.
 
 ```bash
 # Save current state
 devcompass snapshot save
 
+# List snapshots
+devcompass snapshot list
+devcompass snapshot list --limit 50
+devcompass snapshot list --project myapp
+
+# View details
+devcompass snapshot view 123
+devcompass snapshot view 123 --verbose
+
+# Delete snapshot
+devcompass snapshot delete 123
+devcompass snapshot delete 123 --yes
+```
+
+#### `compare` - Snapshot Comparison
+
+Compare two snapshots to track changes over time.
+
+```bash
+# Basic comparison
+devcompass compare 51 52
+
+# Detailed comparison
+devcompass compare 51 52 --verbose
+
+# Save report
+devcompass compare 51 52 -o report.md
+```
+
+#### `history` - Historical Analysis
+
+View and analyze snapshot history.
+
+```bash
 # List all snapshots
-devcompass snapshot list                    # Last 20 snapshots
-devcompass snapshot list --limit 50         # Last 50 snapshots
-devcompass snapshot list --project myapp    # Filter by project
-
-# View snapshot details
-devcompass snapshot view 123                # Basic info
-devcompass snapshot view 123 --verbose      # Detailed info
-
-# Delete old snapshots
-devcompass snapshot delete 123              # With confirmation
-devcompass snapshot delete 123 --yes        # Skip confirmation
-```
-
-### Compare Commands (v3.2.3)
-
-```bash
-# Compare two snapshots
-devcompass compare 51 52                    # Basic comparison
-devcompass compare 51 52 --verbose          # Show all packages
-devcompass compare 51 52 -o report.md       # Save to file
-```
-
-### Backup Commands (v3.2.3)
-
-```bash
-# List all backups
-devcompass backup list
-
-# Show backup details
-devcompass backup info --name backup-2026-04-26T19-50-37-541Z
-
-# Restore from backup
-devcompass backup restore --name backup-2026-04-26T19-50-37-541Z
-devcompass backup restore --name backup-xxx --force  # Skip confirmation
-
-# Clean old backups
-devcompass backup clean                     # Keep latest 5
-devcompass backup clean --keep 3            # Keep latest 3
-```
-
-### AI Commands (v3.2.2)
-
-```bash
-# Setup AI provider
-devcompass llm add --provider openai --token sk-xxx --model gpt-4o-mini
-devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
-
-# AI Analysis
-devcompass analyze --ai
-devcompass ai ask "Why is my health score low?"
-devcompass ai alternatives moment
-devcompass ai chat
-devcompass llm stats
-```
-
-### History Commands (v3.2.1)
-
-```bash
-# List snapshots (also available via 'snapshot list')
 devcompass history list
-devcompass history list --month 04-2026
+devcompass history list --limit 50
+devcompass history list --month 05-2025
 
-# Compare snapshots (also available via 'compare')
-devcompass compare 5 8
+# Monthly summary
+devcompass history summary
 
-# Timeline visualization
+# Statistics
+devcompass history stats
+```
+
+#### `timeline` - Timeline Visualization
+
+Generate interactive timeline showing dependency evolution.
+
+```bash
+# Generate timeline
+devcompass timeline
+
+# Customize timeframe
+devcompass timeline --days 30
+devcompass timeline --days 90
+
+# Open in browser
 devcompass timeline --open
-devcompass timeline --days 60
 ```
 
 ---
 
-## 🛡️ CVE Vulnerability Detection (v3.2.4)
+### Backup & Recovery
+
+#### `backup` - Backup Management
+
+Manage package.json and package-lock.json backups.
+
+```bash
+# List backups
+devcompass backup list
+
+# Show backup details
+devcompass backup info --name backup-2025-05-10T19-50-37-541Z
+
+# Restore from backup
+devcompass backup restore --name backup-2025-05-10T19-50-37-541Z
+devcompass backup restore --name backup-xxx --force
+
+# Clean old backups
+devcompass backup clean                # Keep latest 5
+devcompass backup clean --keep 3       # Keep latest 3
+```
+
+---
+
+### AI Commands
+
+#### `ai` - AI-Powered Insights
+
+Interact with AI for dependency analysis and recommendations.
+
+```bash
+# Ask questions
+devcompass ai ask "Why is axios outdated?"
+devcompass ai ask "Should I update to React 19?"
+
+# Get package alternatives
+devcompass ai alternatives moment
+
+# Interactive chat
+devcompass ai chat
+
+# Get recommendations
+devcompass ai recommend
+```
+
+#### `llm` - AI Provider Management
+
+Configure and manage AI/LLM providers.
+
+```bash
+# Add provider
+devcompass llm add --provider openai --token sk-xxx --model gpt-4o-mini
+devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
+
+# List providers
+devcompass llm list
+
+# Set default
+devcompass llm default openai
+
+# Test connection
+devcompass llm test openai
+
+# View usage statistics
+devcompass llm stats
+
+# Update provider
+devcompass llm update openai --model gpt-4o
+
+# Remove provider
+devcompass llm remove anthropic
+```
+
+---
+
+### Configuration
+
+#### `config` - DevCompass Configuration
+
+Manage DevCompass settings.
+
+```bash
+# Set GitHub token (avoid rate limits)
+devcompass config --github-token YOUR_TOKEN
+
+# Show current configuration
+devcompass config --show
+
+# Remove GitHub token
+devcompass config --remove-github-token
+```
+
+---
+
+## 🛡️ Security & CVE Detection
 
 ### How It Works
 
-**Automatic Detection:**
-Every time you run `devcompass analyze`, the tool automatically:
-1. 📦 Scans all dependencies in your project
-2. 🔍 Queries OSV database for known vulnerabilities
-3. 🏛️ Enriches with NVD data (if key configured)
-4. 💾 Caches results locally for 24 hours
-5. 📊 Reports findings with severity levels
+DevCompass integrates with two industry-standard vulnerability databases:
 
-**Data Sources:**
-- **OSV (Open Source Vulnerabilities)** - Primary source, no key required
-- **NVD (National Vulnerability Database)** - Secondary enrichment, optional API key
+1. **OSV (Open Source Vulnerabilities)** - Primary source, no API key required
+   - Comprehensive npm package coverage
+   - GitHub Security Advisories
+   - Fast, free, always available
 
-### Features
+2. **NVD (National Vulnerability Database)** - Secondary enrichment, optional
+   - Official NIST CVE database
+   - CVSS severity scores
+   - Detailed vulnerability metadata
 
-**Severity Classification:**
-- 🔴 **CRITICAL** - Immediate action required
-- 🟠 **HIGH** - Fix soon (this week)
-- 🟡 **MEDIUM** - Plan to fix (this month)
-- ⚪ **LOW** - Monitor, fix when convenient
+### Detection Process
 
-**Performance:**
-- ⚡ **First Run:** 2-5 seconds (API calls to OSV + NVD)
-- 🚀 **Cached Run:** <100ms (from local SQLite)
-- 💾 **Cache Duration:** 24 hours with automatic expiry
-- 🔄 **Batch Processing:** 5 concurrent requests max
+Every `devcompass analyze` automatically:
 
-**Security & Privacy:**
-- 🔒 **Encrypted Storage:** AES-256-GCM for API keys
-- 🖥️ **Local Only:** Keys never transmitted to DevCompass servers
-- 🔑 **Machine-Specific:** Encryption tied to your machine
-- 🛡️ **Read-Only:** Only queries vulnerability databases
+1. Scans all project dependencies
+2. Queries OSV database for vulnerabilities
+3. Enriches with NVD data (if configured)
+4. Caches results locally for 24 hours
+5. Reports findings with severity levels
 
 ### Example Output
 
-```bash
-$ devcompass analyze
-
-🔍 DevCompass v3.2.4 - Analyzing your project...
-
-✔ Scanned 6 dependencies in project
-⚡ GitHub check completed in 4.76s
-📦 CVE check completed (6/6 from cache)
-
-🔴 CVE VULNERABILITIES DETECTED (4 packages)
-
-  🟡 MEDIUM: 12
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
+```
 🛡️  CVE VULNERABILITY DATABASE (4)
 
   🟡 MEDIUM: 12
@@ -401,7 +473,7 @@ $ devcompass analyze
 
   axios@0.21.1
     ● GHSA-3p68-rc4w-qgx5 - MEDIUM
-      Axios has a NO_PROXY Hostname Normalization Bypass that Leads to SSRF
+      Axios has a NO_PROXY Hostname Normalization Bypass
     ● GHSA-43fc-jf86-j433 - MEDIUM
       Axios Denial of Service vulnerability
 
@@ -411,693 +483,352 @@ $ devcompass analyze
     ● GHSA-rv95-896h-c2vc - MEDIUM
       Express.js path traversal vulnerability
 
-  lodash@4.17.21
-    ● GHSA-f23m-r3pf-42rh - MEDIUM
-      Prototype pollution in lodash
-    ● GHSA-r5fr-rjxr-66jc - MEDIUM
-      Command injection in lodash templates
-
-  request@2.88.2
-    ● GHSA-p8p7-x288-28g6 - MEDIUM
-      Server-Side Request Forgery in request
-
-  💡 Sources: OSV (Open Source Vulnerabilities) + NVD (National Vulnerability Database)
-  Run npm audit fix to fix known vulnerabilities
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  💡 Sources: OSV + NVD
+  Run npm audit fix to address vulnerabilities
 ```
 
-### Cache Management
-
-```bash
-# View cache statistics
-$ devcompass cve cache --stats
-
-📊 CVE Cache Statistics
-
-  Total entries: 14
-  Active: 14
-  Expired: 0
-  Outdated: 0
-
-# Clear cache (force fresh scan)
-$ devcompass cve cache --clear
-
-✓ Cleared 14 cached CVE entries
-```
-
-### API Key Management
-
-```bash
-# Show current status
-$ devcompass cve key
-
-🔑 NVD API Key Status
-
-✓ Configured
-  Key: 9d47e8f***ca22
-
-💡 Commands:
-  Test: devcompass cve test
-  Remove: devcompass cve key --remove
-
-# Test your API key
-$ devcompass cve test
-
-🧪 Testing NVD API Key...
-
-✓ NVD API key is valid ✓
-
-Ready to use:
-  Run: devcompass analyze to scan with CVE detection
-
-# Remove API key
-$ devcompass cve key --remove
-
-✓ NVD API key removed
-```
-
-### Performance Comparison
+### Performance
 
 | Operation | Without Cache | With Cache | Improvement |
-|-----------|--------------|------------|-------------|
-| Scan 6 packages | ~2-5s | <100ms | 20-50× faster |
+|-----------|---------------|------------|-------------|
+| 6 packages | 2-5 seconds | <100ms | 20-50× faster |
 | CVE lookup | 300-500ms | <10ms | 30-50× faster |
-| Full analysis | ~8-12s | ~5-6s | 40-50% faster |
-
-### Technical Details
-
-**Database Schema:**
-```sql
--- Encrypted API keys
-api_keys (id, service, api_key, is_active, created_at)
-
--- Cached vulnerability data
-vulnerability_cache (
-  id, package_name, package_version, 
-  vulnerabilities, cache_version,
-  cached_at, expires_at
-)
-
--- Cache metadata
-cache_metadata (key, value)
-```
-
-**Encryption:**
-- Algorithm: AES-256-GCM
-- Key Derivation: SHA-256(hostname + username)
-- IV: 12 bytes (GCM standard)
-- Tag: 16 bytes (authentication)
-
-**Cache Version Management:**
-- Automatic cache invalidation on parser updates
-- Version tracking in metadata table
-- Seamless migration on upgrades
+| Full scan | 8-12 seconds | 5-6 seconds | ~50% faster |
 
 ---
 
-## 📊 Interactive Graph Visualization (v3.2.3)
+## 🤖 AI Integration Guide
 
-### Features
-
-**Multiple Layouts:**
-- 🌳 **Tree** - Hierarchical tree structure
-- 🔵 **Force** - Force-directed physics simulation
-- 🎯 **Radial** - Radial tree from center
-- ⚠️ **Conflict** - Highlight dependency conflicts
-
-**Real-Time Filtering:**
-- 🔴 **Vulnerable** - Show only packages with vulnerabilities
-- 📦 **Outdated** - Show only outdated packages
-- 🗑️ **Unused** - Show only unused dependencies
-- ⚠️ **Deprecated** - Show only deprecated packages
-
-**Interactive Controls:**
-- 🎨 Switch layouts without page reload
-- 🔍 Filter packages in real-time
-- 🔢 Depth slider (1-10 levels)
-- 🔎 Search for packages
-- 🖱️ Zoom and pan
-- 💾 Export as PNG or JSON
-
-### Example
+### Quick Start with FREE Local AI
 
 ```bash
-# Generate graph and open in browser
-devcompass graph --open
-
-# Force-directed layout showing only vulnerabilities
-devcompass graph --layout force --filter vulnerable --open
-
-# Custom output with depth limit
-devcompass graph --output deps.html --depth 3 --open
-```
-
-### Output
-
-```
-📊 DevCompass - Dependency Graph
-✔ Generated graph with 86 nodes (4 with issues)
-✔ Graph exported: dependency-graph.html
-
-📈 GRAPH SUMMARY
-  Format:        HTML
-  Mode:          ✓ Unified Interactive
-  Layouts:       Tree, Force, Radial, Conflict (switchable)
-  Filters:       All, Vulnerable, Outdated, Unused, Deprecated (switchable)
-  Total Nodes:   86
-  Total Links:   163
-  File Size:     144.68 KB
-  Enriched:      ✓ Analysis data applied
-```
-
----
-
-## 📸 Snapshot Management (v3.2.3)
-
-### Features
-
-**Save Snapshots:**
-- 💾 Manual snapshot creation
-- 📊 Captures complete project state
-- 🏷️ Includes health scores and metadata
-- ⏰ Timestamped automatically
-
-**List Snapshots:**
-- 📋 Table view of all snapshots
-- 🔍 Filter by project name
-- 📊 Shows health scores and dependency counts
-- 📅 Sorted by date
-
-**View Details:**
-- 📊 Complete snapshot information
-- 🔴 Vulnerability status
-- 📦 Outdated package list
-- 🗑️ Unused dependencies
-- 💯 Health metrics
-
-### Example
-
-```bash
-# Save current state
-$ devcompass snapshot save
-📸 Saving Snapshot...
-✅ Snapshot saved successfully!
-
-📸 Snapshot Info:
-   ID: 71
-   Packages: 6
-   Dependencies: 163
-   Duration: 12ms
-
-# List all snapshots
-$ devcompass snapshot list
-
-📋 Dependency Snapshots
-
-ID    Project          Version     Health    Deps    Date
-──────────────────────────────────────────────────────────────
-71    test-project     1.0.0       0.5       6       2026-05-01 1:45:23 PM
-70    test-project     1.0.0       0.5       6       2026-04-30 7:37:27 AM
-69    devcompass       3.2.4       7.5       7       2026-04-30 6:02:45 AM
-
-Total: 20 snapshot(s)
-
-# View details
-$ devcompass snapshot view 71
-
-📸 Snapshot #71
-
-Project Information:
-  Name: test-project
-  Version: 1.0.0
-  Date: 2026-05-01 1:45:23 PM
-
-Health Metrics:
-  Health Score: 0.5/10
-  Total Dependencies: 6
-  CVE Vulnerabilities: 12 (MEDIUM)
-
-Package Summary:
-  🔴 Vulnerable: 4
-  📦 Outdated: 6
-  🗑️  Unused: 2
-```
-
----
-
-## 🔄 Snapshot Comparison (v3.2.3)
-
-### Features
-
-**Compare Snapshots:**
-- 📊 Side-by-side diff
-- ➕ Show added packages
-- ➖ Show removed packages
-- 🔄 Show version changes
-- 📈 Track health score changes
-- 🛡️ Track CVE vulnerability changes
-- 📝 Export reports
-
-### Example
-
-```bash
-# Compare two snapshots
-$ devcompass compare 69 71
-
-✔ Comparison complete (0ms)
-
-📊 Snapshot Comparison
-
-Snapshots:
-  #69 → #71
-  2026-04-30 06:02:45 → 2026-05-01 13:45:23
-
-Changes:
-  Total Packages: 7 → 6 (-1)
-  Health Score: 7.50 → 0.50 (-7.00) ❌
-  CVE Vulnerabilities: 0 → 12 (+12) 🔴
-
-  Added: 0
-  Removed: 1
-  Updated: 3
-  Unchanged: 3
-
-🗑️ Removed Packages (1):
-  - better-sqlite3 (11.14.0)
-
-🔄 Updated Packages (3):
-  ⟳ axios
-     Version: 0.27.2 → 0.21.1
-     Health: 9.0 → 6.2 (-2.8)
-     🔴 New vulnerabilities detected: 2 MEDIUM CVEs
-
-  ⟳ chalk
-     Version: 5.4.2 → 4.1.2
-     Health: 10.0 → 8.5 (-1.5)
-
-  ⟳ lodash
-     Version: 4.17.21 → 4.17.20
-     Health: 9.0 → 7.0 (-2.0)
-     🔴 New vulnerabilities detected: 2 MEDIUM CVEs
-```
-
----
-
-## 💾 Backup Management (v3.2.3)
-
-### Features
-
-**Backup Operations:**
-- 📦 List all backups with metadata
-- 🔄 Restore from specific backup
-- 📋 Show detailed backup info
-- 🧹 Clean old backups
-- 🛡️ Safety confirmations
-- 📊 Track backup reasons
-
-### Example
-
-```bash
-# List all backups
-$ devcompass backup list
-
-💾 DevCompass Backups
-
-Found 3 backup(s):
-
-1. backup-2026-04-26T19-50-37-541Z
-   Created: Apr 27, 2026 01:20:37 (3 days ago)
-   Files: package.json, package-lock.json
-   Reason: Before automated fixes
-   Fixes pending: 3
-   Health score: 0.5/10
-
-2. backup-2026-04-26T18-12-33-397Z
-   Created: Apr 26, 2026 23:42:33 (3 days ago)
-   Files: package.json, package-lock.json
-   Reason: Before automated fixes
-   Fixes pending: 3
-   Health score: 0.5/10
-
-💡 COMMANDS:
-   Restore: devcompass backup restore --name backup-2026-04-26T19-50-37-541Z
-   Info: devcompass backup info --name backup-2026-04-26T19-50-37-541Z
-   Clean: devcompass backup clean
-
-# Restore from backup
-$ devcompass backup restore --name backup-2026-04-26T19-50-37-541Z
-
-🔄 DevCompass Backup Restore
-
-Backup details:
-  Name: backup-2026-04-26T19-50-37-541Z
-  Created: Apr 27, 2026 01:20:37
-  Files: package.json, package-lock.json
-
-⚠️  WARNING: This will overwrite your current package.json and package-lock.json
-
-Continue with restore? (y/N): y
-
-Step 1: Creating backup of current state...
-✓ Current state backed up: backup-2026-05-01T13-50-15-123Z
-
-Step 2: Restoring from backup...
-✓ Backup restored successfully!
-
-Files restored:
-  ✓ package.json
-  ✓ package-lock.json
-
-⚠️  IMPORTANT: Run npm install to sync node_modules
-```
-
----
-
-## 🤖 AI-Powered Analysis Guide (v3.2.2)
-
-### Quick Start
-
-**1. Install Ollama (FREE local AI):**
-```bash
-# Install Ollama
+# 1. Install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
 
-# Start Ollama
+# 2. Start Ollama
 ollama serve
 
-# Pull a model
+# 3. Pull a model
 ollama pull llama3.2
 
-# Add to DevCompass
+# 4. Configure DevCompass
 devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
 
-# Test it
+# 5. Test it
 devcompass llm test local
 
-# Use it!
+# 6. Use it!
 devcompass analyze --ai
+devcompass ai ask "What should I update first?"
 ```
 
-**2. Or use OpenAI:**
+### OpenAI Setup
+
 ```bash
 # Get API key from: https://platform.openai.com/api-keys
 
-# Add provider
-devcompass llm add --provider openai --token sk-your-key --model gpt-4o-mini
+# Configure
+devcompass llm add --provider openai --token sk-YOUR-KEY --model gpt-4o-mini
 
-# Test connection
+# Test
 devcompass llm test openai
 
-# Use it!
+# Use
 devcompass analyze --ai
 ```
 
-### Example AI Interactions
+### AI Capabilities
 
-**Get Analysis:**
+**Analysis Integration:**
+- Automatic health assessment
+- Risk prioritization
+- Breaking change warnings
+- Migration guidance
+
+**Interactive Q&A:**
 ```bash
-$ devcompass analyze --ai
-
-🤖 AI Recommendations
-
-🔴 CRITICAL (Do Now):
-- Security Vulnerabilities (12 CVEs detected)
-  → Run: npm audit fix
-  → Why: MEDIUM severity issues in axios, express, lodash
-
-🟡 HIGH PRIORITY (This Week):
-- Update axios (0.21.1 → 1.15.2)
-  → Why: Contains 2 known CVEs (GHSA-3p68-rc4w-qgx5, GHSA-43fc-jf86-j433)
-  → Breaking changes: Response format changed
+devcompass ai ask "Why is my health score low?"
+devcompass ai ask "Should I update axios?"
+devcompass ai ask "What are the breaking changes in React 19?"
 ```
 
-**Ask Questions:**
+**Package Alternatives:**
 ```bash
-$ devcompass ai ask "Should I update axios from 0.21.1 to 1.15.2?"
+devcompass ai alternatives moment
 
-🤖 Yes, you should update axios:
-
-Security: Version 0.21.1 has 2 MEDIUM CVEs detected:
-- GHSA-3p68-rc4w-qgx5: NO_PROXY Hostname Normalization Bypass
-- GHSA-43fc-jf86-j433: Denial of Service vulnerability
-
-Breaking Changes: Response.data format changed, error handling updated
-Migration: Update interceptors, test error handling
-Command: npm install axios@latest
-
-Test thoroughly before deploying!
+# Returns:
+# 1. date-fns (~2KB vs 67KB) - Tree-shakeable, modern API
+# 2. dayjs (~2KB) - moment.js compatible, drop-in replacement
+# 3. Luxon (~15KB) - Better timezone support, richer features
 ```
 
-**Find Alternatives:**
+**Interactive Chat:**
 ```bash
-$ devcompass ai alternatives moment
+devcompass ai chat
 
-🔍 Finding alternatives for "moment"
-
-🤖 Top 3 Alternatives:
-
-1. date-fns (~2KB vs 67KB)
-   - Tree-shakeable, modern API
-   - Migration: Easy (similar methods)
-   
-2. dayjs (~2KB)
-   - moment.js compatible API
-   - Migration: Drop-in replacement
-   
-3. Luxon (~15KB)
-   - Better timezone support
-   - Migration: Medium (different API)
-
-Recommendation: Use date-fns for best bundle size
+# Opens interactive session:
+# You: What's wrong with my dependencies?
+# AI: You have 3 packages with known CVEs...
+# You: Which should I fix first?
+# AI: Priority 1 is axios because...
 ```
 
 ---
 
-## 📊 Historical Tracking System (v3.2.1)
+## 📊 Use Cases
 
-Track your dependency evolution over time with automatic snapshots, comparison tools, and timeline visualization.
-
-### How It Works
-
-**1. Auto-Save on Analyze**
-Every time you run `devcompass analyze`, a snapshot is automatically saved:
+### CI/CD Integration
 
 ```bash
+# In your CI pipeline
+devcompass analyze --ci --json > analysis.json
+
+# Check exit code
+# 0 = health score above threshold
+# 1 = health score below threshold
+```
+
+```yaml
+# GitHub Actions example
+- name: Dependency Health Check
+  run: |
+    npm install -g devcompass
+    devcompass analyze --ci
+```
+
+### Security Auditing
+
+```bash
+# Weekly security scan
+devcompass analyze --deep > security-report.txt
+devcompass cve cache --stats
+
+# Export for compliance
+devcompass analyze --json | jq '.vulnerabilities'
+```
+
+### Dependency Management
+
+```bash
+# Before updates
+devcompass snapshot save
+devcompass backup list
+
+# Update dependencies
+npm update
+
+# Check impact
 devcompass analyze
+devcompass compare <before-id> <after-id>
 
-# Output:
-# ✔ Scanned 6 dependencies in project
-# 📸 Snapshot saved (ID: 40, 19ms)
-#    Use "devcompass history list" to view all snapshots
+# Rollback if needed
+devcompass backup restore --name <backup-name>
 ```
 
-**2. View Your History**
+### Team Health Monitoring
+
 ```bash
-devcompass history list
-# Or use the new snapshot command:
-devcompass snapshot list
+# Generate weekly report
+devcompass analyze --deep > weekly-report.txt
+devcompass timeline --days 7 --open
+
+# Track trends
+devcompass history summary
+devcompass history stats
 ```
 
-**3. Compare Changes**
-```bash
-devcompass compare 38 40
+---
+
+## 🔧 Configuration
+
+### File Locations
+
+```
+~/.devcompass/
+├── history.db          # Snapshot database
+├── cve.db             # CVE cache
+├── ai.db              # AI conversation history
+├── config.db          # Configuration
+└── llm.db             # LLM provider settings
+
+<project>/.devcompass-backups/  # Backup files
+<project>/.devcompass-cache.json  # Analysis cache
 ```
 
-**4. Visualize Trends**
-```bash
-devcompass timeline --open
-```
+### Configuration Files
+
+**Dynamic Package Tracking:**
+- `data/tracked-repos.json` - GitHub repositories to monitor
+- `data/popular-packages.json` - Common package patterns
+- `data/quality-alternatives.json` - Deprecated package replacements
+- `data/gpl-alternatives.json` - GPL license alternatives
+
+**Batch Fix Categories:**
+- `data/batch-categories.json` - Fix categorization rules
+- `data/priorities.json` - Priority classification
 
 ---
 
 ## 🐛 Troubleshooting
 
-### CVE-Related Issues
+### Common Issues
 
-**"CVE detection not working"**
+**Command not found**
 ```bash
-# Make sure you ran analyze first
-devcompass analyze
-
-# Check if CVE database exists
-ls ~/.devcompass/cve.db
-
-# Clear cache and try again
-devcompass cve cache --clear
-devcompass analyze
+npm install -g devcompass
+# or
+npx devcompass analyze
 ```
 
-**"NVD API key invalid"**
+**Old version installed**
 ```bash
-# Test your API key
-devcompass cve test
-
-# If invalid, get a new key from:
-# https://nvd.nist.gov/developers/request-an-api-key
-
-# Remove old key and add new one
-devcompass cve key --remove
-devcompass cve key --set --api-key <new-key>
+npm update -g devcompass
+devcompass --version  # Should show 3.2.5
 ```
 
-**"All CVEs showing as UNKNOWN severity"**
+**No analysis cache found**
 ```bash
-# This is a cache issue - clear it
+# Run analyze first
+devcompass analyze
+
+# Then other commands work
+devcompass graph --open
+```
+
+### CVE-Related
+
+**CVE detection not working**
+```bash
+# Clear cache
 devcompass cve cache --clear
 
 # Run fresh scan
 devcompass analyze
 ```
 
-**"CVE scan too slow"**
+**NVD API key invalid**
 ```bash
-# First run is always slower (2-5s for API calls)
-# Subsequent runs use cache (<100ms)
+# Test connection
+devcompass cve test
 
-# Check cache status
-devcompass cve cache --stats
+# Get new key from: https://nvd.nist.gov/developers/request-an-api-key
 
-# If cache expired, it will re-fetch
-# Cache TTL is 24 hours
+# Update key
+devcompass cve key --remove
+devcompass cve key --set --api-key NEW_KEY
 ```
 
-### Graph-Related Issues
+### AI-Related
 
-**"No analysis cache found"**
+**No AI provider configured**
 ```bash
-# Run analyze first to generate cache
-devcompass analyze
-
-# Then generate graph
-devcompass graph --open
-```
-
-**"Graph not opening in browser"**
-```bash
-# Check if HTML file was created
-ls dependency-graph.html
-
-# Manually open it
-firefox dependency-graph.html
-# or
-chrome dependency-graph.html
-```
-
-### Snapshot-Related Issues
-
-**"Snapshot list empty"**
-```bash
-# Run analyze to create snapshots
-devcompass analyze
-
-# Check database exists
-ls ~/.devcompass/history.db
-
-# List snapshots
-devcompass snapshot list
-```
-
-**"Snapshot not found"**
-```bash
-# List available snapshots first
-devcompass snapshot list
-
-# Use valid ID from list
-devcompass snapshot view 70
-```
-
-### Backup-Related Issues
-
-**"Backup list empty"**
-```bash
-# Backups are created by fix command
-devcompass fix --dry-run
-
-# Check backup directory
-ls -la .devcompass-backups/
-```
-
-**"Cannot restore backup"**
-```bash
-# List available backups
-devcompass backup list
-
-# Use exact backup name
-devcompass backup restore --name backup-2026-04-26T19-50-37-541Z
-```
-
-### AI-Related Issues
-
-**"No AI provider configured"**
-```bash
-# Add a provider first
+# Add a provider
 devcompass llm add --provider local --model llama3.2 --base-url http://localhost:11434
-
-# Or use OpenAI
-devcompass llm add --provider openai --token sk-xxx --model gpt-4o-mini
 ```
 
-**"Ollama connection failed"**
+**Ollama connection failed**
 ```bash
-# Check Ollama is running
+# Check if Ollama is running
 ps aux | grep ollama
 
-# Restart Ollama
-ollama serve &
+# Start Ollama
+ollama serve
 
 # Test connection
 devcompass llm test local
 ```
 
-### Common Issues
+---
 
-**"Command not found"**
-```bash
-npm install -g devcompass@3.2.4
-```
+## 📈 Version History
 
-**Old version**
-```bash
-npm update -g devcompass
-devcompass --version  # Should show 3.2.4
-```
+### v3.2.5 (2025-05-10) - Refinement & Usability
+- 🎯 **Top 3 Issues** default view for cleaner UX
+- 🛡️ **Fix Preview** with interactive confirmation
+- 🏗️ **Modular Architecture** - 31 new files, clean code organization
+- ✅ **Silent & CI Modes** - Better automation support
+- 🎨 **Health Score Icons** - Visual indicators (🟢✅⚠️🟠🔴)
+- 🔒 **Enhanced Security** - Command injection protection
+- 📊 **100% Backward Compatible** - All existing features preserved
+
+### v3.2.4 (2025-05-01) - CVE Detection
+- 🛡️ Real-time CVE vulnerability scanning
+- 🔍 OSV + NVD database integration
+- ⚡ Smart caching (24-hour TTL)
+- 🔒 Encrypted API key storage (AES-256-GCM)
+- 🎨 CVSS severity classification
+
+### v3.2.3 (2025-04-30) - Feature Complete
+- 📊 Interactive graph visualization
+- 📸 Snapshot management system
+- 🔄 Snapshot comparison tools
+- 💾 Backup management
+
+### v3.2.2 (2025-04-27) - AI-Powered
+- 🤖 Multi-provider LLM integration
+- 💬 Interactive AI chat
+- 🔄 Package alternative suggestions
+- 🆓 FREE local AI with Ollama
+
+### v3.2.1 (2025-04-26) - Historical Tracking
+- 📊 SQLite snapshot database
+- 📈 Timeline visualization
+- 🔍 Snapshot comparison
+
+### v3.2.0 (2025-04-25) - Unified Dashboard
+- 🎨 Modular architecture
+- 📊 Analytics layout
+- 🌙 Theme support
 
 ---
 
 ## 🤝 Contributing
 
-Contributions welcome! 
+Contributions are welcome! Here's how you can help:
 
-### Ways to Contribute:
+### Quick Contributions
 
-1. **Add Package Alternatives**
-   - Edit `data/quality-alternatives.json`
-   - Submit PR with new deprecated package alternatives
+1. **Package Alternatives** - Add to `data/quality-alternatives.json`
+2. **AI Prompts** - Improve `src/ai/prompt-templates.js`
+3. **Graph Layouts** - Enhance `src/dashboard/scripts/layouts.js`
+4. **Documentation** - Fix typos, add examples
 
-2. **Improve AI Prompts**
-   - Edit `src/ai/prompt-templates.js`
-   - Make recommendations more helpful
+### Code Contributions
 
-3. **Add AI Providers**
-   - Create new provider in `src/ai/providers/`
-   - Follow existing provider patterns
+```bash
+# Fork and clone
+git clone https://github.com/YOUR_USERNAME/devcompass.git
+cd devcompass
 
-4. **Improve Graph Layouts**
-   - Edit `src/dashboard/scripts/layouts.js`
-   - Add new visualization styles
+# Create feature branch
+git checkout -b feature/amazing-feature
 
-5. **Enhance CVE Detection**
-   - Improve severity parsing in `src/cve/osv-client.js`
-   - Add more vulnerability sources
-   - Enhance caching strategies
+# Make changes and test
+npm test
 
-6. **Code Contributions**
-   - Fork the repository
-   - Create feature branch (`git checkout -b feature/amazing`)
-   - Commit changes (`git commit -m 'Add feature'`)
-   - Push branch (`git push origin feature/amazing`)
-   - Open Pull Request
+# Commit with conventional commits
+git commit -m "feat: add amazing feature"
+
+# Push and create PR
+git push origin feature/amazing-feature
+```
+
+### Development Setup
+
+```bash
+# Install dependencies
+npm install
+
+# Link for local testing
+npm link
+
+# Test your changes
+devcompass analyze
+
+# Run in different project
+cd /path/to/test-project
+devcompass analyze
+```
 
 ---
 
@@ -1107,84 +838,37 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 
 ---
 
-## 🌟 What's Next?
+## 🙏 Acknowledgments
 
-### Completed Features:
-- [x] **CVE vulnerability detection** (v3.2.4) ✅
-- [x] **OSV + NVD integration** (v3.2.4) ✅
-- [x] **Encrypted API key storage** (v3.2.4) ✅
-- [x] **Smart caching system** (v3.2.4) ✅
-- [x] **Graph visualization** (v3.2.3) ✅
-- [x] **Snapshot management** (v3.2.3) ✅
-- [x] **Snapshot comparison** (v3.2.3) ✅
-- [x] **Backup management** (v3.2.3) ✅
-- [x] **AI-powered analysis** (v3.2.2) ✅
-- [x] **Multi-provider LLM support** (v3.2.2) ✅
-- [x] **Interactive AI chat** (v3.2.2) ✅
-- [x] **Package alternatives with AI** (v3.2.2) ✅
-- [x] **Historical tracking** (v3.2.1) ✅
-- [x] **Timeline visualization** (v3.2.1) ✅
-- [x] **Unified dashboard** (v3.2.0) ✅
-- [x] **Intelligent clustering** (v3.1.6) ✅
-
-### Planned Features:
-- [ ] **Web Dashboard** - Team health monitoring with AI insights
-
-Want to contribute? Pick a feature and open an issue! 🚀
+- **OSV** - Open Source Vulnerabilities database
+- **NVD** - National Vulnerability Database (NIST)
+- **OpenAI** - GPT models
+- **Anthropic** - Claude models
+- **Google** - Gemini models
+- **Ollama** - Local AI runtime
 
 ---
 
-## 📊 Version History
+## 📞 Support
 
-### v3.2.4 (2026-05-01) - CVE Vulnerability Detection
-- 🛡️ **CVE Detection System** - Real-time vulnerability scanning
-- 🔍 **OSV API Integration** - Primary source (no key required)
-- 🏛️ **NVD API Integration** - Secondary enrichment (optional)
-- ⚡ **Smart Caching** - 24-hour TTL, <100ms cached scans
-- 🔒 **Encrypted Storage** - AES-256-GCM for API keys
-- 🎨 **Severity Classification** - CRITICAL/HIGH/MEDIUM/LOW
-- 📊 **Detailed Reports** - CVE IDs, summaries, references
-- 💾 **Batch Processing** - Concurrent vulnerability checks
-- ✅ Zero breaking changes (100% backward compatible)
-
-### v3.2.3 (2026-04-30) - Feature Complete
-- 🎯 **All 10 commands now working** (was 6/10)
-- 📊 **Graph visualization** - Interactive dependency graphs with 4 layouts
-- 📸 **Snapshot management** - Save/list/view/delete snapshots
-- 🔄 **Snapshot comparison** - Side-by-side diff with health tracking
-- 💾 **Backup management** - Manual backup operations
-- ⚡ Instant operations (<1ms for most commands)
-- ✅ Zero breaking changes (100% backward compatible)
-
-### v3.2.2 (2026-04-27) - AI-Powered Analysis
-- 🤖 Multi-provider AI integration (OpenAI, Anthropic, Google, Ollama)
-- 💬 Interactive AI chat with conversation history
-- 🔄 AI-powered package alternative suggestions
-- 🔒 AES-256-GCM encrypted token storage
-- 📊 Cost tracking and usage statistics
-- ⚡ Real-time streaming responses
-- 🆓 FREE local AI option with Ollama
-- 📝 Context-aware recommendations
-- ✅ Zero breaking changes (100% backward compatible)
-
-### v3.2.1 (2026-04-26) - Historical Tracking System
-- 📊 SQLite database for snapshot storage
-- 🔍 Snapshot comparison with side-by-side diff
-- 📈 Timeline visualization with D3 charts
-- 🗂️ 9 flexible date formats
-- ⚡ 6-83× performance improvements
-- 🐛 Bug fixes for typosquatting and security
-
-### v3.2.0 (2026-04-25) - Unified Dashboard
-- 🎨 Unified modular architecture (50% code reduction)
-- 📊 Analytics layout
-- 🌙 Dark/light themes
-- ⚡ 4-6× performance improvements
+- **Issues:** [GitHub Issues](https://github.com/AjayBThorat-20/devcompass/issues)
+- **Email:** ajaythorat988@gmail.com
+- **Documentation:** [Full Guide](https://github.com/AjayBThorat-20/devcompass#readme)
 
 ---
+
+## 🌟 Star History
+
+If DevCompass helps your project, please consider giving it a star! ⭐
+
+---
+
+<div align="center">
 
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
 
-*DevCompass v3.2.4 - Complete Dependency Intelligence + Security Platform!* 🧭✨
+*DevCompass v3.2.5 - Professional Dependency Intelligence Platform* 🧭✨
 
-**Like Lighthouse for your dependencies, now with real-time CVE detection** 🛡️⚡
+[Get Started](#-quick-start) · [Documentation](#-complete-command-reference) · [Contributing](#-contributing)
+
+</div>
