@@ -1,8 +1,7 @@
 // src/alerts/index.js
-// v3.1.3 - Dynamic alerts using issues analyzer (no hardcoded issues-db.json)
 const { resolveInstalledVersions } = require('./resolver');
 
-// Try to load dynamic issues analyzer
+
 let getIssuesAnalyzer = null;
 try {
   const issuesModule = require('../analyzers/issues');
@@ -14,7 +13,6 @@ try {
 
 async function checkEcosystemAlerts(projectPath, dependencies) {
   try {
-    // Resolve installed versions from node_modules
     const installedVersions = await resolveInstalledVersions(projectPath, dependencies);
     
     // If dynamic issues analyzer is available, use it
@@ -75,9 +73,6 @@ async function fetchDynamicAlerts(installedVersions) {
   return alerts;
 }
 
-/**
- * Map severity string to consistent level
- */
 function mapSeverityToLevel(severity) {
   const map = {
     'critical': 'critical',
@@ -90,9 +85,7 @@ function mapSeverityToLevel(severity) {
   return map[severity?.toLowerCase()] || 'medium';
 }
 
-/**
- * Categorize issue type
- */
+
 function categorizeIssue(issue) {
   const title = issue.title?.toLowerCase() || '';
   const source = issue.source?.toLowerCase() || '';
@@ -122,9 +115,6 @@ function formatAlerts(alerts) {
   }));
 }
 
-/**
- * Get icon for severity level
- */
 function getAlertIcon(severity) {
   const icons = {
     'critical': '🔴',
@@ -136,9 +126,6 @@ function getAlertIcon(severity) {
   return icons[severity] || '⚪';
 }
 
-/**
- * Get color for severity level (for chalk)
- */
 function getAlertColor(severity) {
   const colors = {
     'critical': 'red',

@@ -1,175 +1,119 @@
 // src/ai/providers/local.js
 const BaseProvider = require('./base-provider');
+const axios = require('axios');
 
 class LocalProvider extends BaseProvider {
-  constructor(config) {
+  constructor(config = {}) {
     super(config);
-    this.apiUrl = this.baseUrl || 'http://localhost:11434';
+    this.baseURL = config.baseURL || 'http://localhost:11434';
+    this.model = config.model || 'llama2';
   }
 
-  /**
-   * Send a prompt to local model (Ollama)
-   */
-  async sendPrompt(prompt, systemPrompt = null, options = {}) {
-    const url = `${this.apiUrl}/api/generate`;
+  async sendPrompt(messages, options = {}) {
+    const controller = this.createAbortController();
     
-    let fullPrompt = prompt;
-    if (systemPrompt) {
-      fullPrompt = `${systemPrompt}\n\n${prompt}`;
-    }
-
-    const requestBody = {
-      model: this.model,
-      prompt: fullPrompt,
-      stream: false,
-      options: {
-        temperature: options.temperature || this.temperature,
-        num_predict: options.maxTokens || this.maxTokens
-      }
-    };
-
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+      const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
+      
+      const response = await axios.post(
+        `${this.baseURL}/api/generate`,
+        {
+          model: options.model || this.model,
+          prompt: prompt,
+          stream: false,
+          options: {
+            temperature: options.temperature || 0.7,
+            num_predict: options.maxTokens || 2000
+          }
         },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Local model error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          signal: controller.signal
+        }
+      );
+      
+      this.clearAbortController();
       
       return {
-        content: data.response,
-        tokensUsed: this.countTokens(data.response),
-        promptTokens: this.countTokens(fullPrompt),
-        completionTokens: this.countTokens(data.response),
-        model: this.model,
-        finishReason: 'stop'
+        content: response.data.response,
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0
+        }
       };
     } catch (error) {
-      if (error.code === 'ECONNREFUSED') {
-        throw new Error('Local model server not running. Start Ollama with: ollama serve');
+      this.clearAbortController();
+      
+      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        throw new Error('Request cancelled by user');
       }
-      throw new Error(`Local model error: ${error.message}`);
+      throw error;
     }
   }
 
-  /**
-   * Stream a response from local model
-   */
-  async streamPrompt(prompt, systemPrompt = null, onChunk, options = {}) {
-    const url = `${this.apiUrl}/api/generate`;
+  async streamPrompt(messages, onChunk, options = {}) {
+    const controller = this.createAbortController();
     
-    let fullPrompt = prompt;
-    if (systemPrompt) {
-      fullPrompt = `${systemPrompt}\n\n${prompt}`;
-    }
-
-    const requestBody = {
-      model: this.model,
-      prompt: fullPrompt,
-      stream: true,
-      options: {
-        temperature: options.temperature || this.temperature,
-        num_predict: options.maxTokens || this.maxTokens
-      }
-    };
-
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+      const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
+      
+      const response = await axios.post(
+        `${this.baseURL}/api/generate`,
+        {
+          model: options.model || this.model,
+          prompt: prompt,
+          stream: true,
+          options: {
+            temperature: options.temperature || 0.7,
+            num_predict: options.maxTokens || 2000
+          }
         },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Local model error: ${response.status}`);
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          responseType: 'stream',
+          signal: controller.signal
+        }
+      );
+      
+      for await (const chunk of response.data) {
+        const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
         
-        if (done) break;
-        
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(line => line.trim());
-
         for (const line of lines) {
           try {
-            const data = JSON.parse(line);
-            const content = data.response || '';
-            
-            if (content) {
-              fullContent += content;
-              onChunk(content);
+            const parsed = JSON.parse(line);
+            if (parsed.response) {
+              onChunk(parsed.response);
             }
           } catch (e) {
             // Skip invalid JSON
           }
         }
       }
-
+      
+      this.clearAbortController();
+      
       return {
-        content: fullContent,
-        tokensUsed: this.countTokens(fullContent),
-        model: this.model
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0
       };
     } catch (error) {
-      if (error.code === 'ECONNREFUSED') {
-        throw new Error('Local model server not running. Start Ollama with: ollama serve');
+      this.clearAbortController();
+      
+      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        throw new Error('Request cancelled by user');
       }
-      throw new Error(`Local streaming error: ${error.message}`);
+      throw error;
     }
   }
 
-  /**
-   * Local models are free
-   */
-  estimateCost(tokens, isInput = true) {
-    return 0.0; // Local models cost nothing
-  }
-
-  /**
-   * Test local model connection
-   */
-  async test() {
-    try {
-      const response = await fetch(`${this.apiUrl}/api/tags`);
-      if (!response.ok) {
-        throw new Error('Failed to connect to Ollama');
-      }
-      
-      const data = await response.json();
-      const hasModel = data.models?.some(m => m.name === this.model);
-      
-      if (!hasModel) {
-        return {
-          success: false,
-          message: `Model "${this.model}" not found. Pull it with: ollama pull ${this.model}`
-        };
-      }
-      
-      return {
-        success: true,
-        message: `Connected to Ollama (model: ${this.model})`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message
-      };
-    }
+  estimateCost(inputTokens, outputTokens) {
+    return 0;
   }
 }
 

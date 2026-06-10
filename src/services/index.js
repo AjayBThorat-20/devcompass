@@ -1,13 +1,10 @@
-// src/services/index.js
 
+// src/services/index.js
 const registryClient = require('./registry-client');
 const dynamicQuality = require('./dynamic-quality');
 const dynamicLicense = require('./dynamic-license');
 const dynamicSecurity = require('./dynamic-security');
 
-/**
- * DynamicAnalyzer class - unified interface for all dynamic services
- */
 class DynamicAnalyzer {
   constructor() {
     this.quality = dynamicQuality;
@@ -17,9 +14,12 @@ class DynamicAnalyzer {
   }
 
   async analyzePackage(packageName) {
+    const packageData = await this.registry.fetchPackage(packageName);
+    if (!packageData) return null;
+    
     const [qualityResult, licenseResult] = await Promise.all([
-      this.quality.analyzePackage(packageName),
-      this.license.analyzePackage(packageName)
+      this.quality.analyzePackageData(packageData),
+      this.license.analyzePackageData(packageData)
     ]);
     
     const typosquatResult = this.security.checkTyposquatting(packageName);
@@ -30,43 +30,46 @@ class DynamicAnalyzer {
       license: licenseResult,
       security: {
         typosquatting: typosquatResult,
-        isWhitelisted: this.security.isWhitelisted(packageName)
+        isWhitelisted: this.security.WHITELIST.has(packageName)
       },
       hasIssues: (
-        qualityResult.status !== 'HEALTHY' ||
-        licenseResult.hasIssue ||
+        (qualityResult && qualityResult.status !== 'healthy') ||
+        (licenseResult && licenseResult.riskLevel !== 'low') ||
         typosquatResult !== null
       )
     };
   }
 
   async analyzePackages(packageNames) {
+    const packageDataMap = await this.registry.fetchBatch(packageNames);
     const results = new Map();
     
-    const [qualityResults, licenseResults] = await Promise.all([
-      this.quality.analyzeBatch(packageNames),
-      this.license.analyzeBatch(packageNames)
-    ]);
-    
     for (const name of packageNames) {
-      const quality = qualityResults.get(name) || { status: 'UNKNOWN' };
-      const license = licenseResults.get(name) || { hasIssue: false };
-      const typosquat = this.security.checkTyposquatting(name);
+      const packageData = packageDataMap.get(name);
       
-      results.set(name, {
-        name,
-        quality,
-        license,
-        security: {
-          typosquatting: typosquat,
-          isWhitelisted: this.security.isWhitelisted(name)
-        },
-        hasIssues: (
-          quality.status !== 'HEALTHY' ||
-          license.hasIssue ||
-          typosquat !== null
-        )
-      });
+      if (packageData) {
+        const [quality, license] = await Promise.all([
+          this.quality.analyzePackageData(packageData),
+          this.license.analyzePackageData(packageData)
+        ]);
+        
+        const typosquat = this.security.checkTyposquatting(name);
+        
+        results.set(name, {
+          name,
+          quality: quality || { status: 'UNKNOWN' },
+          license: license || { hasIssue: false },
+          security: {
+            typosquatting: typosquat,
+            isWhitelisted: this.security.WHITELIST.has(name)
+          },
+          hasIssues: (
+            (quality && quality.status !== 'healthy') ||
+            (license && license.riskLevel !== 'low') ||
+            typosquat !== null
+          )
+        });
+      }
     }
     
     return results;
@@ -81,53 +84,57 @@ class DynamicAnalyzer {
     const [packageResults, securityResults, qualitySummary, licenseConflicts] = await Promise.all([
       this.analyzePackages(deps),
       this.security.analyzeProject(projectPath, deps),
-      this.quality.getProjectQualitySummary(deps),
-      this.license.getLicenseConflicts(deps)
+      this.quality.analyzeBatch(deps.map(name => ({ name }))).then(results => 
+        this.quality.getProjectQualitySummary(results)
+      ),
+      this.license.analyzeBatch(deps.map(name => ({ name }))).then(results =>
+        this.license.getLicenseConflicts(results)
+      )
     ]);
     
-    // Compile warnings
     const warnings = [];
     
-    // Quality warnings
-    for (const issue of qualitySummary.issues) {
-      warnings.push({
-        type: issue.type.toUpperCase(),
-        package: issue.package,
-        message: issue.message,
-        alternative: issue.alternative,
-        category: 'quality'
-      });
+    for (const [name, result] of packageResults) {
+      if (result.quality && result.quality.status !== 'healthy') {
+        warnings.push({
+          type: result.quality.status.toUpperCase(),
+          package: name,
+          message: `Package is ${result.quality.status}`,
+          alternative: result.quality.alternative,
+          category: 'quality'
+        });
+      }
+      
+      if (result.license && (result.license.riskLevel === 'critical' || result.license.riskLevel === 'high')) {
+        warnings.push({
+          type: 'LICENSE',
+          package: name,
+          message: `${result.license.license}: ${result.license.risk}`,
+          alternative: result.license.alternative,
+          category: 'license'
+        });
+      }
+      
+      if (result.security.typosquatting) {
+        warnings.push({
+          type: 'TYPOSQUAT',
+          package: name,
+          message: result.security.typosquatting.warning,
+          similarTo: result.security.typosquatting.similarTo,
+          category: 'security'
+        });
+      }
     }
     
-    // License warnings
-    for (const conflict of [...licenseConflicts.critical, ...licenseConflicts.high]) {
-      warnings.push({
-        type: 'LICENSE',
-        package: conflict.package,
-        message: `${conflict.license}: ${conflict.message}`,
-        alternative: conflict.alternative,
-        category: 'license'
-      });
-    }
-    
-    // Security warnings
-    for (const typosquat of securityResults.typosquatting) {
-      warnings.push({
-        type: 'TYPOSQUAT',
-        package: typosquat.package,
-        message: typosquat.warning,
-        similarTo: typosquat.similarTo,
-        category: 'security'
-      });
-    }
-    
-    for (const vuln of securityResults.vulnerabilities) {
-      warnings.push({
-        type: vuln.severity.toUpperCase(),
-        package: vuln.package,
-        message: vuln.title,
-        url: vuln.url,
-        category: 'security'
+    if (securityResults.vulnerabilities) {
+      securityResults.vulnerabilities.forEach(vuln => {
+        warnings.push({
+          type: (vuln.severity || 'UNKNOWN').toUpperCase(),
+          package: vuln.package,
+          message: vuln.title || 'Security vulnerability',
+          url: vuln.url,
+          category: 'security'
+        });
       });
     }
     
@@ -137,13 +144,12 @@ class DynamicAnalyzer {
       summary: {
         quality: qualitySummary,
         license: licenseConflicts,
-        security: securityResults.summary
+        security: securityResults.summary || {}
       },
       warnings,
       details: packageResults
     };
   }
-  
 
   getAutofixRecommendations(analysisResult) {
     const recommendations = [];
@@ -157,7 +163,7 @@ class DynamicAnalyzer {
           reason: warning.message,
           category: warning.category,
           priority: warning.type === 'CRITICAL' ? 1 : 
-                    warning.type === 'HIGH' ? 2 :
+                    warning.type === 'HIGH' ? 2 : 
                     warning.type === 'DEPRECATED' ? 3 : 4
         });
       } else if (warning.type === 'TYPOSQUAT') {
@@ -179,34 +185,25 @@ class DynamicAnalyzer {
       }
     }
     
-    // Sort by priority
     recommendations.sort((a, b) => a.priority - b.priority);
     
     return recommendations;
   }
-  
-  /**
-   * Clear all caches
-   */
+
   clearCache() {
     this.registry.clearCache();
   }
-  
-  /**
-   * Get cache statistics
-   */
+
   getCacheStats() {
     return this.registry.getCacheStats();
   }
 }
 
-// Export singleton instance
 const analyzer = new DynamicAnalyzer();
 
 module.exports = {
   DynamicAnalyzer,
   analyzer,
-  // Re-export individual services
   registryClient,
   dynamicQuality,
   dynamicLicense,

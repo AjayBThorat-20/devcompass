@@ -2,10 +2,7 @@
 const loader = require('./snapshot-loader');
 
 class TimelineGenerator {
-  
-  /**
-   * Generate timeline data for visualization
-   */
+
   generateTimeline(projectName = null, days = 30) {
     const startTime = Date.now();
     
@@ -68,9 +65,6 @@ class TimelineGenerator {
     };
   }
 
-  /**
-   * Calculate trends from timeline data
-   */
   calculateTrends(data) {
     if (data.length < 2) {
       return {
@@ -110,9 +104,6 @@ class TimelineGenerator {
     };
   }
 
-  /**
-   * Generate D3-compatible chart data
-   */
   generateChartData(timelineData) {
     return {
       healthScoreChart: {
@@ -138,9 +129,6 @@ class TimelineGenerator {
     };
   }
 
-  /**
-   * Helper: Calculate average
-   */
   average(numbers) {
     if (numbers.length === 0) return 0;
     return numbers.reduce((a, b) => a + b, 0) / numbers.length;

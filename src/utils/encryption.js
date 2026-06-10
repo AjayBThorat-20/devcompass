@@ -13,9 +13,6 @@ function getEncryptionKey() {
   return crypto.createHash('sha256').update(machineId).digest();
 }
 
-/**
- * Encrypt sensitive data (API keys)
- */
 function encrypt(text) {
   if (!text) return null;
 
@@ -31,10 +28,6 @@ function encrypt(text) {
   // Combine iv + authTag + encrypted
   return iv.toString('hex') + authTag.toString('hex') + encrypted;
 }
-
-/**
- * Decrypt sensitive data
- */
 function decrypt(encryptedData) {
   if (!encryptedData) return null;
 
@@ -59,9 +52,6 @@ function decrypt(encryptedData) {
   }
 }
 
-/**
- * Mask API key for display
- */
 function maskToken(token) {
   if (!token || token.length < 12) return '***';
   return token.slice(0, 7) + '***' + token.slice(-4);

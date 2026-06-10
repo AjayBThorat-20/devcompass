@@ -2,15 +2,29 @@
 const axios = require('axios');
 const chalk = require('chalk');
 const { db } = require('./database');
+const { decrypt } = require('../utils/encryption');
 
 const NVD_API = 'https://services.nvd.nist.gov/rest/json/cves/2.0';
 
 class NVDClient {
-  /**
-   * Get NVD API key from database
-   */
+  constructor() {
+    this._cachedKey = null;
+    this._keyFetchTime = 0;
+    this._keyTTL = 60000;
+    this.consecutiveFailures = 0;
+    this.maxConsecutiveFailures = 5;
+    this.circuitOpen = false;
+    this.lastFailureTime = 0;
+    this.circuitResetTime = 300000;
+  }
+
   getAPIKey() {
     try {
+      const now = Date.now();
+      if (this._cachedKey && (now - this._keyFetchTime) < this._keyTTL) {
+        return this._cachedKey;
+      }
+
       const stmt = db.prepare(`
         SELECT api_key FROM api_keys 
         WHERE service = 'nvd' AND is_active = 1
@@ -18,9 +32,9 @@ class NVDClient {
       const result = stmt.get();
       
       if (result?.api_key) {
-        // Decrypt API key
-        const encryption = require('../utils/encryption');
-        return encryption.decrypt(result.api_key);
+        this._cachedKey = decrypt(result.api_key);
+        this._keyFetchTime = now;
+        return this._cachedKey;
       }
       
       return null;
@@ -32,33 +46,68 @@ class NVDClient {
     }
   }
 
-  /**
-   * Query CVE by ID with retry logic
-   */
+  clearKeyCache() {
+    this._cachedKey = null;
+    this._keyFetchTime = 0;
+  }
+
+  isCircuitOpen() {
+    if (!this.circuitOpen) return false;
+    
+    if (Date.now() - this.lastFailureTime > this.circuitResetTime) {
+      this.circuitOpen = false;
+      this.consecutiveFailures = 0;
+      if (process.env.DEBUG) {
+        console.log(chalk.green('NVD Circuit breaker CLOSED: Resuming enrichment'));
+      }
+      return false;
+    }
+    
+    return true;
+  }
+
+  recordFailure() {
+    this.consecutiveFailures++;
+    this.lastFailureTime = Date.now();
+    
+    if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
+      this.circuitOpen = true;
+      if (process.env.DEBUG) {
+        console.error(chalk.red(`NVD Circuit breaker OPEN: ${this.consecutiveFailures} consecutive failures`));
+      }
+    }
+  }
+
+  recordSuccess() {
+    this.consecutiveFailures = 0;
+  }
+
   async queryCVE(cveId, retries = 2) {
+    if (this.isCircuitOpen()) {
+      return null;
+    }
+
     const apiKey = this.getAPIKey();
     
     if (!apiKey) {
-      return null; // Silently skip if no key configured
+      return null;
     }
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         const response = await axios.get(NVD_API, {
           params: { cveId },
-          headers: {
-            'apiKey': apiKey
-          },
+          headers: { 'apiKey': apiKey },
           timeout: 15000
         });
 
         if (response.data.vulnerabilities && response.data.vulnerabilities.length > 0) {
+          this.recordSuccess();
           return this.parseCVE(response.data.vulnerabilities[0]);
         }
 
         return null;
       } catch (error) {
-        // Rate limit - retry with exponential backoff
         if (error.response?.status === 429 && attempt < retries) {
           const delay = 2000 * (attempt + 1);
           if (process.env.DEBUG) {
@@ -68,33 +117,35 @@ class NVDClient {
           continue;
         }
         
-        // Invalid API key - don't retry
         if (error.response?.status === 403) {
           if (process.env.DEBUG) {
             console.error(chalk.red('❌ NVD API key invalid or expired'));
           }
+          this.clearKeyCache();
+          this.recordFailure();
           return null;
         }
         
-        // Other errors - don't retry
+        if (attempt === retries) {
+          this.recordFailure();
+        }
+        
         if (process.env.DEBUG) {
           console.error(chalk.gray(`NVD error for ${cveId}: ${error.message}`));
         }
-        return null;
+        
+        if (attempt === retries) {
+          return null;
+        }
       }
     }
     
     return null;
   }
 
-  /**
-   * Parse NVD CVE data
-   */
   parseCVE(vulnerability) {
     try {
       const cve = vulnerability.cve;
-      
-      // Extract CVSS v3.1 or v3.0 score
       const cvssMetrics = cve.metrics?.cvssMetricV31 || cve.metrics?.cvssMetricV30 || [];
       const primaryMetric = cvssMetrics[0];
       
@@ -117,35 +168,47 @@ class NVDClient {
     }
   }
 
-  /**
-   * Enrich OSV data with NVD CVSS scores
-   */
   async enrichWithNVD(osvVulnerabilities) {
-    const enriched = [];
-
-    for (const vuln of osvVulnerabilities) {
-      let enrichedVuln = { ...vuln };
-
-      // Check if it's a CVE ID
-      if (vuln.id && vuln.id.startsWith('CVE-')) {
-        const nvdData = await this.queryCVE(vuln.id);
-        
-        if (nvdData) {
-          enrichedVuln = {
-            ...vuln,
-            // Only override if NVD has better data
-            cvssScore: nvdData.cvssScore || vuln.cvssScore,
-            cvssVector: nvdData.cvssVector || vuln.cvssVector,
-            // Keep OSV severity if NVD doesn't have it
-            severity: nvdData.severity || vuln.severity,
-            nvdDescription: nvdData.description,
-            enrichedBy: 'NVD'
-          };
-        }
-      }
-
-      enriched.push(enrichedVuln);
+    if (!Array.isArray(osvVulnerabilities) || osvVulnerabilities.length === 0) {
+      return [];
     }
+
+    if (this.isCircuitOpen()) {
+      if (process.env.DEBUG) {
+        console.log(chalk.yellow('NVD circuit open, returning OSV data only'));
+      }
+      return osvVulnerabilities;
+    }
+
+    const enriched = await Promise.all(
+      osvVulnerabilities.map(async (vuln) => {
+        try {
+          let enrichedVuln = { ...vuln };
+
+          if (vuln.id && vuln.id.startsWith('CVE-')) {
+            const nvdData = await this.queryCVE(vuln.id);
+
+            if (nvdData) {
+              enrichedVuln = {
+                ...vuln,
+                cvssScore: nvdData.cvssScore || vuln.cvssScore,
+                cvssVector: nvdData.cvssVector || vuln.cvssVector,
+                severity: nvdData.severity || vuln.severity,
+                nvdDescription: nvdData.description,
+                enrichedBy: 'NVD'
+              };
+            }
+          }
+
+          return enrichedVuln;
+        } catch (error) {
+          if (process.env.DEBUG) {
+            console.error(`NVD enrich failed for ${vuln.id}:`, error.message);
+          }
+          return vuln;
+        }
+      })
+    );
 
     return enriched;
   }

@@ -1,11 +1,7 @@
 // src/graph/exporter.js
-
 const fs = require('fs');
 const path = require('path');
 
-/**
- * GraphExporter - Exports graph data using unified dashboard
- */
 class GraphExporter {
   constructor(graphData, options = {}) {
     this.graphData = this.validateGraphData(graphData);
@@ -21,9 +17,6 @@ class GraphExporter {
     };
   }
 
-  /**
-   * Validate and normalize graph data
-   */
   validateGraphData(graphData) {
     if (!graphData) {
       return { nodes: [], links: [], metadata: {} };
@@ -36,9 +29,6 @@ class GraphExporter {
     };
   }
 
-  /**
-   * Generate unified dashboard HTML
-   */
   generateHTML() {
     const dashboardIndexPath = path.join(__dirname, '../dashboard/index.html');
     const clusteringPath = path.join(__dirname, 'clustering.js');
@@ -424,16 +414,10 @@ class GraphExporter {
 </html>`;
   }
 
-  /**
-   * Generate JSON output
-   */
   generateJSON() {
     return JSON.stringify(this.graphData, null, 2);
   }
 
-  /**
-   * Export to file
-   */
   exportToFile(outputPath) {
     try {
       const ext = path.extname(outputPath).toLowerCase();
@@ -472,9 +456,6 @@ class GraphExporter {
     }
   }
 
-  /**
-   * Get file size helper
-   */
   getFileSize(filePath) {
     try {
       const stats = fs.statSync(filePath);
@@ -487,16 +468,10 @@ class GraphExporter {
     }
   }
 
-  /**
-   * Main export method
-   */
   export(outputPath) {
     return this.exportToFile(outputPath);
   }
 
-  /**
-   * Legacy methods for backward compatibility
-   */
   exportHTML(outputPath) {
     const content = this.generateHTML();
     fs.writeFileSync(outputPath, content, 'utf-8');

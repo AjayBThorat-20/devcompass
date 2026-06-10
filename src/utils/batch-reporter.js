@@ -1,4 +1,3 @@
-// src/utils/batch-reporter.js
 const chalk = require('chalk');
 const fs = require('fs');
 const path = require('path');
@@ -9,9 +8,6 @@ class BatchReporter {
     this.reportPath = path.join(projectPath, 'devcompass-batch-report.json');
   }
 
-  /**
-   * Generate batch report
-   */
   generateReport(batchResults, summary) {
     const report = {
       timestamp: new Date().toISOString(),
@@ -30,40 +26,38 @@ class BatchReporter {
         fixes: batch.fixes,
         successful: batch.successful,
         failed: batch.failed,
-        errors: batch.errors
+        errors: batch.errors.map(err => ({
+          ...err,
+          severity: err.severity || 'medium'
+        }))
       }))
     };
 
-    // Save to file
-    fs.writeFileSync(
-      this.reportPath,
-      JSON.stringify(report, null, 2)
-    );
+    fs.writeFileSync(this.reportPath, JSON.stringify(report, null, 2));
 
     return report;
   }
 
-  /**
-   * Display batch summary
-   */
   displaySummary(batchResults, summary) {
     console.log('\n' + chalk.bold.cyan('📊 BATCH FIX SUMMARY'));
     console.log(chalk.gray('═'.repeat(70)) + '\n');
 
-    // Display each batch
     batchResults.forEach(batch => {
       if (batch.successful > 0 || batch.failed > 0) {
         console.log(chalk.bold(`${this.getBatchIcon(batch.batch)} ${batch.batchName}`));
-        
+
         if (batch.successful > 0) {
           console.log(chalk.green(`  ✓ ${batch.successful} fix(es) applied`));
         }
-        
+
         if (batch.failed > 0) {
+          const criticalErrors = batch.errors.filter(e => e.severity === 'critical').length;
+          if (criticalErrors > 0) {
+            console.log(chalk.red(`  ✗ ${criticalErrors} critical failure(s)`));
+          }
           console.log(chalk.red(`  ✗ ${batch.failed} fix(es) failed`));
         }
 
-        // Show details
         if (batch.fixes.length > 0) {
           batch.fixes.forEach(fix => {
             console.log(chalk.gray(`    • ${this.formatFix(fix)}`));
@@ -74,7 +68,6 @@ class BatchReporter {
       }
     });
 
-    // Overall summary
     console.log(chalk.gray('─'.repeat(70)));
     console.log(chalk.bold('\n📈 OVERALL RESULTS:\n'));
     console.log(`  Total Batches: ${chalk.cyan(summary.totalBatches)}`);
@@ -87,9 +80,6 @@ class BatchReporter {
     console.log(chalk.green(`\n✓ Batch report saved: ${this.reportPath}\n`));
   }
 
-  /**
-   * Get batch icon
-   */
   getBatchIcon(batchId) {
     const icons = {
       'supply-chain': '🛡️',
@@ -103,35 +93,53 @@ class BatchReporter {
     return icons[batchId] || '📦';
   }
 
-  /**
-   * Format individual fix
-   */
   formatFix(fix) {
     switch (fix.type) {
       case 'supply-chain':
         return `${fix.package} - ${fix.action}`;
-      
+
       case 'license':
         return `${fix.package} → ${fix.alternative} (${fix.oldLicense} → ${fix.newLicense})`;
-      
+
       case 'quality':
         return `${fix.package} → ${fix.alternative} (${fix.reason})`;
-      
+
       case 'security':
         return fix.action;
-      
+
       case 'ecosystem':
         return `${fix.package}@${fix.version}`;
-      
+
       case 'unused':
         return `Removed: ${fix.packages.join(', ')}`;
-      
+
       case 'update':
         return `${fix.package}: ${fix.from} → ${fix.to}`;
-      
+
       default:
         return JSON.stringify(fix);
     }
+  }
+
+  renderPreview(previewData) {
+    console.log('\n' + chalk.bold.cyan('🔍 DRY RUN PREVIEW'));
+    console.log(chalk.gray('═'.repeat(70)));
+    console.log('');
+
+    console.log(`Operations: ${chalk.cyan(previewData.operations.length)}\n`);
+
+    previewData.operations.forEach((op, index) => {
+      console.log(chalk.bold(`${index + 1}. ${op.package}`));
+
+      if (op.from && op.to) {
+        console.log(chalk.gray(`   ${op.from} → ${op.to}`));
+      }
+
+      console.log(chalk.gray(`   Type: ${op.type}`));
+      console.log('');
+    });
+
+    console.log(chalk.yellow('⚠️  No changes were applied (dry run mode)\n'));
   }
 }
 

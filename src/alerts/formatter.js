@@ -1,15 +1,11 @@
 // src/alerts/formatter.js
 const chalk = require('chalk');
 
-/**
- * Format alerts for terminal output
- */
 function formatAlerts(alerts) {
   if (alerts.length === 0) {
     return null;
   }
   
-  // Group alerts by package
   const grouped = {};
   
   alerts.forEach(alert => {
@@ -22,9 +18,6 @@ function formatAlerts(alerts) {
   return grouped;
 }
 
-/**
- * Get severity emoji and color
- */
 function getSeverityDisplay(severity) {
   const displays = {
     critical: { emoji: '🔴', color: chalk.red.bold, label: 'CRITICAL' },
@@ -36,9 +29,6 @@ function getSeverityDisplay(severity) {
   return displays[severity] || displays.medium;
 }
 
-/**
- * Calculate alert impact on health score
- */
 function calculateAlertPenalty(alerts) {
   let penalty = 0;
   
@@ -59,7 +49,7 @@ function calculateAlertPenalty(alerts) {
     }
   });
   
-  return Math.min(penalty, 5.0); // Cap at 5 points max
+  return Math.min(penalty, 5.0);
 }
 
 module.exports = { 

@@ -1,9 +1,6 @@
 // src/alerts/matcher.js
 const semver = require('semver');
 
-/**
- * Match installed packages against known issues database
- */
 function matchIssues(installedVersions, issuesDb) {
   const alerts = [];
   

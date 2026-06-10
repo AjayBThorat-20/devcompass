@@ -1,126 +1,108 @@
-// src/ai/providers/openai.js
 const BaseProvider = require('./base-provider');
+const axios = require('axios');
 
 class OpenAIProvider extends BaseProvider {
-  constructor(config) {
+  constructor(config = {}) {
     super(config);
-    this.apiUrl = this.baseUrl || 'https://api.openai.com/v1/chat/completions';
+    this.baseURL = config.baseURL || 'https://api.openai.com/v1';
+    this.model = config.model || 'gpt-4o-mini';
+    this.pricing = {
+      'gpt-4o-mini': { input: 0.15 / 1000, output: 0.60 / 1000 },
+      'gpt-4o': { input: 2.50 / 1000, output: 10.00 / 1000 },
+      'gpt-4-turbo': { input: 10.00 / 1000, output: 30.00 / 1000 }
+    };
   }
 
-  /**
-   * Send a prompt to OpenAI
-   */
-  async sendPrompt(prompt, systemPrompt = null, options = {}) {
-    const messages = [];
-    
-    if (systemPrompt) {
-      messages.push({ role: 'system', content: systemPrompt });
-    }
-    
-    messages.push({ role: 'user', content: prompt });
-
-    const requestBody = {
-      model: this.model,
-      messages: messages,
-      max_tokens: options.maxTokens || this.maxTokens,
-      temperature: options.temperature || this.temperature,
-      stream: false
+  _getHeaders() {
+    const apiKey = this._getDecryptedKey ? this._getDecryptedKey() : this.config.api_key;
+    return {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
     };
+  }
 
+  async sendPrompt(messages, options = {}) {
+    const controller = this.createAbortController();
+    
     try {
-      const response = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
+      const response = await axios.post(
+        `${this.baseURL}/chat/completions`,
+        {
+          model: options.model || this.model,
+          messages: messages,
+          temperature: options.temperature || 0.7,
+          max_tokens: options.maxTokens || 2000
         },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || `OpenAI API error: ${response.status}`);
-      }
-
-      const data = await response.json();
+        {
+          headers: this._getHeaders(),
+          signal: controller.signal
+        }
+      );
+      
+      this.clearAbortController();
       
       return {
-        content: data.choices[0].message.content,
-        tokensUsed: data.usage?.total_tokens || 0,
-        promptTokens: data.usage?.prompt_tokens || 0,
-        completionTokens: data.usage?.completion_tokens || 0,
-        model: data.model,
-        finishReason: data.choices[0].finish_reason
+        content: response.data.choices[0].message.content,
+        usage: {
+          inputTokens: response.data.usage.prompt_tokens,
+          outputTokens: response.data.usage.completion_tokens,
+          totalTokens: response.data.usage.total_tokens
+        }
       };
     } catch (error) {
-      throw new Error(`OpenAI API error: ${error.message}`);
+      this.clearAbortController();
+      
+      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        throw new Error('Request cancelled by user');
+      }
+      throw error;
     }
   }
 
-  /**
-   * Stream a response from OpenAI
-   */
-  async streamPrompt(prompt, systemPrompt = null, onChunk, options = {}) {
-    const messages = [];
+  async streamPrompt(messages, onChunk, options = {}) {
+    const controller = this.createAbortController();
     
-    if (systemPrompt) {
-      messages.push({ role: 'system', content: systemPrompt });
-    }
-    
-    messages.push({ role: 'user', content: prompt });
-
-    const requestBody = {
-      model: this.model,
-      messages: messages,
-      max_tokens: options.maxTokens || this.maxTokens,
-      temperature: options.temperature || this.temperature,
-      stream: true
-    };
-
     try {
-      const response = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
+      const response = await axios.post(
+        `${this.baseURL}/chat/completions`,
+        {
+          model: options.model || this.model,
+          messages: messages,
+          temperature: options.temperature || 0.7,
+          max_tokens: options.maxTokens || 2000,
+          stream: true
         },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || `OpenAI API error: ${response.status}`);
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let fullContent = '';
-      let totalTokens = 0;
-
-      while (true) {
-        const { done, value } = await reader.read();
+        {
+          headers: this._getHeaders(),
+          responseType: 'stream',
+          signal: controller.signal
+        }
+      );
+      
+      let usage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+      
+      for await (const chunk of response.data) {
+        const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
         
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
-            
             if (data === '[DONE]') continue;
             
             try {
               const parsed = JSON.parse(data);
-              const content = parsed.choices[0]?.delta?.content || '';
+              const content = parsed.choices[0]?.delta?.content;
               
               if (content) {
-                fullContent += content;
-                totalTokens += this.countTokens(content);
                 onChunk(content);
+              }
+              
+              if (parsed.usage) {
+                usage = {
+                  inputTokens: parsed.usage.prompt_tokens,
+                  outputTokens: parsed.usage.completion_tokens,
+                  totalTokens: parsed.usage.total_tokens
+                };
               }
             } catch (e) {
               // Skip invalid JSON
@@ -128,34 +110,22 @@ class OpenAIProvider extends BaseProvider {
           }
         }
       }
-
-      return {
-        content: fullContent,
-        tokensUsed: totalTokens,
-        model: this.model
-      };
+      
+      this.clearAbortController();
+      return usage;
     } catch (error) {
-      throw new Error(`OpenAI streaming error: ${error.message}`);
+      this.clearAbortController();
+      
+      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        throw new Error('Request cancelled by user');
+      }
+      throw error;
     }
   }
 
-  /**
-   * Estimate cost for OpenAI models
-   */
-  estimateCost(tokens, isInput = true) {
-    // Pricing per 1K tokens (as of 2024)
-    const pricing = {
-      'gpt-4': { input: 0.03, output: 0.06 },
-      'gpt-4-turbo': { input: 0.01, output: 0.03 },
-      'gpt-3.5-turbo': { input: 0.0005, output: 0.0015 },
-      'gpt-4o': { input: 0.005, output: 0.015 },
-      'gpt-4o-mini': { input: 0.00015, output: 0.0006 }
-    };
-
-    const modelPricing = pricing[this.model] || pricing['gpt-3.5-turbo'];
-    const costPer1k = isInput ? modelPricing.input : modelPricing.output;
-    
-    return (tokens / 1000) * costPer1k;
+  estimateCost(inputTokens, outputTokens) {
+    const pricing = this.pricing[this.model] || this.pricing['gpt-4o-mini'];
+    return (inputTokens * pricing.input) + (outputTokens * pricing.output);
   }
 }
 

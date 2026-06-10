@@ -1,78 +1,109 @@
-// src/ai/conversation.js
 const { v4: uuidv4 } = require('uuid');
 const aiDatabase = require('./database');
 
 class ConversationManager {
   constructor() {
     this.currentSession = null;
+    this.memoryStore = new Map();
+    this.sessionLocks = new Map();
   }
 
-  /**
-   * Start a new conversation session
-   */
+  async acquireLock(sessionId) {
+    while (this.sessionLocks.get(sessionId)) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    this.sessionLocks.set(sessionId, true);
+  }
+
+  releaseLock(sessionId) {
+    this.sessionLocks.delete(sessionId);
+  }
+
   startSession() {
     this.currentSession = uuidv4();
+
+    if (!this.memoryStore.has(this.currentSession)) {
+      this.memoryStore.set(this.currentSession, []);
+    }
+
     return this.currentSession;
   }
 
-  /**
-   * Get current session ID
-   */
   getCurrentSession() {
     if (!this.currentSession) {
       this.startSession();
     }
+
     return this.currentSession;
   }
 
-  /**
-   * Save conversation turn
-   */
-  saveConversation(providerId, command, commandOutput, userPrompt, aiResponse, tokensUsed, cost) {
-    const sessionId = this.getCurrentSession();
-    
-    aiDatabase.saveConversation(
-      sessionId,
-      providerId,
-      command,
-      commandOutput,
-      userPrompt,
-      aiResponse,
-      tokensUsed,
-      cost
-    );
+  clearSession() {
+    this.currentSession = null;
   }
 
-  /**
-   * Get conversation history
-   */
+  async addMessage(conversationId, role, content) {
+    await this.acquireLock(conversationId);
+
+    try {
+      if (!this.memoryStore.has(conversationId)) {
+        this.memoryStore.set(conversationId, []);
+      }
+
+      this.memoryStore.get(conversationId).push({
+        role,
+        content,
+        timestamp: new Date().toISOString()
+      });
+
+      return true;
+    } finally {
+      this.releaseLock(conversationId);
+    }
+  }
+
+  getMessages(conversationId) {
+    return this.memoryStore.get(conversationId) || [];
+  }
+
+  async saveConversation(providerId, command, commandOutput, userPrompt, aiResponse, tokensUsed, cost) {
+    const sessionId = this.getCurrentSession();
+
+    await this.acquireLock(sessionId);
+
+    try {
+      aiDatabase.saveConversation(
+        sessionId,
+        providerId,
+        command,
+        commandOutput,
+        userPrompt,
+        aiResponse,
+        tokensUsed,
+        cost
+      );
+    } finally {
+      this.releaseLock(sessionId);
+    }
+  }
+
   getHistory(limit = 10) {
     const sessionId = this.getCurrentSession();
     return aiDatabase.getConversationHistory(sessionId, limit);
   }
 
-  /**
-   * Build conversation context for AI
-   */
   buildContext(limit = 5) {
     const history = this.getHistory(limit);
-    
+
     if (history.length === 0) {
       return null;
     }
 
-    // Reverse to get chronological order
-    return history.reverse().map(turn => ({
-      user: turn.user_prompt,
-      assistant: turn.ai_response
-    }));
-  }
-
-  /**
-   * Clear current session
-   */
-  clearSession() {
-    this.currentSession = null;
+    return history
+      .reverse()
+      .map(turn => ({
+        user: turn.user_prompt,
+        assistant: turn.ai_response
+      }));
   }
 }
 

@@ -1,0 +1,98 @@
+module.exports = {
+  VERSION: '3.2.6',
+
+  SEVERITY_LEVELS: {
+    CRITICAL: 'CRITICAL',
+    HIGH: 'HIGH',
+    MEDIUM: 'MEDIUM',
+    LOW: 'LOW',
+    INFO: 'INFO'
+  },
+
+  ISSUE_TYPES: {
+    CVE: 'cve',
+    LICENSE: 'license',
+    QUALITY: 'quality',
+    SECURITY: 'security',
+    OUTDATED: 'outdated',
+    UNUSED: 'unused',
+    DEPRECATED: 'deprecated'
+  },
+
+  HEALTH_THRESHOLDS: {
+    EXCELLENT: 9.0,
+    GOOD: 7.0,
+    FAIR: 5.0,
+    POOR: 3.0
+  },
+
+  CACHE: {
+    TTL_MS: 24 * 60 * 60 * 1000,
+    MAX_MEMORY_SIZE: 1000,
+    DIR_NAME: '.devcompass'
+  },
+
+  RATE_LIMITS: {
+    AI_REQUESTS_PER_MINUTE: 10,
+    AI_DAILY_COST_LIMIT: 10.0,
+    NPM_REQUESTS_PER_MINUTE: 100,
+    NVD_REQUESTS_PER_MINUTE: 50,
+    CVE_CONCURRENT_CHECKS: 10
+  },
+
+  TIMEOUTS: {
+    REQUEST_TIMEOUT_MS: 10000,
+    PROCESS_TIMEOUT_MS: 60000,
+    CIRCUIT_BREAKER_RESET_MS: 300000
+  },
+
+  CIRCUIT_BREAKER: {
+    MAX_FAILURES: 5,
+    RESET_TIME_MS: 300000
+  },
+
+  GRAPH: {
+    MAX_NODES: 500,
+    MAX_STACK_DEPTH: 100,
+    DEFAULT_PAGE_SIZE: 500
+  },
+
+  DATABASE: {
+    WAL_MODE: true,
+    CACHE_SIZE: 10000,
+    MMAP_SIZE: 67108864,
+    VACUUM_THRESHOLD: 1000
+  },
+
+  RETRY: {
+    MAX_ATTEMPTS: 3,
+    INITIAL_DELAY_MS: 1000,
+    BACKOFF_MULTIPLIER: 2
+  },
+
+  COLORS: {
+    CRITICAL: '#ef4444',
+    HIGH: '#f59e0b',
+    MEDIUM: '#eab308',
+    LOW: '#3b82f6',
+    SUCCESS: '#10b981',
+    INFO: '#6366f1'
+  },
+
+  RISKY_LICENSES: [
+    'GPL-3.0',
+    'GPL-2.0',
+    'AGPL-3.0',
+    'LGPL-3.0',
+    'LGPL-2.1'
+  ],
+
+  EXIT_CODES: {
+    SUCCESS: 0,
+    GENERAL_ERROR: 1,
+    VALIDATION_ERROR: 2,
+    NETWORK_ERROR: 3,
+    PERMISSION_ERROR: 4,
+    CI_THRESHOLD_FAILED: 5
+  }
+};

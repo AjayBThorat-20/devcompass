@@ -1,5 +1,4 @@
 // src/dashboard/scripts/stats.js
-
 class StatsManager {
   constructor() {
     this.stats = {

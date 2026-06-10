@@ -1,5 +1,4 @@
 // src/dashboard/scripts/tooltip.js
-
 class Tooltip {
   constructor(elementId = 'tooltip') {
     this.element = document.getElementById(elementId);

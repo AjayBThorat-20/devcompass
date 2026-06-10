@@ -1,3 +1,4 @@
+// src/commands/analyze.js
 const { runAnalyze } = require('./analyze/index');
 
 async function analyzeProject(options = {}) {

@@ -1,5 +1,4 @@
 // src/dashboard/scripts/utils.js
-
 function getHealthColor(node) {
   if (node.type === 'root' || node.depth === 0) {
     return 'var(--root-color)';

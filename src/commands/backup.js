@@ -4,6 +4,7 @@ const path = require('path');
 const chalk = require('chalk');
 const BackupManager = require('../utils/backup-manager');
 const BackupRestorer = require('../utils/backup-restorer');
+const OutputManager = require('../utils/output-manager');
 
 async function backup(action, options = {}) {
   const projectPath = options.path || process.cwd();
@@ -16,18 +17,22 @@ async function backup(action, options = {}) {
     console.log(chalk.yellow('\n💡 Run this command from a valid Node.js project\n'));
     process.exit(1);
   }
+
+  // Initialize output manager for centralized backup directory
+  const outputManager = new OutputManager(projectPath);
+  const backupDir = outputManager.getBackupPath();
   
-  const backupManager = new BackupManager(projectPath);
-  const backupRestorer = new BackupRestorer(projectPath);
+  const backupManager = new BackupManager(backupDir);
+  const backupRestorer = new BackupRestorer(backupDir);
 
   try {
     switch (action) {
       case 'list':
-        await listBackups(backupManager);
+        await listBackups(backupManager, outputManager);
         break;
       
       case 'restore':
-        await restoreBackup(backupRestorer, options);
+        await restoreBackup(backupRestorer, outputManager, options);
         break;
       
       case 'clean':
@@ -35,7 +40,7 @@ async function backup(action, options = {}) {
         break;
       
       case 'info':
-        await showBackupInfo(backupManager, options);
+        await showBackupInfo(backupManager, outputManager, options);
         break;
       
       default:
@@ -51,7 +56,7 @@ async function backup(action, options = {}) {
   }
 }
 
-async function listBackups(backupManager) {
+async function listBackups(backupManager, outputManager) {
   console.log(chalk.bold.cyan('\n💾 DevCompass Backups\n'));
 
   const backups = await backupManager.listBackups();
@@ -59,10 +64,12 @@ async function listBackups(backupManager) {
   if (backups.length === 0) {
     console.log(chalk.gray('No backups found.\n'));
     console.log(chalk.gray('💡 TIP: Backups are created automatically when you run'), chalk.cyan('devcompass fix\n'));
+    console.log(chalk.gray(`📁 Location: ${outputManager.getRelativePath(outputManager.getBackupPath())}\n`));
     return;
   }
 
-  console.log(chalk.bold(`Found ${chalk.cyan(backups.length)} backup(s):\n`));
+  console.log(chalk.bold(`Found ${chalk.cyan(backups.length)} backup(s) in:`));
+  console.log(chalk.gray(`   ${outputManager.getRelativePath(outputManager.getBackupPath())}\n`));
 
   backups.forEach((backup, index) => {
     const metadata = backup.metadata;
@@ -98,7 +105,7 @@ async function listBackups(backupManager) {
   console.log(chalk.gray('   Clean:'), chalk.cyan('devcompass backup clean\n'));
 }
 
-async function restoreBackup(backupRestorer, options) {
+async function restoreBackup(backupRestorer, outputManager, options) {
   const backupName = options.name;
   
   if (!backupName) {
@@ -125,6 +132,7 @@ async function restoreBackup(backupRestorer, options) {
   console.log(chalk.bold('Backup details:'));
   console.log(`  ${chalk.gray('Name:')} ${backupName}`);
   console.log(`  ${chalk.gray('Created:')} ${formatDate(new Date(backupInfo.metadata.timestamp))}`);
+  console.log(`  ${chalk.gray('Location:')} ${outputManager.getRelativePath(backupInfo.path)}`);
   
   if (backupInfo.metadata.filesBackedUp) {
     console.log(`  ${chalk.gray('Files:')} ${backupInfo.metadata.filesBackedUp.join(', ')}`);
@@ -158,7 +166,7 @@ async function restoreBackup(backupRestorer, options) {
 
   // Create a backup of current state before restoring
   console.log(chalk.bold('\nStep 1: Creating backup of current state...\n'));
-  const backupManager = new BackupManager(backupRestorer.projectPath);
+  const backupManager = new BackupManager(outputManager.getBackupPath());
   const currentBackupPath = await backupManager.createBackup('Before restore');
   
   if (currentBackupPath) {
@@ -271,7 +279,7 @@ async function cleanBackups(backupManager, options) {
   }
 }
 
-async function showBackupInfo(backupManager, options) {
+async function showBackupInfo(backupManager, outputManager, options) {
   const backupName = options.name;
   
   if (!backupName) {
@@ -298,7 +306,7 @@ async function showBackupInfo(backupManager, options) {
   console.log(`${chalk.bold('Name:')}          ${chalk.cyan(backupName)}`);
   console.log(`${chalk.bold('Created:')}       ${formatDate(timestamp)}`);
   console.log(`${chalk.bold('Age:')}           ${getTimeAgo(timestamp)}`);
-  console.log(`${chalk.bold('Location:')}      ${backup.path}`);
+  console.log(`${chalk.bold('Location:')}      ${outputManager.getRelativePath(backup.path)}`);
 
   if (metadata.filesBackedUp && metadata.filesBackedUp.length > 0) {
     console.log(`${chalk.bold('Files backed up:')}`);
@@ -364,6 +372,9 @@ function showHelp() {
   console.log(`  ${chalk.cyan('-f, --force')}             Skip confirmation prompts`);
   console.log(`  ${chalk.cyan('--keep <n>')}              Number of backups to keep (default: 5)\n`);
   
+  console.log(chalk.bold('BACKUP LOCATION:'));
+  console.log(chalk.gray('  .devcompass/backups/ (in project directory)\n'));
+  
   console.log(chalk.bold('EXAMPLES:'));
   console.log(chalk.gray('  # List all backups'));
   console.log(chalk.cyan('  devcompass backup list\n'));
@@ -376,12 +387,6 @@ function showHelp() {
   
   console.log(chalk.gray('  # Clean old backups'));
   console.log(chalk.cyan('  devcompass backup clean\n'));
-  
-  console.log(chalk.gray('  # Clean keeping only 3 backups'));
-  console.log(chalk.cyan('  devcompass backup clean --keep 3\n'));
-  
-  console.log(chalk.gray('  # Force restore without confirmation'));
-  console.log(chalk.cyan('  devcompass backup restore --name <backup-name> --force\n'));
 }
 
 // Helper functions
@@ -417,5 +422,4 @@ function getTimeAgo(date) {
 }
 
 module.exports = backup;
-module.exports.showHelp = showHelp;
 module.exports.showHelp = showHelp;

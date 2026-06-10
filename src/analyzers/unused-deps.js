@@ -71,9 +71,6 @@ async function analyzeUnusedDependencies(projectPath) {
   }
 }
 
-/**
- * Fallback mechanism when knip fails
- */
 function fallbackUnusedCheck(projectPath, dependencies) {
   const unused = [];
 

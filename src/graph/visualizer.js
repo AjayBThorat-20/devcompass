@@ -1,33 +1,19 @@
 // src/graph/visualizer.js
-
 const GraphExporter = require('./exporter');
 
-/**
- * GraphVisualizer - Wrapper around GraphExporter for backward compatibility
- */
 class GraphVisualizer {
   constructor(graphData, options = {}) {
     this.exporter = new GraphExporter(graphData, options);
   }
-
-  /**
-   * Generate HTML output
-   */
   generateHTML() {
     return this.exporter.generateHTML();
   }
 
-  /**
-   * Generate graph script (legacy)
-   */
   generateGraphScript() {
     return this.generateHTML();
   }
 }
 
-/**
- * Get available layouts
- */
 function getAvailableLayouts() {
   return [
     { id: 'tree', name: 'Tree Layout', description: 'Hierarchical tree structure' },
@@ -38,9 +24,6 @@ function getAvailableLayouts() {
   ];
 }
 
-/**
- * Get available filters
- */
 function getAvailableFilters() {
   return [
     { id: 'all', name: 'All Packages', description: 'Show all dependencies' },

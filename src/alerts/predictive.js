@@ -1,10 +1,6 @@
 // src/alerts/predictive.js
 const { checkGitHubIssues } = require('./github-tracker');
 
-/**
- * Generate predictive warnings based on GitHub activity
- * ENHANCED v2.6.0: Added progress callback support for parallel processing
- */
 async function generatePredictiveWarnings(packages, options = {}) {
   const { onProgress } = options;
   
@@ -15,9 +11,7 @@ async function generatePredictiveWarnings(packages, options = {}) {
     if (installedPackages.length === 0) {
       return [];
     }
-    
-    // Pass options to GitHub checker (including progress callback)
-    // v2.6.0: Now supports parallel processing with concurrency control
+  
     const githubData = await checkGitHubIssues(packages, {
       concurrency: 5, // Process 5 packages in parallel
       onProgress: onProgress // Pass through progress callback
@@ -90,9 +84,6 @@ async function generatePredictiveWarnings(packages, options = {}) {
   }
 }
 
-/**
- * Calculate risk score for a package
- */
 function calculateRiskScore(githubData) {
   let score = 0;
   
@@ -111,9 +102,6 @@ function calculateRiskScore(githubData) {
   return score;
 }
 
-/**
- * Get statistics about predictive warnings
- */
 function getPredictiveStats(warnings) {
   return {
     total: warnings.length,

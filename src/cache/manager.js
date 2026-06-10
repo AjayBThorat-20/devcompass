@@ -7,9 +7,6 @@ const CACHE_FILE = '.devcompass-cache.json';
 const CACHE_DURATION = 300000; // 5 minutes in milliseconds (reduced from 1 hour)
 const CACHE_VERSION = 2; // Increment when data structure changes (e.g., CVE parser fixes)
 
-/**
- * Get hash of package.json dependencies
- */
 function getDependencyHash(projectPath) {
   try {
     const packagePath = path.join(projectPath, 'package.json');
@@ -30,9 +27,6 @@ function getDependencyHash(projectPath) {
   }
 }
 
-/**
- * Load cache from disk
- */
 function loadCache(projectPath) {
   try {
     const cachePath = path.join(projectPath, CACHE_FILE);
@@ -62,9 +56,6 @@ function loadCache(projectPath) {
   }
 }
 
-/**
- * Save cache to disk
- */
 function saveCache(projectPath, cacheData) {
   try {
     const cachePath = path.join(projectPath, CACHE_FILE);
@@ -77,9 +68,6 @@ function saveCache(projectPath, cacheData) {
   }
 }
 
-/**
- * Get cached data if still valid
- */
 function getCached(projectPath, key) {
   const cache = loadCache(projectPath);
   
@@ -97,9 +85,6 @@ function getCached(projectPath, key) {
   return cached.data;
 }
 
-/**
- * Set cache entry
- */
 function setCache(projectPath, key, data) {
   const cache = loadCache(projectPath);
   
@@ -111,9 +96,6 @@ function setCache(projectPath, key, data) {
   saveCache(projectPath, cache);
 }
 
-/**
- * Clear all cache
- */
 function clearCache(projectPath) {
   try {
     const cachePath = path.join(projectPath, CACHE_FILE);

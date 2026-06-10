@@ -29,9 +29,6 @@ function getDefaultConfig() {
   };
 }
 
-/**
- * Check if alert should be ignored based on config
- */
 function shouldIgnoreAlert(alert, config) {
   // Check if package is in ignore list
   if (config.ignore.includes(alert.package)) {
@@ -57,9 +54,6 @@ function shouldIgnoreAlert(alert, config) {
   return false;
 }
 
-/**
- * Filter alerts based on config
- */
 function filterAlerts(alerts, config) {
   return alerts.filter(alert => !shouldIgnoreAlert(alert, config));
 }

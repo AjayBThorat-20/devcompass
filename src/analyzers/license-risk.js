@@ -1,6 +1,4 @@
 // src/analyzers/license-risk.js
-// v3.1.4 - Dynamic license risk analysis using npm registry
-
 const { analyzer } = require('../services');
 
 async function analyzeLicenseRisks(projectPath, licenses = []) {

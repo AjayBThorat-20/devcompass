@@ -2,9 +2,6 @@
 const path = require('path');
 const fs = require('fs');
 
-/**
- * Get package sizes from node_modules
- */
 async function analyzeBundleSizes(projectPath, dependencies) {
   const sizes = [];
   
@@ -37,9 +34,6 @@ async function analyzeBundleSizes(projectPath, dependencies) {
   return sizes;
 }
 
-/**
- * Get total size of directory recursively
- */
 function getDirectorySize(dirPath) {
   let totalSize = 0;
   
@@ -59,9 +53,6 @@ function getDirectorySize(dirPath) {
   return totalSize;
 }
 
-/**
- * Format size in human-readable format
- */
 function formatSize(kb) {
   if (kb < 1024) {
     return `${kb} KB`;
@@ -71,9 +62,6 @@ function formatSize(kb) {
   }
 }
 
-/**
- * Identify heavy packages (> 1MB)
- */
 function findHeavyPackages(sizes) {
   return sizes.filter(pkg => pkg.size > 1024); // > 1MB
 }

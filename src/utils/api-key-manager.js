@@ -3,9 +3,7 @@ const { db } = require('../cve/database');
 const encryption = require('./encryption');
 
 class APIKeyManager {
-  /**
-   * Add or update API key
-   */
+
   setAPIKey(service, apiKey) {
     try {
       // Encrypt API key
@@ -32,9 +30,6 @@ class APIKeyManager {
     }
   }
 
-  /**
-   * Get API key (decrypted)
-   */
   getAPIKey(service) {
     try {
       const stmt = db.prepare(`
@@ -58,9 +53,6 @@ class APIKeyManager {
     }
   }
 
-  /**
-   * Remove API key
-   */
   removeAPIKey(service) {
     try {
       const stmt = db.prepare('DELETE FROM api_keys WHERE service = ?');
@@ -72,9 +64,6 @@ class APIKeyManager {
     }
   }
 
-  /**
-   * List all API keys (masked)
-   */
   listAPIKeys() {
     try {
       const stmt = db.prepare(`
@@ -90,9 +79,6 @@ class APIKeyManager {
     }
   }
 
-  /**
-   * Test API key connection
-   */
   async testAPIKey(service) {
     const apiKey = this.getAPIKey(service);
 
@@ -132,9 +118,6 @@ class APIKeyManager {
     return { success: false, message: 'Unknown service' };
   }
 
-  /**
-   * Check if API key exists for service
-   */
   hasAPIKey(service) {
     try {
       const stmt = db.prepare(`

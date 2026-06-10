@@ -6,6 +6,7 @@ const { renderFixPreview, renderConfirmation } = require('./renderers/preview-re
 const { ProgressRenderer } = require('./renderers/progress-renderer');
 const { renderFixResult } = require('./renderers/result-renderer');
 const { runAnalyze } = require('../analyze');
+const processManager = require('../../utils/process-manager');
 
 async function runFix(options = {}) {
   const {
@@ -13,6 +14,7 @@ async function runFix(options = {}) {
     projectPath = process.cwd(),
     skipConfirm = false,
     dryRun = false,
+    preview = false,
     batch = false,
     batchMode = null,
     only = null,
@@ -20,10 +22,14 @@ async function runFix(options = {}) {
     verbose = false
   } = options;
 
+   if (preview && !dryRun) {
+    options.dryRun = true;  // ✓ Already handles preview
+  }
+  
   try {
     if (batch || batchMode || only || skip) {
-      console.log('\n⚠️  Batch mode features are not yet available in v3.2.5');
-      console.log('Use standard fix mode or run v3.2.4 for batch features\n');
+      console.log('\n⚠️  Batch mode features are not yet available in v3.2.6');
+      console.log('Use standard fix mode or run v3.2.5 for batch features\n');
       console.log('Standard fix usage:');
       console.log('  devcompass fix          # Safe fixes with preview');
       console.log('  devcompass fix --all    # Include risky fixes');
@@ -31,8 +37,8 @@ async function runFix(options = {}) {
       return;
     }
 
-    const analysisResult = await runAnalyze({ 
-      projectPath, 
+    const analysisResult = await runAnalyze({
+      projectPath,
       mode: 'silent',
       silent: true,
       json: false,
@@ -51,15 +57,33 @@ async function runFix(options = {}) {
 
     renderFixPreview(plan, mode);
 
-    if (dryRun) {
-      console.log('\n🔍 Dry run mode - no changes made\n');
+    if (dryRun || preview) {
+      console.log('\n🔍 Preview mode enabled\n');
+
+      const actions = mode === 'all'
+        ? [...plan.safe, ...plan.moderate, ...plan.risky]
+        : plan.safe;
+
+      const previewData = {
+        operations: actions.map(action => ({
+          package: action.package || action.name || 'unknown',
+          type: action.type || 'update',
+          from: action.current || null,
+          to: action.latest || null
+        }))
+      };
+
+      const BatchReporter = require('../../utils/batch-reporter');
+      const reporter = new BatchReporter(projectPath);
+      reporter.renderPreview(previewData);
+
       return;
     }
 
-    const actions = mode === 'all' 
+    const actions = mode === 'all'
       ? [...plan.safe, ...plan.moderate, ...plan.risky]
       : plan.safe;
-    
+
     if (actions.length === 0) {
       return;
     }
@@ -67,7 +91,7 @@ async function runFix(options = {}) {
     if (!skipConfirm) {
       renderConfirmation();
       const confirmed = await confirmFix();
-      
+
       if (!confirmed) {
         console.log('\n❌ Fix cancelled\n');
         return;
@@ -76,7 +100,7 @@ async function runFix(options = {}) {
 
     const backupExecutor = new BackupExecutor(projectPath);
     console.log('\n💾 Creating backup...');
-    
+
     const backupResult = await backupExecutor.createBackup({
       mode,
       issueCount: issues.length
@@ -107,8 +131,10 @@ async function runFix(options = {}) {
     progress.finish();
     progress.complete();
 
-    const afterAnalysis = await runAnalyze({ 
-      projectPath, 
+    await processManager.killAll();
+
+    const afterAnalysis = await runAnalyze({
+      projectPath,
       mode: 'silent',
       silent: true,
       json: false,
@@ -123,6 +149,7 @@ async function runFix(options = {}) {
     if (process.env.DEBUG) {
       console.error(error.stack);
     }
+    await processManager.killAll();
     process.exit(1);
   }
 }

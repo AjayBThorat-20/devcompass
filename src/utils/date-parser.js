@@ -1,15 +1,5 @@
 // src/utils/date-parser.js
 
-/**
- * Smart date parser that supports multiple formats
- * Formats supported:
- * - YYYY (year only): 2026
- * - MM-YYYY (month-year): 04-2026
- * - DD-MM-YYYY (day-month-year): 25-04-2026
- * - YYYY-MM (ISO month): 2026-04
- * - YYYY-MM-DD (ISO date): 2026-04-25
- */
-
 class DateParser {
   
   /**
@@ -47,10 +37,7 @@ class DateParser {
     
     throw new Error(`Invalid date format: ${input}. Supported formats: DD-MM-YYYY, MM-YYYY, YYYY, YYYY-MM, YYYY-MM-DD`);
   }
-  
-  /**
-   * Parse year: 2026
-   */
+
   static parseYear(year) {
     const y = parseInt(year);
     const start = new Date(y, 0, 1, 0, 0, 0, 0);
@@ -63,10 +50,7 @@ class DateParser {
       type: 'year'
     };
   }
-  
-  /**
-   * Parse month-year: 04-2026 or 4-2026
-   */
+
   static parseMonthYear(input) {
     const [month, year] = input.split('-');
     const m = parseInt(month) - 1; // 0-indexed
@@ -88,10 +72,7 @@ class DateParser {
       type: 'month'
     };
   }
-  
-  /**
-   * Parse day-month-year: 25-04-2026
-   */
+
   static parseDayMonthYear(input) {
     const [day, month, year] = input.split('-');
     const d = parseInt(day);
@@ -123,10 +104,7 @@ class DateParser {
       type: 'date'
     };
   }
-  
-  /**
-   * Parse ISO month: 2026-04
-   */
+
   static parseISOMonth(input) {
     const [year, month] = input.split('-');
     const m = parseInt(month) - 1;
@@ -148,10 +126,7 @@ class DateParser {
       type: 'month'
     };
   }
-  
-  /**
-   * Parse ISO date: 2026-04-25
-   */
+
   static parseISODate(input) {
     const [year, month, day] = input.split('-');
     const d = parseInt(day);

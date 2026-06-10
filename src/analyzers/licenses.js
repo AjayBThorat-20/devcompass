@@ -56,10 +56,6 @@ async function analyzeLicenses(dependencies) {
   return { warnings };
 }
 
-/**
- * ADDED: Find problematic licenses from license array
- * Used by analyze.js for displaying legacy license warnings
- */
 function findProblematicLicenses(licenses) {
   // Handle both array and object with warnings property
   const licensesArray = Array.isArray(licenses) 

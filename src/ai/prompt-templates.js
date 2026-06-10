@@ -1,9 +1,6 @@
-// src/ai/prompt-templates.js
+const MAX_ISSUES_PER_CATEGORY = 10;
 
 const SYSTEM_PROMPTS = {
-  /**
-   * System prompt for analyze command
-   */
   analyze: `You are DevCompass AI. Give SHORT, actionable insights.
 
 Rules:
@@ -14,9 +11,6 @@ Rules:
 
 Be direct and concise.`,
 
-  /**
-   * System prompt for recommendations
-   */
   recommend: `You are DevCompass AI. Provide a SHORT prioritized list.
 
 FORMAT (keep it brief):
@@ -32,9 +26,6 @@ FORMAT (keep it brief):
 
 Keep EACH item to ONE line. No long paragraphs.`,
 
-  /**
-   * System prompt for alternatives
-   */
   alternatives: `You are DevCompass AI. List exactly 3 alternatives. Be BRIEF.
 
 Format:
@@ -51,9 +42,6 @@ Migration (5 lines max):
 
 NO long explanations. Keep it SHORT.`,
 
-  /**
-   * System prompt for Q&A
-   */
   qa: `You are DevCompass AI. Answer in 2-4 sentences MAX.
 
 Rules:
@@ -64,9 +52,6 @@ Rules:
 
 Keep responses SHORT and actionable.`,
 
-  /**
-   * System prompt for chat
-   */
   chat: `You are DevCompass AI. Keep responses SHORT (2-4 sentences).
 
 Rules:
@@ -78,90 +63,109 @@ Rules:
 Maximum 4 sentences per response.`
 };
 
-/**
- * Build context from analysis results - OPTIMIZED
- */
-function buildAnalysisContext(analysisData) {
-  // Handle both direct results and wrapped data
-  const results = analysisData.results || analysisData;
-  const metadata = analysisData.metadata || {};
-
-  // Safety check
-  if (!results) {
-    return 'No analysis data available.';
-  }
-
-  const context = {
-    projectName: metadata.projectName || results.projectName || 'Unknown',
-    healthScore: results.healthScore || 0,
-    totalDependencies: results.dependencies?.length || results.totalDependencies || 0,
-    dependencies: results.dependencies || [],
-    vulnerabilities: results.vulnerabilities || [],
-    outdated: results.outdated || [],
-    unused: results.unused || [],
-    ecosystemAlerts: results.ecosystemAlerts || []
-  };
-
-  const parts = [];
-
-  parts.push(`Project: ${context.projectName}`);
-  parts.push(`Health: ${context.healthScore.toFixed(1)}/10`);
-  parts.push(`Dependencies: ${context.totalDependencies}\n`);
-
-  // Security vulnerabilities (brief)
-  if (context.vulnerabilities.length > 0) {
-    const bySeverity = {
-      critical: context.vulnerabilities.filter(v => v.severity === 'critical').length,
-      high: context.vulnerabilities.filter(v => v.severity === 'high').length,
-      moderate: context.vulnerabilities.filter(v => v.severity === 'moderate').length,
-      low: context.vulnerabilities.filter(v => v.severity === 'low').length
-    };
-
-    parts.push(`VULNERABILITIES: ${context.vulnerabilities.length} total`);
-    if (bySeverity.critical) parts.push(`  Critical: ${bySeverity.critical}`);
-    if (bySeverity.high) parts.push(`  High: ${bySeverity.high}`);
-    if (bySeverity.moderate) parts.push(`  Moderate: ${bySeverity.moderate}`);
-    if (bySeverity.low) parts.push(`  Low: ${bySeverity.low}`);
-    parts.push('');
-  }
-
-  // Outdated packages (top 5 only)
-  if (context.outdated.length > 0) {
-    parts.push(`OUTDATED: ${context.outdated.length}`);
-    context.outdated.slice(0, 5).forEach(pkg => {
-      const current = pkg.current || pkg.version;
-      const latest = pkg.latest || pkg.wanted;
-      parts.push(`  ${pkg.name}: ${current} → ${latest}`);
-    });
-    if (context.outdated.length > 5) {
-      parts.push(`  ... and ${context.outdated.length - 5} more`);
-    }
-    parts.push('');
-  }
-
-  // Unused (brief list)
-  if (context.unused.length > 0) {
-    const unusedList = context.unused.map(pkg => 
-      typeof pkg === 'string' ? pkg : pkg.name
-    ).join(', ');
-    parts.push(`UNUSED: ${unusedList}\n`);
-  }
-
-  // Ecosystem alerts (top 3 only)
-  if (context.ecosystemAlerts.length > 0) {
-    parts.push(`ALERTS: ${context.ecosystemAlerts.length}`);
-    context.ecosystemAlerts.slice(0, 3).forEach(alert => {
-      parts.push(`  ${alert.package || alert.name}: ${(alert.issue || alert.message).substring(0, 50)}...`);
-    });
-    parts.push('');
-  }
-
-  return parts.join('\n');
+function getSystemPrompt(type = 'qa') {
+  return SYSTEM_PROMPTS[type] || SYSTEM_PROMPTS.qa;
 }
 
-/**
- * Build context from snapshot comparison
- */
+function buildAnalysisContext(context, question) {
+  const analysis = context.analysis || {};
+
+  return `
+You are DevCompass AI.
+
+You are given PRE-COMPUTED dependency analysis results.
+
+IMPORTANT:
+- ONLY discuss findings explicitly listed below
+- DO NOT invent packages
+- DO NOT assume frameworks
+- DO NOT speculate
+- DO NOT mention dependencies not present in findings
+- If information is missing, say it is unavailable
+
+==================================================
+PROJECT
+==================================================
+
+Name:
+${context.project?.name || 'unknown'}
+
+Version:
+${context.project?.version || 'unknown'}
+
+Health Score:
+${analysis.healthScore || 0}/10
+
+Total Issues:
+${analysis.totalIssues || 0}
+
+==================================================
+OUTDATED PACKAGES
+==================================================
+
+${(analysis.outdatedPackages || [])
+  .slice(0, MAX_ISSUES_PER_CATEGORY)
+  .map(pkg => `- ${pkg.name}: ${pkg.current} → ${pkg.latest}`)
+  .join('\n') || 'None'}
+
+==================================================
+MAJOR VERSION RISKS
+==================================================
+
+${(analysis.majorVersionRisks || [])
+  .slice(0, MAX_ISSUES_PER_CATEGORY)
+  .map(pkg => `- ${pkg.name}: ${pkg.current} → ${pkg.latest}`)
+  .join('\n') || 'None'}
+
+==================================================
+SECURITY ISSUES
+==================================================
+
+${(analysis.securityIssues || [])
+  .slice(0, MAX_ISSUES_PER_CATEGORY)
+  .map(pkg => `- ${pkg.name}: ${pkg.severity}`)
+  .join('\n') || 'None'}
+
+==================================================
+DEPRECATED PACKAGES
+==================================================
+
+${(analysis.deprecatedPackages || [])
+  .slice(0, MAX_ISSUES_PER_CATEGORY)
+  .map(pkg => `- ${pkg.name}: ${pkg.message}`)
+  .join('\n') || 'None'}
+
+==================================================
+TOP ISSUES
+==================================================
+
+${(analysis.topIssues || [])
+  .slice(0, MAX_ISSUES_PER_CATEGORY)
+  .map(issue => `- [${issue.severity}] ${issue.name}: ${issue.message}`)
+  .join('\n') || 'None'}
+
+==================================================
+USER QUESTION
+==================================================
+
+${question}
+
+==================================================
+RESPONSE RULES
+==================================================
+
+- Summarize ONLY the findings listed above
+- Prioritize the most severe risks first
+- Mention major-version upgrade risks
+- Mention Node.js compatibility risks ONLY if explicitly listed
+- Mention ESM/CommonJS migration risks ONLY if explicitly listed
+- Keep the response concise and practical
+- Never invent dependencies or vulnerabilities
+
+Return accurate project-specific analysis only.
+`;
+}
+
 function buildComparisonContext(comparison) {
   return `
 SNAPSHOT COMPARISON:
@@ -181,9 +185,6 @@ ${JSON.stringify(comparison, null, 2)}
 `;
 }
 
-/**
- * Build context from timeline
- */
 function buildTimelineContext(timeline) {
   return `
 TIMELINE ANALYSIS:
@@ -202,6 +203,7 @@ ${JSON.stringify(timeline, null, 2)}
 
 module.exports = {
   SYSTEM_PROMPTS,
+  getSystemPrompt,
   buildAnalysisContext,
   buildComparisonContext,
   buildTimelineContext

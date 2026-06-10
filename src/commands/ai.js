@@ -1,406 +1,264 @@
-// src/commands/ai.js
 const chalk = require('chalk');
 const path = require('path');
-const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
+
 const tokenManager = require('../ai/token-manager');
 const conversationManager = require('../ai/conversation');
+const contextBuilder = require('../ai/context-builder');
 const costTracker = require('../ai/cost-tracker');
-const streamFormatter = require('../utils/stream-formatter');
-const { SYSTEM_PROMPTS, buildAnalysisContext } = require('../ai/prompt-templates');
-const aiDatabase = require('../ai/database');
-const readline = require('readline');
+const promptTemplates = require('../ai/prompt-templates');
+const RateLimiter = require('../utils/rate-limiter');
 
-/**
- * Get analysis data from cache
- */
-function getAnalysisData() {
-  try {
-    const cacheFile = path.join(process.cwd(), '.devcompass-cache.json');
-    if (fs.existsSync(cacheFile)) {
-      return JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+let currentProvider = null;
+const rateLimiter = new RateLimiter(10, 60000);
+const costLimiter = { dailyLimit: 10.0, currentSpend: 0, lastReset: Date.now() };
+
+function setupCancellation() {
+  process.removeAllListeners('SIGINT');
+
+  process.on('SIGINT', () => {
+    console.log(chalk.yellow('\n⚠️ Cancelling AI request...'));
+
+    if (currentProvider && typeof currentProvider.cancel === 'function') {
+      currentProvider.cancel();
     }
-  } catch (error) {
-    // Ignore errors
-  }
-  return null;
+
+    console.log(chalk.gray('Request cancelled.\n'));
+    process.exit(0);
+  });
 }
 
-/**
- * Ask AI a question about the analysis
- */
-async function askQuestion(question, context = null, options = {}) {
-  if (!question) {
-    console.error(chalk.red('❌ Error: Question is required'));
-    console.log('\nUsage: devcompass ai ask "your question here"');
-    return;
+function checkDailyCostLimit(estimatedCost) {
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  if (now - costLimiter.lastReset > dayMs) {
+    costLimiter.currentSpend = 0;
+    costLimiter.lastReset = now;
   }
 
+  if (costLimiter.currentSpend + estimatedCost > costLimiter.dailyLimit) {
+    throw new Error(`Daily cost limit reached ($${costLimiter.dailyLimit}). Resets in ${Math.ceil((dayMs - (now - costLimiter.lastReset)) / 3600000)} hours.`);
+  }
+}
+
+async function getProvider() {
   try {
-    const provider = tokenManager.getProvider(options.provider);
-    const providerConfig = aiDatabase.getProvider(options.provider || provider.name);
+    const provider = tokenManager.getProvider();
 
-    const analysisData = getAnalysisData();
-    let contextText = '';
-    if (analysisData) {
-      contextText = buildAnalysisContext(analysisData);
-    } else if (context) {
-      contextText = context;
+    if (!provider) {
+      console.log(chalk.red('\n❌ No AI provider configured'));
+      console.log(chalk.cyan('\nTo set up an AI provider:'));
+      console.log(chalk.white('  devcompass llm add --provider openai --token YOUR_API_KEY'));
+      console.log(chalk.white('  devcompass llm add --provider anthropic --token YOUR_API_KEY'));
+      console.log(chalk.white('  devcompass llm add --provider google --token YOUR_GOOGLE_KEY\n'));
+      return null;
     }
 
-    const systemPrompt = SYSTEM_PROMPTS.qa;
-    let userPrompt = `${contextText}\n\nQuestion: ${question}\n\nAnswer in 2-4 sentences max.`;
-
-    streamFormatter.showTyping('AI is thinking');
-
-    let response;
-    if (options.stream !== false) {
-      streamFormatter.clearTyping();
-      response = await provider.streamPrompt(
-        userPrompt,
-        systemPrompt,
-        (chunk) => streamFormatter.formatChunk(chunk),
-        { maxTokens: options.maxTokens || 500 }  // REDUCED
-      );
-      streamFormatter.finish();
-    } else {
-      response = await provider.sendPrompt(userPrompt, systemPrompt, {
-        maxTokens: options.maxTokens || 500  // REDUCED
-      });
-      streamFormatter.clearTyping();
-      console.log('\n🤖 ' + response.content + '\n');
-    }
-
-    const inputCost = provider.estimateCost(response.promptTokens, true);
-    const outputCost = provider.estimateCost(response.completionTokens, false);
-    const totalCost = inputCost + outputCost;
-
-    costTracker.trackUsage(providerConfig.id, response.tokensUsed, totalCost);
-    conversationManager.saveConversation(
-      providerConfig.id,
-      'ai ask',
-      contextText,
-      question,
-      response.content,
-      response.tokensUsed,
-      totalCost
-    );
-
-    if (options.verbose) {
-      console.log(chalk.gray(`\n💡 Tokens used: ${response.tokensUsed.toLocaleString()} (~$${totalCost.toFixed(4)})`));
-    }
-
-    return response.content;
+    return provider;
   } catch (error) {
-    streamFormatter.clearTyping();
-    console.error(chalk.red('\n❌ AI Error: ' + error.message));
+    if (error.message.includes('No default provider configured')) {
+      console.log(chalk.red('\n❌ No AI provider configured'));
+      console.log(chalk.cyan('\nTo set up an AI provider:'));
+      console.log(chalk.white('  devcompass llm add --provider openai --token YOUR_API_KEY'));
+      console.log(chalk.white('  devcompass llm add --provider anthropic --token YOUR_API_KEY'));
+      console.log(chalk.white('  devcompass llm add --provider google --token YOUR_GOOGLE_KEY\n'));
+    } else {
+      console.log(chalk.red('\n❌ AI Provider Error:'));
+      console.log(chalk.gray(error.message + '\n'));
+    }
+    return null;
+  }
+}
+
+function getProviderId(provider) {
+  return provider?.config?.id || provider?.id || null;
+}
+
+async function askQuestion(question, projectPath = process.cwd(), options = {}) {
+  setupCancellation();
+
+  try {
+    if (!rateLimiter.tryAcquire()) {
+      const timeUntilReset = Math.ceil(rateLimiter.getTimeUntilReset() / 1000);
+      throw new Error(`Rate limit exceeded (10 requests per minute). Please wait ${timeUntilReset} seconds.`);
+    }
+
+    const provider = await getProvider();
+    if (!provider) return;
+
+    currentProvider = provider;
+
+    const resolvedProjectPath = path.resolve(options.projectPath || projectPath || process.cwd());
+
+    const context = options.context || await contextBuilder.buildContext(resolvedProjectPath);
+
+    // Only show "excellent health" for simple health checks with no issues
+    const isSimpleHealthCheck = question.toLowerCase().includes('health') && 
+                                question.split(' ').length < 10;
     
-    if (error.message.includes('not found') || error.message.includes('No default provider')) {
-      console.log(chalk.yellow('\n💡 Add an LLM provider first:'));
-      console.log('   devcompass llm add --provider openai --token sk-xxx --model gpt-4');
-    }
-  }
-}
-
-/**
- * Get AI recommendations
- */
-async function getRecommendations(analysisResults, options = {}) {
-  try {
-    // Get provider
-    const provider = tokenManager.getProvider(options.provider);
-    const providerConfig = aiDatabase.getProvider(options.provider || provider.name);
-
-    // Build context - use analysisResults directly
-    const context = buildAnalysisContext(analysisResults);
-    const systemPrompt = SYSTEM_PROMPTS.recommend;
-    const userPrompt = `Based on the project analysis above, provide a prioritized action plan with:
-
-🔴 CRITICAL (Do Now):
-🟡 HIGH PRIORITY (This Week):
-🟢 MEDIUM PRIORITY (This Month):
-
-For each issue, include:
-- What it is
-- Why it matters
-- How to fix it (specific commands)
-
-Be specific and actionable based on the analysis data provided.`;
-
-    console.log(chalk.bold('\n🤖 AI Recommendations\n'));
-    streamFormatter.showTyping('Analyzing your project');
-
-    // Get response
-    let response;
-    if (options.stream !== false) {
-      streamFormatter.clearTyping();
-      response = await provider.streamPrompt(
-        `${context}\n\n${userPrompt}`,
-        systemPrompt,
-        (chunk) => streamFormatter.formatChunk(chunk),
-        { maxTokens: options.maxTokens || 3000 }
-      );
-      streamFormatter.finish();
-    } else {
-      response = await provider.sendPrompt(
-        `${context}\n\n${userPrompt}`,
-        systemPrompt,
-        { maxTokens: options.maxTokens || 3000 }
-      );
-      streamFormatter.clearTyping();
-      console.log(response.content + '\n');
+    if (context && context.analysis && 
+        context.analysis.totalIssues === 0 && 
+        isSimpleHealthCheck) {
+      console.log(chalk.green('\n✅ Your project is in excellent health!'));
+      console.log(chalk.gray('Health Score: ' + (context.analysis.healthScore || 10.0) + '/10'));
+      console.log(chalk.gray('No issues detected.\n'));
+      currentProvider = null;
+      return;
     }
 
-    // Calculate cost
-    const inputCost = provider.estimateCost(response.promptTokens, true);
-    const outputCost = provider.estimateCost(response.completionTokens, false);
-    const totalCost = inputCost + outputCost;
-
-    // Track usage
-    costTracker.trackUsage(providerConfig.id, response.tokensUsed, totalCost);
-
-    // Save conversation
-    conversationManager.saveConversation(
-      providerConfig.id,
-      'ai recommend',
-      context,
-      userPrompt,
-      response.content,
-      response.tokensUsed,
-      totalCost
-    );
-
-    // Show stats
-    if (options.verbose) {
-      console.log(chalk.gray(`💡 Tokens used: ${response.tokensUsed.toLocaleString()} (~$${totalCost.toFixed(4)})`));
-    }
-
-    return response.content;
-  } catch (error) {
-    streamFormatter.clearTyping();
-    console.error(chalk.red('\n❌ AI Error: ' + error.message));
-  }
-}
-
-/**
- * Get alternative package suggestions
- */
-async function getAlternatives(packageName, options = {}) {
-  if (!packageName) {
-    console.error(chalk.red('❌ Error: Package name is required'));
-    console.log('\nUsage: devcompass ai alternatives <package-name>');
-    return;
-  }
-
-  try {
-    // Get provider
-    const provider = tokenManager.getProvider(options.provider);
-    const providerConfig = aiDatabase.getProvider(options.provider || provider.name);
-
-    const systemPrompt = SYSTEM_PROMPTS.alternatives;
-    const userPrompt = `Suggest the top 3-5 modern alternatives to the npm package "${packageName}".
-
-For each alternative, provide:
-1. Package name
-2. Bundle size (compared to ${packageName})
-3. Key differences
-4. Migration difficulty (easy/medium/hard)
-5. Current popularity and maintenance status
-
-Also include a brief code example showing how to migrate from ${packageName}.
-
-Be specific, accurate, and practical.`;
-
-    console.log(chalk.bold(`\n🔍 Finding alternatives for "${packageName}"\n`));
-    streamFormatter.showTyping('Searching npm ecosystem');
-
-    // Get response
-    let response;
-    if (options.stream !== false) {
-      streamFormatter.clearTyping();
-      response = await provider.streamPrompt(
-        userPrompt,
-        systemPrompt,
-        (chunk) => streamFormatter.formatChunk(chunk),
-        { maxTokens: options.maxTokens || 2500 }
-      );
-      streamFormatter.finish();
-    } else {
-      response = await provider.sendPrompt(userPrompt, systemPrompt, {
-        maxTokens: options.maxTokens || 2500
-      });
-      streamFormatter.clearTyping();
-      console.log(response.content + '\n');
-    }
-
-    // Calculate cost
-    const inputCost = provider.estimateCost(response.promptTokens, true);
-    const outputCost = provider.estimateCost(response.completionTokens, false);
-    const totalCost = inputCost + outputCost;
-
-    // Track usage
-    costTracker.trackUsage(providerConfig.id, response.tokensUsed, totalCost);
-
-    // Save conversation
-    conversationManager.saveConversation(
-      providerConfig.id,
-      'ai alternatives',
-      null,
-      `alternatives for ${packageName}`,
-      response.content,
-      response.tokensUsed,
-      totalCost
-    );
-
-    return response.content;
-  } catch (error) {
-    streamFormatter.clearTyping();
-    console.error(chalk.red('\n❌ AI Error: ' + error.message));
-  }
-}
-
-/**
- * Interactive AI chat
- */
-async function startChat(context = null, options = {}) {
-  try {
-    // Get provider
-    const provider = tokenManager.getProvider(options.provider);
-    const providerConfig = aiDatabase.getProvider(options.provider || provider.name);
-
-    // Get analysis data for context
-    const analysisData = getAnalysisData();
-    let contextText = '';
+    const conversationId = options.conversationId || uuidv4();
     
-    if (analysisData) {
-      contextText = buildAnalysisContext(analysisData);
-    } else if (context) {
-      contextText = context;
+    if (typeof conversationManager.addMessage === 'function') {
+      conversationManager.addMessage(conversationId, 'user', question);
     }
 
-    // Start new session
-    conversationManager.startSession();
+    const messages = [
+      {
+        role: 'system',
+        content: promptTemplates.getSystemPrompt('qa')
+      },
+      {
+        role: 'user',
+        content: promptTemplates.buildAnalysisContext(context, question)
+      }
+    ];
 
-    console.log(chalk.bold(`\n🤖 DevCompass AI Assistant (powered by ${providerConfig.model})`));
-    if (contextText) {
-      console.log(chalk.gray('I have access to your project analysis. Ask me anything!'));
-    } else {
-      console.log(chalk.yellow('⚠️  No analysis data found. Run "devcompass analyze" first for better insights.'));
+    const estimatedInputTokens = Math.ceil(JSON.stringify(messages).length / 4);
+    const estimatedCost = provider.estimateCost ? provider.estimateCost(estimatedInputTokens, 500) : 0;
+
+    checkDailyCostLimit(estimatedCost);
+
+    let fullResponse = '';
+    let hasOutput = false;
+
+    process.stdout.write(chalk.cyan('\n🤖 '));
+
+    // ADD ERROR HANDLING FOR STREAM
+    try {
+      await provider.streamPrompt(messages, (chunk) => {
+        if (chunk && chunk.trim()) {
+          process.stdout.write(chunk);
+          fullResponse += chunk;
+          hasOutput = true;
+        }
+      }, options);
+    } catch (streamError) {
+      console.error(chalk.red('\n\n❌ Streaming Error:'), streamError.message);
+      
+      // Check if it's an Ollama connection error
+      if (streamError.message.includes('ECONNREFUSED') || 
+          streamError.message.includes('connect')) {
+        console.log(chalk.yellow('\n💡 Is Ollama running?'));
+        console.log(chalk.gray('   Start it with: ollama serve'));
+        console.log(chalk.gray('   Or check: curl http://localhost:11434/api/tags\n'));
+      }
+      
+      currentProvider = null;
+      return;
     }
-    console.log(chalk.gray('Type "exit" or "quit" to end the conversation.\n'));
+
+    process.stdout.write('\n\n');
+
+    // CHECK IF RESPONSE IS EMPTY
+    if (!hasOutput || !fullResponse.trim()) {
+      console.log(chalk.yellow('⚠️  Received empty response from AI provider'));
+      console.log(chalk.gray('This might indicate:'));
+      console.log(chalk.gray('  • Model not loaded'));
+      console.log(chalk.gray('  • Provider connection issue'));
+      console.log(chalk.gray('  • Model context too small\n'));
+      console.log(chalk.cyan('Try:'));
+      console.log(chalk.white('  devcompass llm test local'));
+      console.log(chalk.white('  ollama list\n'));
+      currentProvider = null;
+      return;
+    }
+
+    if (typeof conversationManager.addMessage === 'function') {
+      conversationManager.addMessage(conversationId, 'assistant', fullResponse);
+    }
+
+    const estimatedOutput = Math.ceil(fullResponse.length / 4);
+    const finalCost = provider.estimateCost ? provider.estimateCost(estimatedInputTokens, estimatedOutput) : 0;
+
+    costLimiter.currentSpend += finalCost;
+
+    const providerId = getProviderId(provider);
+
+    if (providerId) {
+      costTracker.trackUsage(providerId, estimatedInputTokens + estimatedOutput, finalCost);
+    }
+
+    console.log(chalk.gray(`💰 Cost: $${finalCost.toFixed(4)} | Daily: $${costLimiter.currentSpend.toFixed(2)}/$${costLimiter.dailyLimit}`));
+
+    currentProvider = null;
+  } catch (error) {
+    currentProvider = null;
+
+    if (error.message === 'Request cancelled by user') {
+      console.log(chalk.yellow('\nOperation cancelled by user'));
+      return;
+    }
+
+    console.error(chalk.red('\n❌ Error:'), error.message);
+    
+    // ADD DEBUGGING HELP
+    if (process.env.DEBUG) {
+      console.error(chalk.gray('\nStack trace:'));
+      console.error(chalk.gray(error.stack));
+    }
+  }
+}
+
+async function getRecommendations(projectPath = process.cwd(), options = {}) {
+  return askQuestion('Analyze this project and provide recommendations.', projectPath, options);
+}
+
+async function getAlternatives(packageName, projectPath = process.cwd(), options = {}) {
+  return askQuestion(`Suggest alternatives for package: ${packageName}`, projectPath, options);
+}
+
+async function startChat(projectPath = process.cwd(), options = {}) {
+  setupCancellation();
+
+  try {
+    const provider = await getProvider();
+    if (!provider) return;
+
+    currentProvider = provider;
+
+    const readline = require('readline');
 
     const rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout,
-      prompt: chalk.cyan('You: ')
+      output: process.stdout
     });
 
-    let totalTokens = 0;
-    let totalCost = 0;
+    console.log(chalk.cyan('\n💬 DevCompass AI Chat\n'));
+    console.log(chalk.gray('Type your questions. Ctrl+C to exit.\n'));
 
-    rl.prompt();
-
-    rl.on('line', async (input) => {
-      const question = input.trim();
-
-      if (!question) {
-        rl.prompt();
-        return;
-      }
-
-      if (question.toLowerCase() === 'exit' || question.toLowerCase() === 'quit') {
-        console.log(chalk.gray(`\n👋 Chat ended. Used ${totalTokens.toLocaleString()} tokens (~$${totalCost.toFixed(4)})\n`));
-        rl.close();
-        conversationManager.clearSession();
-        return;
-      }
-
-      try {
-        // Build conversation history
-        const history = conversationManager.buildContext(5);
-        let userPrompt = question;
-        
-        if (contextText) {
-          userPrompt = `${contextText}\n\nUser: ${question}\n\nProvide a specific answer based on the project analysis above.`;
+    const askLoop = () => {
+      rl.question(chalk.green('You: '), async (input) => {
+        if (!input.trim()) {
+          return askLoop();
         }
 
-        // Get response
-        const response = await provider.streamPrompt(
-          userPrompt,
-          SYSTEM_PROMPTS.chat,
-          (chunk) => streamFormatter.formatChunk(chunk),
-          { maxTokens: 2000 }
-        );
-        
-        streamFormatter.finish();
+        await askQuestion(input, projectPath, options);
 
-        // Calculate cost
-        const inputCost = provider.estimateCost(response.promptTokens, true);
-        const outputCost = provider.estimateCost(response.completionTokens, false);
-        const messageCost = inputCost + outputCost;
+        askLoop();
+      });
+    };
 
-        totalTokens += response.tokensUsed;
-        totalCost += messageCost;
-
-        // Track usage
-        costTracker.trackUsage(providerConfig.id, response.tokensUsed, messageCost);
-
-        // Save conversation
-        conversationManager.saveConversation(
-          providerConfig.id,
-          'ai chat',
-          contextText,
-          question,
-          response.content,
-          response.tokensUsed,
-          messageCost
-        );
-
-        rl.prompt();
-      } catch (error) {
-        console.error(chalk.red('\n❌ Error: ' + error.message + '\n'));
-        rl.prompt();
-      }
-    });
-
-    rl.on('close', () => {
-      process.exit(0);
-    });
+    askLoop();
   } catch (error) {
-    console.error(chalk.red('❌ Chat Error: ' + error.message));
+    currentProvider = null;
+    console.error(chalk.red('\n❌ Error:'), error.message);
   }
-}
-
-/**
- * Show help
- */
-function showHelp() {
-  console.log(chalk.bold('\n🤖 DevCompass AI Commands\n'));
-  
-  console.log(chalk.bold('Commands:'));
-  console.log('  devcompass ai ask           Ask AI about your dependencies');
-  console.log('  devcompass ai recommend     Get AI recommendations');
-  console.log('  devcompass ai alternatives  Find package alternatives');
-  console.log('  devcompass ai chat          Start interactive chat');
-  
-  console.log(chalk.bold('\nExamples:'));
-  console.log('  # Ask a question');
-  console.log('  devcompass ai ask "Why is my health score low?"');
-  console.log();
-  console.log('  # Get recommendations after analysis');
-  console.log('  devcompass analyze --ai');
-  console.log();
-  console.log('  # Find alternatives');
-  console.log('  devcompass ai alternatives moment');
-  console.log();
-  console.log('  # Interactive chat');
-  console.log('  devcompass ai chat');
-  console.log();
 }
 
 module.exports = {
   askQuestion,
   getRecommendations,
   getAlternatives,
-  startChat,
-  showHelp
+  startChat
 };

@@ -1,6 +1,4 @@
 // src/utils/license-conflict-fixer.js
-// v3.1.4 - License conflict fixer with dynamic alternatives
-
 const { execSync } = require('child_process');
 const chalk = require('chalk');
 const { analyzer } = require('../services');
@@ -11,10 +9,7 @@ class LicenseConflictFixer {
     this.skipped = [];
     this.errors = [];
   }
-  
-  /**
-   * Fix a license conflict warning
-   */
+
   async fixWarning(warning, dryRun = false) {
     const packageName = warning.package;
     
@@ -90,9 +85,6 @@ class LicenseConflictFixer {
     }
   }
   
-  /**
-   * Display summary of license fixes
-   */
   displaySummary() {
     console.log(chalk.bold.cyan('\n⚖️  LICENSE FIXES SUMMARY\n'));
     
@@ -131,10 +123,7 @@ class LicenseConflictFixer {
       console.log('');
     }
   }
-  
-  /**
-   * Get summary statistics
-   */
+
   getSummary() {
     return {
       totalFixes: this.fixes.length,
@@ -145,10 +134,7 @@ class LicenseConflictFixer {
       errors: this.errors
     };
   }
-  
-  /**
-   * Reset fixer state
-   */
+
   reset() {
     this.fixes = [];
     this.skipped = [];

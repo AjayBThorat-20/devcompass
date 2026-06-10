@@ -1,9 +1,6 @@
 // src/analyzers/security.js
 const { execSync } = require('child_process');
 
-/**
- * Run npm audit and parse results
- */
 async function checkSecurity(projectPath) {
   try {
     // Run npm audit in JSON mode
@@ -91,9 +88,6 @@ async function checkSecurity(projectPath) {
   }
 }
 
-/**
- * Calculate security penalty for health score
- */
 function calculateSecurityPenalty(metadata) {
   let penalty = 0;
   

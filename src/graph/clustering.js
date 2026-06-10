@@ -1,9 +1,4 @@
 // src/graph/clustering.js
-// v3.1.6 - Node Grouping and Clustering Engine
-
-/**
- * Cluster dependencies by ecosystem, health, depth, or custom criteria
- */
 class DependencyClusterer {
   constructor(nodes, links) {
     this.nodes = nodes;
@@ -11,9 +6,6 @@ class DependencyClusterer {
     this.clusters = [];
   }
 
-  /**
-   * Main clustering function - groups nodes by specified strategy
-   */
   clusterBy(strategy = 'ecosystem') {
     switch (strategy) {
       case 'ecosystem':
@@ -29,9 +21,6 @@ class DependencyClusterer {
     }
   }
 
-  /**
-   * Cluster by ecosystem (React, Testing, Build Tools, etc.)
-   */
   clusterByEcosystem() {
     const ecosystems = {
       react: {
@@ -154,9 +143,6 @@ class DependencyClusterer {
     return this.enrichClusters(clusters);
   }
 
-  /**
-   * Cluster by health status
-   */
   clusterByHealth() {
     const healthCategories = {
       critical: {
@@ -198,9 +184,6 @@ class DependencyClusterer {
     return this.enrichClusters(clusters);
   }
 
-  /**
-   * Cluster by dependency depth (direct vs transitive)
-   */
   clusterByDepth() {
     const depthMap = new Map();
     
@@ -251,9 +234,6 @@ class DependencyClusterer {
     return this.enrichClusters(clusters);
   }
 
-  /**
-   * Cluster by package category (from package.json keywords/description)
-   */
   clusterByCategory() {
     const categories = {
       ui: { name: 'UI Components', icon: '🎨', color: '#ec4899', keywords: ['ui', 'component', 'widget', 'button', 'input'] },
@@ -312,9 +292,6 @@ class DependencyClusterer {
     return this.enrichClusters(clusters);
   }
 
-  /**
-   * Enrich clusters with health statistics
-   */
   enrichClusters(clusters) {
     return clusters.map(cluster => {
       const stats = {
@@ -345,9 +322,6 @@ class DependencyClusterer {
     });
   }
 
-  /**
-   * Calculate centroid position for cluster
-   */
   calculateCentroid(nodes) {
     if (nodes.length === 0) return { x: 0, y: 0 };
     
@@ -362,9 +336,6 @@ class DependencyClusterer {
     };
   }
 
-  /**
-   * Get color based on depth (gradient from blue to purple)
-   */
   getDepthColor(depth, maxDepth) {
     const colors = [
       '#3b82f6', // Blue

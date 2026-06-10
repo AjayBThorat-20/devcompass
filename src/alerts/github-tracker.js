@@ -5,21 +5,16 @@ const path = require('path');
 const fs = require('fs');
 const GitHubTokenManager = require('../config/github-token');
 
-// Load tracked repositories from data/tracked-repos.json
 let TRACKED_REPOS = {};
 try {
   const trackedReposPath = path.join(__dirname, '../../data/tracked-repos.json');
   const trackedReposData = JSON.parse(fs.readFileSync(trackedReposPath, 'utf8'));
   TRACKED_REPOS = trackedReposData.repositories || {};
 } catch (error) {
-  // Fallback to empty object if file not found
   console.warn(chalk.yellow('⚠'), 'Could not load tracked-repos.json, using fallback');
   TRACKED_REPOS = {};
 }
 
-/**
- * Make GitHub API request with token support
- */
 function makeGitHubRequest(path, params = {}) {
   return new Promise((resolve, reject) => {
     const tokenManager = new GitHubTokenManager();
@@ -39,7 +34,6 @@ function makeGitHubRequest(path, params = {}) {
       }
     };
 
-    // Add token if available
     if (token) {
       options.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -88,9 +82,7 @@ function makeGitHubRequest(path, params = {}) {
   });
 }
 
-/**
- * Fetch GitHub issues for a package
- */
+
 async function fetchGitHubIssues(packageName) {
   if (!packageName || typeof packageName !== 'string') {
     return null;
@@ -127,9 +119,6 @@ async function fetchGitHubIssues(packageName) {
   }
 }
 
-/**
- * Analyze issues to detect trends
- */
 function analyzeIssues(issues, packageName) {
   if (!Array.isArray(issues)) {
     return {
@@ -197,9 +186,6 @@ function analyzeIssues(issues, packageName) {
   };
 }
 
-/**
- * Determine trend
- */
 function determineTrend(last7Days, last30Days) {
   const validLast7 = typeof last7Days === 'number' && !isNaN(last7Days) ? last7Days : 0;
   const validLast30 = typeof last30Days === 'number' && !isNaN(last30Days) ? last30Days : 0;
@@ -219,9 +205,6 @@ function determineTrend(last7Days, last30Days) {
   }
 }
 
-/**
- * Process packages in parallel batches
- */
 async function processBatch(packages, concurrency = 5, onProgress) {
   if (!Array.isArray(packages)) {
     return [];
@@ -275,9 +258,6 @@ async function processBatch(packages, concurrency = 5, onProgress) {
   return results;
 }
 
-/**
- * Check GitHub issues for multiple packages
- */
 async function checkGitHubIssues(packages, options = {}) {
   if (!packages || typeof packages !== 'object') {
     return [];
@@ -310,16 +290,10 @@ async function checkGitHubIssues(packages, options = {}) {
   return results;
 }
 
-/**
- * Get total count of tracked packages
- */
 function getTrackedPackageCount() {
   return Object.keys(TRACKED_REPOS).length;
 }
 
-/**
- * Get tracked packages by category
- */
 function getTrackedPackagesByCategory() {
   return {
     'Web Frameworks': 25,

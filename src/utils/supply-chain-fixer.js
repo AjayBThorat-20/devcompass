@@ -1,6 +1,4 @@
 // src/utils/supply-chain-fixer.js
-// v3.1.4 - Supply chain security fixer with dynamic detection
-
 const { execSync } = require('child_process');
 const chalk = require('chalk');
 const { analyzer } = require('../services');
@@ -11,10 +9,7 @@ class SupplyChainFixer {
     this.skipped = [];
     this.errors = [];
   }
-  
-  /**
-   * Fix a supply chain warning
-   */
+
   async fixWarning(warning, dryRun = false) {
     const packageName = warning.package;
     
@@ -126,9 +121,6 @@ class SupplyChainFixer {
     }
   }
   
-  /**
-   * Display summary of supply chain fixes
-   */
   displaySummary() {
     console.log(chalk.bold.cyan('\n🛡️  SUPPLY CHAIN FIXES SUMMARY\n'));
     
@@ -174,9 +166,6 @@ class SupplyChainFixer {
     }
   }
   
-  /**
-   * Get summary statistics
-   */
   getSummary() {
     return {
       totalFixes: this.fixes.length,
@@ -188,9 +177,7 @@ class SupplyChainFixer {
     };
   }
   
-  /**
-   * Reset fixer state
-   */
+ 
   reset() {
     this.fixes = [];
     this.skipped = [];

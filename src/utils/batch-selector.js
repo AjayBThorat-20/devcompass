@@ -14,9 +14,6 @@ class BatchSelector {
     this.batches = batchCategories;
   }
 
-  /**
-   * Get fix statistics for each batch
-   */
   getBatchStats(analysisResults) {
     const stats = {};
 
@@ -78,9 +75,6 @@ class BatchSelector {
     return stats;
   }
 
-  /**
-   * Display batch menu
-   */
   displayBatchMenu(stats) {
     console.log('\n' + chalk.cyan.bold('📦 BATCH FIX MODE'));
     console.log(chalk.gray('═'.repeat(70)));
@@ -112,9 +106,6 @@ class BatchSelector {
     console.log(chalk.gray('Enter your choice (1-7, c/h/a/n, or comma-separated):'));
   }
 
-  /**
-   * Prompt user for batch selection
-   */
   async promptBatchSelection(stats) {
     this.displayBatchMenu(stats);
 
@@ -132,9 +123,6 @@ class BatchSelector {
     });
   }
 
-  /**
-   * Parse batch selection
-   */
   parseBatchSelection(input, stats) {
     // Handle preset modes
     if (input === 'c') {

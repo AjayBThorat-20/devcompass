@@ -1,12 +1,4 @@
 // src/graph/search-filter.js
-/**
- * Search and filter utilities for dependency graphs
- * Provides real-time search and filtering capabilities
- */
-
-/**
- * Generate search and filter HTML controls
- */
 function generateSearchFilterHTML(graphData) {
   const { nodes = [], links = [] } = graphData;
   

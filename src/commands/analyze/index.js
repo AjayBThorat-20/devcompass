@@ -1,12 +1,18 @@
+const fs = require('fs');
 const path = require('path');
 const { createIssueCollector } = require('../../core/services/issue-collector');
 const { HealthCalculator } = require('../../core/services/health-calculator');
 const { saveSnapshot } = require('../../core/services/snapshot-manager');
+const { saveAnalysisCache } = require('../../utils/analysis-cache');
+const fileCache = require('../../utils/file-cache');
+const OutputManager = require('../../utils/output-manager');
+
 const { collectCVEData } = require('./collectors/cve-collector');
 const { collectLicenseData } = require('./collectors/license-collector');
 const { collectQualityData } = require('./collectors/quality-collector');
 const { collectSecurityData } = require('./collectors/security-collector');
 const { collectOutdatedData, collectUnusedData } = require('./collectors/dependency-collector');
+
 const { renderDefaultOutput } = require('./renderers/default-renderer');
 const { renderDeepOutput } = require('./renderers/deep-renderer');
 const { renderJSONOutput } = require('./renderers/json-renderer');
@@ -23,20 +29,37 @@ async function runAnalyze(options = {}) {
     ciThreshold = 7.0
   } = options;
 
+  // Initialize output manager
+  const outputManager = new OutputManager(projectPath);
+  outputManager.ensureDirectories();
+
   const collector = createIssueCollector();
 
   try {
     const packageJsonPath = path.join(projectPath, 'package.json');
-    const packageJson = require(packageJsonPath);
+    const packageJson = fileCache.readJSON(packageJsonPath);
 
-    const [cveData, licenseData, qualityData, securityData, outdatedData, unusedData] = await Promise.all([
-      collectCVEData(projectPath),
-      collectLicenseData(projectPath),
-      collectQualityData(projectPath),
-      collectSecurityData(projectPath),
-      collectOutdatedData(projectPath),
-      collectUnusedData(projectPath)
+    const results = await Promise.allSettled([
+      collectCVEData(projectPath, packageJson),
+      collectLicenseData(projectPath, packageJson),
+      collectQualityData(projectPath, packageJson),
+      collectSecurityData(projectPath, packageJson),
+      collectOutdatedData(projectPath, packageJson),
+      collectUnusedData(projectPath, packageJson)
     ]);
+
+    const [cveData, licenseData, qualityData, securityData, outdatedData, unusedData] = results.map(
+      result => result.status === 'fulfilled' ? result.value : []
+    );
+
+    if (results.some(r => r.status === 'rejected' && process.env.DEBUG)) {
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          const names = ['CVE', 'License', 'Quality', 'Security', 'Outdated', 'Unused'];
+          console.error(`${names[i]} collector failed:`, r.reason.message);
+        }
+      });
+    }
 
     collector.addCVEIssues(cveData);
     collector.addLicenseIssues(licenseData);
@@ -47,6 +70,10 @@ async function runAnalyze(options = {}) {
 
     const allIssues = collector.getAll();
     const healthScore = HealthCalculator.calculate(allIssues);
+    const totalDependencies = Object.keys({
+      ...(packageJson.dependencies || {}),
+      ...(packageJson.devDependencies || {})
+    }).length;
 
     const metadata = {
       projectName: packageJson.name || 'unknown',
@@ -54,12 +81,21 @@ async function runAnalyze(options = {}) {
       projectPath,
       projectInfo: `${packageJson.name || 'unknown'}@${packageJson.version || '1.0.0'}`,
       healthScore,
-      totalDependencies: Object.keys({
-        ...packageJson.dependencies,
-        ...packageJson.devDependencies
-      }).length,
+      totalDependencies,
       aiInsight: aiEnabled ? await generateAIInsight(allIssues) : null
     };
+
+    saveAnalysisCache({
+      issues: allIssues,
+      metadata,
+      healthScore,
+      dependencies: Object.keys({
+        ...(packageJson.dependencies || {}),
+        ...(packageJson.devDependencies || {})
+      }).map(name => ({ name })),
+      projectName: metadata.projectName,
+      version: metadata.projectVersion
+    }, projectPath);
 
     if (!silent && mode !== 'silent') {
       if (json) {
@@ -95,11 +131,8 @@ async function runAnalyze(options = {}) {
       }
     }
 
-    return {
-      issues: allIssues,
-      metadata,
-      healthScore
-    };
+    return { issues: allIssues, metadata, healthScore };
+
   } catch (error) {
     if (!silent && mode !== 'silent') {
       console.error('Analysis failed:', error.message);
@@ -119,8 +152,10 @@ async function generateAIInsight(issues) {
     return 'Your project has no detected issues. Keep up the good work!';
   }
 
-  const critical = issues.filter(i => i.severity === 'CRITICAL' || i.severity === 'HIGH');
-  
+  const critical = issues.filter(issue =>
+    issue.severity === 'CRITICAL' || issue.severity === 'HIGH'
+  );
+
   if (critical.length === 0) {
     return 'Your project has minor issues that can be addressed over time. Focus on outdated packages first.';
   }

@@ -2,10 +2,7 @@
 const db = require('./database');
 
 class SnapshotLoader {
-  
-  /**
-   * List snapshots with optional limit
-   */
+
   listSnapshots(projectName = null, limit = 30) {
     const database = db.connect();
     
@@ -24,9 +21,6 @@ class SnapshotLoader {
     return stmt.all(...params);
   }
 
-  /**
-   * NEW: Get snapshots within a date range
-   */
   getSnapshotsInRange(startDate, endDate, projectName = null) {
     const database = db.connect();
     
@@ -48,9 +42,6 @@ class SnapshotLoader {
     return stmt.all(...params);
   }
 
-  /**
-   * Get single snapshot with packages and dependencies
-   */
   getSnapshot(snapshotId) {
     const database = db.connect();
     
@@ -104,9 +95,6 @@ class SnapshotLoader {
     };
   }
 
-  /**
-   * NEW: Get monthly statistics
-   */
   getMonthlyStats(projectName = null, year = null) {
     const database = db.connect();
     
@@ -144,9 +132,6 @@ class SnapshotLoader {
     return stmt.all(...params);
   }
 
-  /**
-   * NEW: Find snapshot closest to a specific date
-   */
   getClosestToDate(targetDate, projectName = null) {
     const database = db.connect();
     
@@ -173,9 +158,6 @@ class SnapshotLoader {
     return this.getSnapshot(result.id);
   }
 
-  /**
-   * Get overall statistics
-   */
   getStats(projectName = null) {
     const database = db.connect();
     
@@ -200,9 +182,6 @@ class SnapshotLoader {
     return stmt.get(...params);
   }
 
-  /**
-   * Cleanup old snapshots
-   */
   cleanup(keepLast = 30, projectName = null) {
     const database = db.connect();
     
@@ -241,9 +220,6 @@ class SnapshotLoader {
     return deleteTransaction(toDelete);
   }
 
-  /**
-   * NEW: Get snapshots count by date range
-   */
   getCountByDateRange(startDate, endDate, projectName = null) {
     const database = db.connect();
     
@@ -265,9 +241,6 @@ class SnapshotLoader {
     return result.count;
   }
 
-  /**
-   * NEW: Get health score trend over time
-   */
   getHealthTrend(days = 30, projectName = null) {
     const endDate = new Date().toISOString();
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();

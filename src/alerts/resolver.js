@@ -2,10 +2,6 @@
 const path = require('path');
 const fs = require('fs');
 
-/**
- * Resolve actual installed versions from node_modules
- * This is CRITICAL - we need installed version, not package.json version
- */
 async function resolveInstalledVersions(projectPath, dependencies) {
   const installedVersions = {};
   

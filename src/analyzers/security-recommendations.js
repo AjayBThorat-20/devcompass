@@ -7,9 +7,6 @@ const PRIORITY = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../../data/priorities.json'), 'utf8')
 );
 
-/**
- * Generate prioritized security recommendations based on analysis results
- */
 function generateSecurityRecommendations(analysisResults) {
   const recommendations = [];
 

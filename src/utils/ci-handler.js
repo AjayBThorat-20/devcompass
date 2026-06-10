@@ -1,9 +1,6 @@
 // src/utils/ci-handler.js
 const chalk = require('chalk');
 
-/**
- * Handle CI mode - exit with error code if score below threshold
- */
 function handleCiMode(score, config, alerts, unusedDeps) {
   const minScore = config.minScore || 7;
   

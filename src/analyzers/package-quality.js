@@ -1,6 +1,4 @@
 // src/analyzers/package-quality.js
-// v3.1.4 - Dynamic quality analysis using npm registry
-
 const { analyzer } = require('../services');
 
 async function analyzePackageQuality(dependencies, githubData = []) {

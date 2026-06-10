@@ -8,7 +8,7 @@ async function saveSnapshot(data) {
 
     const graphData = {
       nodes: data.issues.map(issue => ({
-        id: issue.id,
+        id: issue.id || `${issue.name}@${issue.version}`,
         name: issue.name,
         version: issue.version,
         type: issue.type,
@@ -19,7 +19,7 @@ async function saveSnapshot(data) {
           message: issue.message
         }],
         isVulnerable: issue.type === 'security',
-        isDeprecated: issue.type === 'quality',
+        isDeprecated: issue.type === 'quality' || issue.type === 'deprecated',
         isOutdated: issue.type === 'outdated',
         isUnused: issue.type === 'unused'
       })),
@@ -38,7 +38,7 @@ async function saveSnapshot(data) {
     };
 
     const result = snapshotSaver.saveSnapshot(analysisData, graphData);
-    
+
     return {
       success: true,
       snapshotId: result.snapshotId,

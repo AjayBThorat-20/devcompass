@@ -1,20 +1,27 @@
-const dynamicQuality = require('../../../services/dynamic-quality');
+const fs = require('fs');
 const path = require('path');
+const dynamicQuality = require('../../../services/dynamic-quality');
 
-async function collectQualityData(projectPath) {
+async function collectQualityData(projectPath, packageJson = null) {
   try {
-    const packageJsonPath = path.join(projectPath, 'package.json');
-    const packageJson = require(packageJsonPath);
-    
+    if (!packageJson) {
+      const packageJsonPath = path.join(projectPath, 'package.json');
+      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    }
+
     const dependencies = {
-      ...packageJson.dependencies,
-      ...packageJson.devDependencies
+      ...(packageJson.dependencies || {}),
+      ...(packageJson.devDependencies || {})
     };
 
     const packages = Object.entries(dependencies).map(([name, version]) => ({
       name,
       version
     }));
+
+    if (packages.length === 0) {
+      return [];
+    }
 
     const analyses = await dynamicQuality.analyzeBatch(packages);
 
@@ -28,10 +35,12 @@ async function collectQualityData(projectPath) {
         lastUpdate: pkg.lastUpdate,
         ageMonths: pkg.ageMonths,
         deprecated: pkg.deprecated,
-        alternative: pkg.alternative ? {
-          replacement: pkg.alternative.replacement || pkg.alternative,
-          reason: pkg.alternative.reason
-        } : null
+        alternative: pkg.alternative
+          ? {
+              replacement: pkg.alternative.replacement || pkg.alternative,
+              reason: pkg.alternative.reason
+            }
+          : null
       }));
   } catch (error) {
     if (process.env.DEBUG) {

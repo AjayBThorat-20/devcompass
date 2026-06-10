@@ -12,9 +12,6 @@ class GitHubTokenManager {
     this.db = null;
   }
 
-  /**
-   * Get database instance
-   */
   getDb() {
     if (!this.db) {
       this.db = getDatabase();
@@ -22,9 +19,6 @@ class GitHubTokenManager {
     return this.db;
   }
 
-  /**
-   * Migrate legacy token file to database
-   */
   migrateLegacyToken() {
     try {
       if (fs.existsSync(this.legacyTokenFile)) {
@@ -47,9 +41,6 @@ class GitHubTokenManager {
     }
   }
 
-  /**
-   * Get stored GitHub token
-   */
   getToken() {
     try {
       // Migrate legacy token if exists
@@ -83,9 +74,6 @@ class GitHubTokenManager {
     }
   }
 
-  /**
-   * Save GitHub token (encrypted)
-   */
   saveToken(token) {
     try {
       const db = this.getDb();
@@ -110,16 +98,10 @@ class GitHubTokenManager {
     }
   }
 
-  /**
-   * Check if token is configured
-   */
   hasToken() {
     return this.getToken() !== null;
   }
 
-  /**
-   * Remove stored token
-   */
   removeToken() {
     try {
       const db = this.getDb();
@@ -137,9 +119,6 @@ class GitHubTokenManager {
     }
   }
 
-  /**
-   * Display instructions for creating a token
-   */
   static showTokenInstructions() {
     console.log('');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

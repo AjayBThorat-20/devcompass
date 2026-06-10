@@ -7,9 +7,6 @@ const fs = require('fs');
 const CONFIG_DIR = path.join(os.homedir(), '.devcompass');
 const DB_PATH = path.join(CONFIG_DIR, 'config.db');
 
-/**
- * Initialize config database
- */
 function initDatabase() {
   // Ensure config directory exists
   if (!fs.existsSync(CONFIG_DIR)) {
@@ -36,9 +33,6 @@ function initDatabase() {
   return db;
 }
 
-/**
- * Get database instance
- */
 function getDatabase() {
   return initDatabase();
 }

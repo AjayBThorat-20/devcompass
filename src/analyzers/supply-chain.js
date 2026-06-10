@@ -1,15 +1,40 @@
 // src/analyzers/supply-chain.js
-// v3.2.1 - Fixed typosquatting false positives
-
 const { analyzer } = require('../services');
 
-/**
- * Analyze supply chain security for project dependencies
- */
-async function analyzeSupplyChain(projectPath, dependencies = {}) {
-  const packages = Object.keys(dependencies);
-  
+const TRUSTED_PACKAGES = new Set([
+  'react',
+  'react-dom',
+  'next',
+  'vue',
+  'nuxt',
+  'express',
+  'pg',
+  'mongoose',
+  'axios',
+  'lodash',
+  'chalk',
+  'dotenv',
+  'typescript',
+  'webpack',
+  'vite',
+  'jest',
+  'eslint',
+  'nodemon',
+  'rxjs',
+  'redux',
+  'socket.io'
+]);
+
+async function analyzeSupplyChain(
+  projectPath,
+  dependencies = {}
+) {
+
+  const packages =
+    Object.keys(dependencies);
+
   if (packages.length === 0) {
+
     return {
       warnings: [],
       total: 0,
@@ -20,88 +45,160 @@ async function analyzeSupplyChain(projectPath, dependencies = {}) {
       }
     };
   }
-  
+
   try {
+
     const warnings = [];
-    
-    // 1. Check for typosquatting (dynamic)
+
     for (const pkg of packages) {
-      const typosquat = analyzer.security.checkTyposquatting(pkg);
-      
-      // ✅ FIX: Only add warning if similarTo is a valid package name
-      if (typosquat && typosquat.similarTo && typosquat.similarTo !== 'undefined') {
+
+      if (
+        TRUSTED_PACKAGES.has(pkg)
+      ) {
+        continue;
+      }
+
+      const typosquat =
+        analyzer.security
+          .checkTyposquatting(pkg);
+
+      if (
+        typosquat &&
+        typosquat.similarTo &&
+        typosquat.similarTo !== 'undefined' &&
+        typosquat.distance <= 1
+      ) {
+
         warnings.push({
           package: pkg,
           type: 'typosquatting',
           severity: 'high',
-          description: typosquat.warning,
-          correctPackage: typosquat.similarTo,
-          distance: typosquat.distance,
-          reason: `Package name is ${typosquat.distance} character(s) different from popular package "${typosquat.similarTo}"`,
-          risk: 'Possible typosquatting attack - malicious package mimicking popular library',
-          action: 'remove',
-          autoFixable: false // Too risky to auto-remove
+          description:
+            typosquat.warning,
+          correctPackage:
+            typosquat.similarTo,
+          distance:
+            typosquat.distance,
+          reason:
+            `Package name is ${typosquat.distance} character(s) different from "${typosquat.similarTo}"`,
+          risk:
+            'Possible typosquatting attack',
+          action: 'review',
+          autoFixable: false
         });
       }
     }
-    
-    // 2. Run npm audit for vulnerabilities (dynamic)
-    let auditResults = { vulnerabilities: [], summary: { total: 0 } };
-    
-    try {
-      auditResults = await analyzer.security.runNpmAudit(projectPath);
-    } catch (error) {
-      // npm audit may fail in some environments, continue anyway
-      if (process.env.DEBUG) {
-        console.error('[supply-chain] npm audit failed:', error.message);
-      }
-    }
-    
-    // ✅ Safe iteration over vulnerabilities
-    const vulnArray = Array.isArray(auditResults.vulnerabilities) 
-      ? auditResults.vulnerabilities 
-      : [];
-    
-    // Add high/critical vulnerabilities to warnings
-    for (const vuln of vulnArray) {
-      const severity = (vuln.severity || 'moderate').toLowerCase();
-      
-      if (severity === 'critical' || severity === 'high') {
-        warnings.push({
-          package: vuln.package || 'unknown',
-          type: 'vulnerability',
-          severity: severity,
-          description: vuln.title || vuln.via || 'Security vulnerability detected',
-          reason: vuln.title || vuln.via || 'Security vulnerability',
-          risk: `${severity.toUpperCase()} security vulnerability`,
-          action: 'update',
-          url: vuln.url,
-          range: vuln.range,
-          autoFixable: true // npm audit fix can handle this
-        });
-      }
-    }
-    
-    // Summary statistics
-    const summary = {
-      typosquatting: warnings.filter(w => w.type === 'typosquatting').length,
-      suspiciousScripts: warnings.filter(w => w.type === 'install_script').length,
-      vulnerabilities: auditResults.summary?.total || 0,
-      critical: auditResults.summary?.critical || 0,
-      high: auditResults.summary?.high || 0
+
+    let auditResults = {
+      vulnerabilities: [],
+      summary: { total: 0 }
     };
-    
+
+    try {
+
+      auditResults =
+        await analyzer.security
+          .runNpmAudit(projectPath);
+
+    } catch (error) {
+
+      if (process.env.DEBUG) {
+
+        console.error(
+          '[supply-chain] npm audit failed:',
+          error.message
+        );
+      }
+    }
+
+    const vulnArray =
+      Array.isArray(
+        auditResults.vulnerabilities
+      )
+        ? auditResults.vulnerabilities
+        : [];
+
+    for (const vuln of vulnArray) {
+
+      const severity =
+        (vuln.severity || 'moderate')
+          .toLowerCase();
+
+      if (
+        severity === 'critical' ||
+        severity === 'high'
+      ) {
+
+        warnings.push({
+          package:
+            vuln.package || 'unknown',
+
+          type: 'vulnerability',
+
+          severity,
+
+          description:
+            vuln.title ||
+            vuln.via ||
+            'Security vulnerability detected',
+
+          reason:
+            vuln.title ||
+            vuln.via ||
+            'Security vulnerability',
+
+          risk:
+            `${severity.toUpperCase()} security vulnerability`,
+
+          action: 'update',
+
+          url: vuln.url,
+
+          range: vuln.range,
+
+          autoFixable: true
+        });
+      }
+    }
+
+    const summary = {
+      typosquatting:
+        warnings.filter(
+          w => w.type === 'typosquatting'
+        ).length,
+
+      suspiciousScripts:
+        warnings.filter(
+          w => w.type === 'install_script'
+        ).length,
+
+      vulnerabilities:
+        auditResults.summary?.total || 0,
+
+      critical:
+        auditResults.summary?.critical || 0,
+
+      high:
+        auditResults.summary?.high || 0
+    };
+
     return {
       warnings,
       total: warnings.length,
       summary,
       audit: auditResults
     };
-    
+
   } catch (error) {
+
     if (process.env.DEBUG) {
-      console.error('[supply-chain] Analysis failed:', error.message);
+
+      console.error(
+        '[supply-chain] Analysis failed:',
+        error.message
+      );
     }
+
     return {
       warnings: [],
       total: 0,
@@ -114,21 +211,6 @@ async function analyzeSupplyChain(projectPath, dependencies = {}) {
   }
 }
 
-function addToWhitelist(packageName) {
-  analyzer.security.addToWhitelist(packageName);
-}
-
-function removeFromWhitelist(packageName) {
-  analyzer.security.removeFromWhitelist(packageName);
-}
-
-function isWhitelisted(packageName) {
-  return analyzer.security.isWhitelisted(packageName);
-}
-
 module.exports = {
-  analyzeSupplyChain,
-  addToWhitelist,
-  removeFromWhitelist,
-  isWhitelisted
+  analyzeSupplyChain
 };

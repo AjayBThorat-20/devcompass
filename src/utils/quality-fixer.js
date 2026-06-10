@@ -1,6 +1,4 @@
 // src/utils/quality-fixer.js
-// v3.1.4 - Quality issue fixer with dynamic alternatives
-
 const { execSync } = require('child_process');
 const chalk = require('chalk');
 const { analyzer } = require('../services');
@@ -11,10 +9,7 @@ class QualityFixer {
     this.skipped = [];
     this.errors = [];
   }
-  
-  /**
-   * Find alternative for a package (dynamic lookup)
-   */
+
   async findAlternative(packageName) {
     try {
       const result = await analyzer.quality.analyzePackage(packageName);
@@ -32,10 +27,7 @@ class QualityFixer {
       return null;
     }
   }
-  
-  /**
-   * Fix a quality warning
-   */
+
   async fixWarning(pkg, dryRun = false) {
     const packageName = pkg.name || pkg.package;
     
@@ -108,9 +100,6 @@ class QualityFixer {
     }
   }
   
-  /**
-   * Display summary of quality fixes
-   */
   displaySummary() {
     console.log(chalk.bold.cyan('\n📦 QUALITY FIXES SUMMARY\n'));
     
@@ -147,10 +136,7 @@ class QualityFixer {
       console.log('');
     }
   }
-  
-  /**
-   * Get summary statistics
-   */
+
   getSummary() {
     return {
       totalFixes: this.fixes.length,
@@ -161,10 +147,7 @@ class QualityFixer {
       errors: this.errors
     };
   }
-  
-  /**
-   * Reset fixer state
-   */
+ 
   reset() {
     this.fixes = [];
     this.skipped = [];

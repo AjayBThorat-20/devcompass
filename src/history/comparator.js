@@ -2,10 +2,7 @@
 const loader = require('./snapshot-loader');
 
 class SnapshotComparator {
-  
-  /**
-   * Compare two snapshots
-   */
+
   compare(snapshotId1, snapshotId2) {
     const startTime = Date.now();
     
@@ -102,9 +99,6 @@ class SnapshotComparator {
     };
   }
 
-  /**
-   * Detect changes in a single package
-   */
   detectPackageChanges(pkg1, pkg2) {
     const changes = {
       hasChanges: false,
@@ -166,9 +160,6 @@ class SnapshotComparator {
     return changes;
   }
 
-  /**
-   * Generate comparison report
-   */
   generateReport(comparisonResult) {
     const { summary, added, removed, updated } = comparisonResult;
     

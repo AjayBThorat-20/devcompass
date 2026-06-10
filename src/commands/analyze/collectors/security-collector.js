@@ -1,23 +1,32 @@
-const dynamicSecurity = require('../../../services/dynamic-security');
+const { analyzeSupplyChain } = require('../../../analyzers/supply-chain');
+const fs = require('fs');
+const path = require('path');
 
-async function collectSecurityData(projectPath) {
+async function collectSecurityData(projectPath, packageJson = null) {
   try {
-    const result = await dynamicSecurity.analyzeProject(projectPath);
-    
-    return {
-      typosquatting: result.typosquatting || [],
-      suspiciousScripts: result.suspiciousScripts || [],
-      vulnerabilities: result.vulnerabilities || []
+    if (!packageJson) {
+      const packageJsonPath = path.join(projectPath, 'package.json');
+
+      if (!fs.existsSync(packageJsonPath)) {
+        return [];
+      }
+
+      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    }
+
+    const dependencies = {
+      ...(packageJson.dependencies || {}),
+      ...(packageJson.devDependencies || {})
     };
+
+    const result = await analyzeSupplyChain(projectPath, dependencies);
+
+    return result.warnings || [];
   } catch (error) {
     if (process.env.DEBUG) {
       console.error('Security collection failed:', error.message);
     }
-    return {
-      typosquatting: [],
-      suspiciousScripts: [],
-      vulnerabilities: []
-    };
+    return [];
   }
 }
 

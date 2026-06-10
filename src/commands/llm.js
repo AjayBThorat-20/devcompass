@@ -4,9 +4,6 @@ const tokenManager = require('../ai/token-manager');
 const aiDatabase = require('../ai/database');
 const costTracker = require('../ai/cost-tracker');
 
-/**
- * Add a new LLM provider
- */
 async function addProvider(options) {
   const { provider, token, model, baseUrl } = options;
 
@@ -59,9 +56,6 @@ async function addProvider(options) {
   }
 }
 
-/**
- * List all LLM providers
- */
 function listProviders() {
   try {
     const providers = tokenManager.listProviders();
@@ -97,9 +91,6 @@ function listProviders() {
   }
 }
 
-/**
- * Set default provider
- */
 function setDefaultProvider(provider) {
   if (!provider) {
     console.error(chalk.red('❌ Error: Provider name is required'));
@@ -120,9 +111,6 @@ function setDefaultProvider(provider) {
   }
 }
 
-/**
- * Update provider
- */
 function updateProvider(provider, options) {
   if (!provider) {
     console.error(chalk.red('❌ Error: Provider name is required'));
@@ -154,9 +142,6 @@ function updateProvider(provider, options) {
   }
 }
 
-/**
- * Remove provider
- */
 function removeProvider(provider) {
   if (!provider) {
     console.error(chalk.red('❌ Error: Provider name is required'));
@@ -177,9 +162,6 @@ function removeProvider(provider) {
   }
 }
 
-/**
- * Enable/disable provider
- */
 function toggleProvider(provider, enabled) {
   if (!provider) {
     console.error(chalk.red('❌ Error: Provider name is required'));
@@ -199,9 +181,6 @@ function toggleProvider(provider, enabled) {
   }
 }
 
-/**
- * Test provider connection
- */
 async function testProvider(provider) {
   if (!provider) {
     console.error(chalk.red('❌ Error: Provider name is required'));
@@ -228,9 +207,6 @@ async function testProvider(provider) {
   }
 }
 
-/**
- * Show usage statistics
- */
 function showStats(options) {
   try {
     const providers = aiDatabase.getAllProviders();
@@ -285,9 +261,6 @@ function showStats(options) {
   }
 }
 
-/**
- * Show help
- */
 function showHelp() {
   console.log(chalk.bold('\n🤖 DevCompass LLM Management\n'));
   

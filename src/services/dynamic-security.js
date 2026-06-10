@@ -11,9 +11,6 @@ const securityData = JSON.parse(
 const POPULAR_PACKAGES = securityData.packages;
 const WHITELIST = new Set(securityData.whitelist);
 
-/**
- * Check for typosquatting attempts
- */
 function checkTyposquatting(packageName) {
   // ✅ DEBUG: Log what's happening
   if (process.env.DEBUG) {
@@ -48,9 +45,7 @@ function checkTyposquatting(packageName) {
 
   return null;
 }
-/**
- * Check for suspicious install scripts
- */
+
 function checkInstallScripts(packageJsonPath) {
   try {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
@@ -93,9 +88,6 @@ function checkInstallScripts(packageJsonPath) {
   }
 }
 
-/**
- * Run npm audit - FIXED to always return array
- */
 async function runNpmAudit(projectPath) {
   try {
     const output = execSync('npm audit --json', {
@@ -120,9 +112,6 @@ async function runNpmAudit(projectPath) {
   }
 }
 
-/**
- * Parse audit data - FIXED to always return array
- */
 function parseAuditData(auditData) {
   const vulnerabilities = [];
   
@@ -157,9 +146,6 @@ function parseAuditData(auditData) {
   return vulnerabilities;
 }
 
-/**
- * Analyze entire project for security issues - FIXED to always return proper structure
- */
 async function analyzeProject(projectPath) {
   const results = {
     typosquatting: [],
@@ -206,9 +192,6 @@ async function analyzeProject(projectPath) {
   };
 }
 
-/**
- * Levenshtein distance algorithm
- */
 function levenshteinDistance(str1, str2) {
   const matrix = [];
 

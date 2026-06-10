@@ -22,6 +22,7 @@ program
   .addHelpText('after', `
 ${chalk.gray('Author:')} Ajay Thorat
 ${chalk.gray('GitHub:')} ${chalk.cyan('https://github.com/AjayBThorat-20/devcompass')}
+${chalk.gray('New in v3.2.6:')} 🚀 Architecture improvements & performance optimizations
 ${chalk.gray('New in v3.2.5:')} 🎯 Improved UX & workflow refinement
 ${chalk.gray('New in v3.2.4:')} 🛡️  CVE vulnerability detection (OSV + NVD)
 ${chalk.gray('New in v3.2.3:')} 🎯 All 10 commands now working!
@@ -35,6 +36,7 @@ program
   .option('--deep', 'Show detailed analysis (all issues)')
   .option('--json', 'Output results as JSON')
   .option('--ci', 'CI mode - exit with error code if score below threshold')
+  .option('--threshold <score>', 'Health score threshold for CI mode (default: 7.0)', '7.0')
   .option('--silent', 'Silent mode - no output')
   .option('--no-history', 'Skip saving snapshot to history database')
   .option('--ai', '🤖 Get AI-powered insights and recommendations')
@@ -47,13 +49,13 @@ ${chalk.bold('Analysis Examples:')}
   ${chalk.cyan('devcompass analyze --deep')}           Full detailed report
   ${chalk.cyan('devcompass analyze --ai')}             Analyze with AI insights 🤖
   ${chalk.cyan('devcompass analyze --json')}           Output as JSON
-  ${chalk.cyan('devcompass analyze --ci')}             CI mode with exit codes
+  ${chalk.cyan('devcompass analyze --ci --threshold 8.0')} CI mode with custom threshold
 
-${chalk.bold('🆕 v3.2.5 Changes:')}
-  • Default output now shows ${chalk.green('Top 3 Issues')} only
-  • Use ${chalk.cyan('--deep')} flag for full details
-  • Better structured output
-  • Clearer action recommendations
+${chalk.bold('🆕 v3.2.6 Changes:')}
+  • Performance optimizations
+  • Better memory management
+  • Improved error handling
+  • Enhanced caching
 
 ${chalk.bold('🛡️  CVE Vulnerability Detection:')}
   • Real-time CVE database checking (OSV + NVD)
@@ -74,6 +76,24 @@ ${chalk.bold('History Tracking:')}
   `)
   .action(async (options) => {
     try {
+      // Validate threshold if CI mode is enabled
+      if (options.ci && options.threshold) {
+        const threshold = parseFloat(options.threshold);
+        if (isNaN(threshold)) {
+          console.error(chalk.red('\n❌ Invalid threshold value'));
+          console.error(chalk.gray('   Threshold must be a number (e.g., 7.0, 8.5, 10.0)'));
+          console.error(chalk.yellow(`   You provided: "${options.threshold}"`));
+          console.error(chalk.gray('\nExample:'), chalk.cyan('devcompass analyze --ci --threshold 8.0\n'));
+          process.exit(1);
+        }
+        if (threshold < 0 || threshold > 10) {
+          console.error(chalk.red('\n❌ Threshold must be between 0 and 10'));
+          console.error(chalk.yellow(`   You provided: ${threshold}\n`));
+          process.exit(1);
+        }
+        options.ciThreshold = threshold;
+      }
+
       const { runAnalyze } = require('../src/commands/analyze');
       await runAnalyze({
         mode: options.deep ? 'deep' : 'default',
@@ -81,8 +101,9 @@ ${chalk.bold('History Tracking:')}
         json: options.json,
         aiEnabled: options.ai,
         saveHistory: options.history !== false,
-      ci: options.ci,
-      silent: options.silent
+        ci: options.ci,
+        ciThreshold: options.ciThreshold || 7.0,
+        silent: options.silent
       });
     } catch (error) {
       console.error(chalk.red('\n❌ Analysis failed:'), error.message);
@@ -100,6 +121,7 @@ program
   .option('-y, --yes', 'Skip confirmation prompt', false)
   .option('--dry-run', 'Show what would be fixed without making changes')
   .option('--dry', 'Alias for --dry-run')
+  .option('--preview', 'Preview fixes without applying (same as --dry-run)')
   .option('--batch', 'Interactive batch mode - select which categories to fix')
   .option('--batch-mode <mode>', 'Preset batch mode: critical, high, all')
   .option('--only <categories>', 'Fix only specific categories')
@@ -107,7 +129,7 @@ program
   .option('--verbose', 'Show detailed output')
   .addHelpText('after', `
 
-${chalk.bold('🆕 v3.2.5 Fix Command:')}
+${chalk.bold('🆕 v3.2.6 Fix Command:')}
   • Shows preview before applying changes
   • Safe mode by default
   • Clear risk classification
@@ -117,7 +139,8 @@ ${chalk.bold('Basic Examples:')}
   ${chalk.cyan('devcompass fix')}                     Preview & apply safe fixes
   ${chalk.cyan('devcompass fix --yes')}               Skip confirmation
   ${chalk.cyan('devcompass fix --all')}               Include risky fixes (asks confirmation)
-  ${chalk.cyan('devcompass fix --dry-run')}           Preview only, no changes
+  ${chalk.cyan('devcompass fix --preview')}           Preview only, no changes
+  ${chalk.cyan('devcompass fix --dry-run')}           Same as --preview
 
 ${chalk.bold('Batch Mode Examples:')}
   ${chalk.cyan('devcompass fix --batch')}                    Interactive batch selection
@@ -147,7 +170,8 @@ ${chalk.bold('Safety Features:')}
         mode: options.all ? 'all' : 'safe',
         projectPath: options.path,
         skipConfirm: options.yes,
-        dryRun: options.dryRun || options.dry,
+        dryRun: options.dryRun || options.dry || options.preview,
+        preview: options.preview,
         batch: options.batch,
         batchMode: options.batchMode,
         only: options.only,
@@ -203,7 +227,7 @@ program
   .option('--open', 'Open in browser (HTML only)', false)
   .addHelpText('after', `
 
-${chalk.bold('🆕 v3.2.5 Graph Features:')}
+${chalk.bold('🆕 v3.2.6 Graph Features:')}
   • Top Issues Panel (synced with CLI)
   • Focus Mode (show only problems)
   • Click → Action Panel
@@ -295,9 +319,10 @@ ${chalk.bold('Snapshot Subcommands:')}
   ${chalk.cyan('view')}      View snapshot details
   ${chalk.cyan('delete')}    Delete a snapshot
 
-${chalk.bold('🆕 v3.2.5 Changes:')}
+${chalk.bold('🆕 v3.2.6 Changes:')}
   • Auto-saved after analyze and fix
   • No need to manually save
+  • Better performance
   `)
   .action(async (subcommand, id, options) => {
     const snapshotCommand = require('../src/commands/snapshot');
@@ -413,6 +438,30 @@ ${chalk.bold('LLM Examples:')}
     }
   });
 
+  program
+  .command('clean')
+  .description('Clean DevCompass output directories')
+  .option('--all', 'Clean all output directories')
+  .option('--cache', 'Clean cache only')
+  .option('--backups', 'Clean backups only')
+  .option('--temp', 'Clean temporary files only')
+  .option('--graphs', 'Clean generated graphs')
+  .option('--reports', 'Clean generated reports')
+  .option('--force', 'Skip confirmation')
+  .addHelpText('after', `
+
+${chalk.bold('Clean Examples:')}
+  ${chalk.cyan('devcompass clean')}              Show summary
+  ${chalk.cyan('devcompass clean --temp')}       Clean temp files
+  ${chalk.cyan('devcompass clean --cache')}      Clean cache
+  ${chalk.cyan('devcompass clean --all')}        Clean everything
+  ${chalk.cyan('devcompass clean --all --force')} Clean without asking
+  `)
+  .action(async (options) => {
+    const cleanCommand = require('../src/commands/clean');
+    await cleanCommand(options);
+  });
+
 program
   .command('ai')
   .description('🤖 AI-powered dependency analysis')
@@ -431,49 +480,46 @@ ${chalk.bold('AI Examples:')}
   `)
   .action(async (subcommand, args, options) => {
     const aiCommand = require('../src/commands/ai');
-    const contextBuilder = require('../src/ai/context-builder');
-
-    let context = null;
-    try {
-      const cacheFile = path.join(process.cwd(), '.devcompass-cache.json');
-      if (fs.existsSync(cacheFile)) {
-        const cacheData = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-        context = contextBuilder.buildAnalysisContext(cacheData);
-      }
-    } catch (error) {
-      // No context available
-    }
+    const projectPath = process.cwd();
 
     switch (subcommand) {
-      case 'ask':
+      case 'ask': {
         const question = args.join(' ');
         if (!question) {
           console.log(chalk.red('❌ Question required'));
           return;
         }
-        await aiCommand.askQuestion(question, context, options);
+        await aiCommand.askQuestion(question, projectPath, options);
         break;
-      case 'recommend':
-        if (!context) {
-          console.log(chalk.yellow('⚠️  Run "devcompass analyze" first'));
-          return;
-        }
-        const analysisData = JSON.parse(fs.readFileSync(path.join(process.cwd(), '.devcompass-cache.json'), 'utf8'));
-        await aiCommand.getRecommendations(analysisData, options);
+      }
+
+      case 'recommend': {
+        await aiCommand.getRecommendations(projectPath, options);
         break;
-      case 'alternatives':
+      }
+
+      case 'alternatives': {
         const packageName = args[0];
         if (!packageName) {
           console.log(chalk.red('❌ Package name required'));
           return;
         }
-        await aiCommand.getAlternatives(packageName, options);
+        await aiCommand.getAlternatives(packageName, projectPath, options);
         break;
-      case 'chat':
-        await aiCommand.startChat(context, options);
+      }
+
+      case 'chat': {
+        await aiCommand.startChat(projectPath, options);
         break;
+      }
+
       default:
-        aiCommand.showHelp();
+        console.log(chalk.yellow('\n⚠️ Invalid AI command\n'));
+        console.log(chalk.cyan('Available commands:'));
+        console.log('  devcompass ai ask "question"');
+        console.log('  devcompass ai recommend');
+        console.log('  devcompass ai alternatives <package>');
+        console.log('  devcompass ai chat\n');
     }
   });
 

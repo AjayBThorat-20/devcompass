@@ -6,9 +6,6 @@ class CacheManager {
     this.CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
   }
 
-  /**
-   * Get cached vulnerability data
-   */
   get(packageName, version, ecosystem = 'npm') {
     try {
       const stmt = db.prepare(`
@@ -36,9 +33,6 @@ class CacheManager {
     }
   }
 
-  /**
-   * Set cache
-   */
   set(packageName, version, vulnerabilities, ecosystem = 'npm') {
     try {
       const expiresAt = new Date(Date.now() + this.CACHE_TTL).toISOString();
@@ -70,9 +64,6 @@ class CacheManager {
     }
   }
 
-  /**
-   * Clear expired cache
-   */
   clearExpired() {
     try {
       const stmt = db.prepare(`
@@ -90,9 +81,6 @@ class CacheManager {
     }
   }
 
-  /**
-   * Clear all cache
-   */
   clearAll() {
     try {
       const stmt = db.prepare('DELETE FROM vulnerability_cache');
@@ -106,9 +94,6 @@ class CacheManager {
     }
   }
 
-  /**
-   * Get cache statistics
-   */
   getStats() {
     try {
       const total = db.prepare('SELECT COUNT(*) as count FROM vulnerability_cache').get();

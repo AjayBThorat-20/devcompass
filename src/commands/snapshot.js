@@ -5,9 +5,6 @@ const snapshotLoader = require('../history/snapshot-loader');
 const path = require('path');
 const fs = require('fs');
 
-/**
- * Save a new snapshot
- */
 async function saveSnapshot(options = {}) {
   try {
     console.log(chalk.bold.cyan('\n📸 Saving Snapshot...\n'));
@@ -59,9 +56,6 @@ async function saveSnapshot(options = {}) {
   }
 }
 
-/**
- * List all snapshots
- */
 async function listSnapshots(options = {}) {
   try {
     console.log(chalk.bold.cyan('\n📋 Dependency Snapshots\n'));
@@ -114,9 +108,6 @@ async function listSnapshots(options = {}) {
   }
 }
 
-/**
- * View a specific snapshot
- */
 async function viewSnapshot(snapshotId, options = {}) {
   try {
     if (!snapshotId) {
@@ -223,9 +214,6 @@ async function viewSnapshot(snapshotId, options = {}) {
   }
 }
 
-/**
- * Delete a snapshot
- */
 async function deleteSnapshot(snapshotId, options = {}) {
   try {
     if (!snapshotId) {
@@ -300,9 +288,6 @@ async function deleteSnapshot(snapshotId, options = {}) {
   }
 }
 
-/**
- * Build nodes from analysis data
- */
 function buildNodesFromAnalysis(analysisData) {
   const nodes = [];
   
@@ -320,9 +305,6 @@ function buildNodesFromAnalysis(analysisData) {
   return nodes;
 }
 
-/**
- * Build links from analysis data
- */
 function buildLinksFromAnalysis(analysisData) {
   const links = [];
   const rootName = analysisData.projectName || 'root';
@@ -339,9 +321,6 @@ function buildLinksFromAnalysis(analysisData) {
   return links;
 }
 
-/**
- * Show help information
- */
 function showHelp() {
   console.log(chalk.bold.cyan('\n📸 DevCompass Snapshot Command\n'));
   console.log(chalk.bold('Usage:'));

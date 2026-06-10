@@ -1,149 +1,142 @@
 // src/ai/providers/google.js
 const BaseProvider = require('./base-provider');
+const axios = require('axios');
 
 class GoogleProvider extends BaseProvider {
-  constructor(config) {
+  constructor(apiKey, config = {}) {
     super(config);
-    this.apiUrl = this.baseUrl || 'https://generativelanguage.googleapis.com/v1beta';
+    this.apiKey = apiKey;
+    this.baseURL = config.baseURL || 'https://generativelanguage.googleapis.com/v1beta';
+    this.model = config.model || 'gemini-2.0-flash-exp';
+    this.pricing = {
+      'gemini-2.0-flash-exp': { input: 0, output: 0 },
+      'gemini-1.5-pro': { input: 1.25 / 1000, output: 5.00 / 1000 },
+      'gemini-1.5-flash': { input: 0.075 / 1000, output: 0.30 / 1000 }
+    };
   }
 
-  /**
-   * Send a prompt to Google Gemini
-   */
-  async sendPrompt(prompt, systemPrompt = null, options = {}) {
-    const url = `${this.apiUrl}/models/${this.model}:generateContent?key=${this.apiKey}`;
+  async sendPrompt(messages, options = {}) {
+    const controller = this.createAbortController();
     
-    const parts = [];
-    if (systemPrompt) {
-      parts.push({ text: systemPrompt });
-    }
-    parts.push({ text: prompt });
-
-    const requestBody = {
-      contents: [{ parts }],
-      generationConfig: {
-        maxOutputTokens: options.maxTokens || this.maxTokens,
-        temperature: options.temperature || this.temperature
-      }
-    };
-
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+      const contents = messages.map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: msg.content }]
+      }));
+      
+      const response = await axios.post(
+        `${this.baseURL}/models/${this.model}:generateContent?key=${this.apiKey}`,
+        {
+          contents: contents,
+          generationConfig: {
+            temperature: options.temperature || 0.7,
+            maxOutputTokens: options.maxTokens || 2048
+          }
         },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || `Google API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const content = data.candidates[0]?.content?.parts[0]?.text || '';
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          signal: controller.signal
+        }
+      );
+      
+      this.clearAbortController();
+      
+      const candidate = response.data.candidates[0];
+      const usage = response.data.usageMetadata || {};
       
       return {
-        content: content,
-        tokensUsed: this.countTokens(content),
-        promptTokens: this.countTokens(prompt),
-        completionTokens: this.countTokens(content),
-        model: this.model,
-        finishReason: data.candidates[0]?.finishReason
+        content: candidate.content.parts[0].text,
+        usage: {
+          inputTokens: usage.promptTokenCount || 0,
+          outputTokens: usage.candidatesTokenCount || 0,
+          totalTokens: usage.totalTokenCount || 0
+        }
       };
     } catch (error) {
-      throw new Error(`Google API error: ${error.message}`);
+      this.clearAbortController();
+      
+      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        throw new Error('Request cancelled by user');
+      }
+      throw error;
     }
   }
 
-  /**
-   * Stream a response from Google Gemini
-   */
-  async streamPrompt(prompt, systemPrompt = null, onChunk, options = {}) {
-    const url = `${this.apiUrl}/models/${this.model}:streamGenerateContent?key=${this.apiKey}`;
+  async streamPrompt(messages, onChunk, options = {}) {
+    const controller = this.createAbortController();
     
-    const parts = [];
-    if (systemPrompt) {
-      parts.push({ text: systemPrompt });
-    }
-    parts.push({ text: prompt });
-
-    const requestBody = {
-      contents: [{ parts }],
-      generationConfig: {
-        maxOutputTokens: options.maxTokens || this.maxTokens,
-        temperature: options.temperature || this.temperature
-      }
-    };
-
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+      const contents = messages.map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: msg.content }]
+      }));
+      
+      const response = await axios.post(
+        `${this.baseURL}/models/${this.model}:streamGenerateContent?key=${this.apiKey}&alt=sse`,
+        {
+          contents: contents,
+          generationConfig: {
+            temperature: options.temperature || 0.7,
+            maxOutputTokens: options.maxTokens || 2048
+          }
         },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || `Google API error: ${response.status}`);
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          responseType: 'stream',
+          signal: controller.signal
+        }
+      );
+      
+      let usage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+      
+      for await (const chunk of response.data) {
+        const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
         
-        if (done) break;
-        
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(line => line.trim());
-
         for (const line of lines) {
-          try {
-            const data = JSON.parse(line);
-            const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
             
-            if (content) {
-              fullContent += content;
-              onChunk(content);
+            try {
+              const parsed = JSON.parse(data);
+              const candidate = parsed.candidates?.[0];
+              
+              if (candidate?.content?.parts?.[0]?.text) {
+                onChunk(candidate.content.parts[0].text);
+              }
+              
+              if (parsed.usageMetadata) {
+                usage = {
+                  inputTokens: parsed.usageMetadata.promptTokenCount || 0,
+                  outputTokens: parsed.usageMetadata.candidatesTokenCount || 0,
+                  totalTokens: parsed.usageMetadata.totalTokenCount || 0
+                };
+              }
+            } catch (e) {
+              // Skip invalid JSON
             }
-          } catch (e) {
-            // Skip invalid JSON
           }
         }
       }
-
-      return {
-        content: fullContent,
-        tokensUsed: this.countTokens(fullContent),
-        model: this.model
-      };
+      
+      this.clearAbortController();
+      return usage;
     } catch (error) {
-      throw new Error(`Google streaming error: ${error.message}`);
+      this.clearAbortController();
+      
+      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        throw new Error('Request cancelled by user');
+      }
+      throw error;
     }
   }
 
-  /**
-   * Estimate cost for Google models
-   */
-  estimateCost(tokens, isInput = true) {
-    // Pricing per 1K tokens (as of 2024)
-    const pricing = {
-      'gemini-pro': { input: 0.00025, output: 0.0005 },
-      'gemini-pro-vision': { input: 0.00025, output: 0.0005 },
-      'gemini-1.5-pro': { input: 0.00125, output: 0.00375 },
-      'gemini-1.5-flash': { input: 0.000075, output: 0.0003 }
-    };
-
-    const modelPricing = pricing[this.model] || pricing['gemini-pro'];
-    const costPer1k = isInput ? modelPricing.input : modelPricing.output;
-    
-    return (tokens / 1000) * costPer1k;
+  estimateCost(inputTokens, outputTokens) {
+    const pricing = this.pricing[this.model] || this.pricing['gemini-2.0-flash-exp'];
+    return (inputTokens * pricing.input) + (outputTokens * pricing.output);
   }
 }
 

@@ -1,13 +1,7 @@
 // src/analyzers/issues.js
-// Dynamic issues analyzer - fetches real vulnerability/issue data for ANY package
-
 const { execSync } = require('child_process');
 const https = require('https');
 
-/**
- * Fetch issues dynamically for any package
- * Sources: npm audit, GitHub advisories, deprecation warnings
- */
 class IssuesAnalyzer {
   constructor(options = {}) {
     this.cache = new Map();
@@ -248,9 +242,6 @@ class IssuesAnalyzer {
     };
   }
 
-  /**
-   * Map npm severity to our severity levels
-   */
   mapSeverity(npmSeverity) {
     const map = {
       'critical': 'critical',
@@ -263,9 +254,6 @@ class IssuesAnalyzer {
     return map[npmSeverity?.toLowerCase()] || 'medium';
   }
 
-  /**
-   * Get highest severity from issues list
-   */
   getMaxSeverity(issues) {
     const order = ['critical', 'high', 'medium', 'low', 'info'];
     let maxIndex = order.length;
@@ -280,9 +268,6 @@ class IssuesAnalyzer {
     return maxIndex < order.length ? order[maxIndex] : null;
   }
 
-  /**
-   * Extract alternative package suggestion from deprecation message
-   */
   extractAlternative(message) {
     if (!message) return 'Find an alternative';
     
@@ -305,9 +290,6 @@ class IssuesAnalyzer {
     return message.length > 100 ? message.substring(0, 100) + '...' : message;
   }
 
-  /**
-   * Clear cache
-   */
   clearCache() {
     this.cache.clear();
   }
@@ -316,9 +298,6 @@ class IssuesAnalyzer {
 // Singleton instance
 let instance = null;
 
-/**
- * Get or create IssuesAnalyzer instance
- */
 function getIssuesAnalyzer(options) {
   if (!instance) {
     instance = new IssuesAnalyzer(options);
@@ -326,17 +305,11 @@ function getIssuesAnalyzer(options) {
   return instance;
 }
 
-/**
- * Quick helper to get issues for a single package
- */
 async function getPackageIssues(packageName, version) {
   const analyzer = getIssuesAnalyzer();
   return analyzer.getIssues(packageName, version);
 }
 
-/**
- * Quick helper to get issues for multiple packages
- */
 async function getBatchPackageIssues(packages) {
   const analyzer = getIssuesAnalyzer();
   return analyzer.getBatchIssues(packages);

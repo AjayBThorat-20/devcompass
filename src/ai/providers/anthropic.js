@@ -1,110 +1,90 @@
-// src/ai/providers/anthropic.js
 const BaseProvider = require('./base-provider');
+const axios = require('axios');
 
 class AnthropicProvider extends BaseProvider {
-  constructor(config) {
+  constructor(config = {}) {
     super(config);
-    this.apiUrl = this.baseUrl || 'https://api.anthropic.com/v1/messages';
-    this.apiVersion = '2023-06-01';
+    this.baseURL = config.baseURL || 'https://api.anthropic.com/v1';
+    this.model = config.model || 'claude-sonnet-4-20250514';
+    this.pricing = {
+      'claude-sonnet-4-20250514': { input: 3.00 / 1000, output: 15.00 / 1000 },
+      'claude-opus-4-20250514': { input: 15.00 / 1000, output: 75.00 / 1000 },
+      'claude-haiku-4-20250301': { input: 0.80 / 1000, output: 4.00 / 1000 }
+    };
   }
 
-  /**
-   * Send a prompt to Anthropic Claude
-   */
-  async sendPrompt(prompt, systemPrompt = null, options = {}) {
-    const requestBody = {
-      model: this.model,
-      max_tokens: options.maxTokens || this.maxTokens,
-      temperature: options.temperature || this.temperature,
-      messages: [
-        { role: 'user', content: prompt }
-      ]
+  _getHeaders() {
+    const apiKey = this._getDecryptedKey ? this._getDecryptedKey() : this.config.api_key;
+    return {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json'
     };
+  }
 
-    if (systemPrompt) {
-      requestBody.system = systemPrompt;
-    }
-
+  async sendPrompt(messages, options = {}) {
+    const controller = this.createAbortController();
+    
     try {
-      const response = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
-          'anthropic-version': this.apiVersion
+      const response = await axios.post(
+        `${this.baseURL}/messages`,
+        {
+          model: options.model || this.model,
+          messages: messages,
+          max_tokens: options.maxTokens || 4096,
+          temperature: options.temperature || 0.7
         },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || `Anthropic API error: ${response.status}`);
-      }
-
-      const data = await response.json();
+        {
+          headers: this._getHeaders(),
+          signal: controller.signal
+        }
+      );
+      
+      this.clearAbortController();
       
       return {
-        content: data.content[0].text,
-        tokensUsed: data.usage?.input_tokens + data.usage?.output_tokens || 0,
-        promptTokens: data.usage?.input_tokens || 0,
-        completionTokens: data.usage?.output_tokens || 0,
-        model: data.model,
-        finishReason: data.stop_reason
+        content: response.data.content[0].text,
+        usage: {
+          inputTokens: response.data.usage.input_tokens,
+          outputTokens: response.data.usage.output_tokens,
+          totalTokens: response.data.usage.input_tokens + response.data.usage.output_tokens
+        }
       };
     } catch (error) {
-      throw new Error(`Anthropic API error: ${error.message}`);
+      this.clearAbortController();
+      
+      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        throw new Error('Request cancelled by user');
+      }
+      throw error;
     }
   }
 
-  /**
-   * Stream a response from Anthropic Claude
-   */
-  async streamPrompt(prompt, systemPrompt = null, onChunk, options = {}) {
-    const requestBody = {
-      model: this.model,
-      max_tokens: options.maxTokens || this.maxTokens,
-      temperature: options.temperature || this.temperature,
-      messages: [
-        { role: 'user', content: prompt }
-      ],
-      stream: true
-    };
-
-    if (systemPrompt) {
-      requestBody.system = systemPrompt;
-    }
-
+  async streamPrompt(messages, onChunk, options = {}) {
+    const controller = this.createAbortController();
+    
     try {
-      const response = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
-          'anthropic-version': this.apiVersion
+      const response = await axios.post(
+        `${this.baseURL}/messages`,
+        {
+          model: options.model || this.model,
+          messages: messages,
+          max_tokens: options.maxTokens || 4096,
+          temperature: options.temperature || 0.7,
+          stream: true
         },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || `Anthropic API error: ${response.status}`);
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let fullContent = '';
-      let totalTokens = 0;
-
-      while (true) {
-        const { done, value } = await reader.read();
+        {
+          headers: this._getHeaders(),
+          responseType: 'stream',
+          signal: controller.signal
+        }
+      );
+      
+      let usage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+      
+      for await (const chunk of response.data) {
+        const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
         
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
@@ -113,12 +93,18 @@ class AnthropicProvider extends BaseProvider {
               const parsed = JSON.parse(data);
               
               if (parsed.type === 'content_block_delta') {
-                const content = parsed.delta?.text || '';
+                const content = parsed.delta?.text;
                 if (content) {
-                  fullContent += content;
-                  totalTokens += this.countTokens(content);
                   onChunk(content);
                 }
+              }
+              
+              if (parsed.type === 'message_delta' && parsed.usage) {
+                usage.outputTokens = parsed.usage.output_tokens;
+              }
+              
+              if (parsed.type === 'message_start' && parsed.message?.usage) {
+                usage.inputTokens = parsed.message.usage.input_tokens;
               }
             } catch (e) {
               // Skip invalid JSON
@@ -126,33 +112,24 @@ class AnthropicProvider extends BaseProvider {
           }
         }
       }
-
-      return {
-        content: fullContent,
-        tokensUsed: totalTokens,
-        model: this.model
-      };
+      
+      usage.totalTokens = usage.inputTokens + usage.outputTokens;
+      
+      this.clearAbortController();
+      return usage;
     } catch (error) {
-      throw new Error(`Anthropic streaming error: ${error.message}`);
+      this.clearAbortController();
+      
+      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        throw new Error('Request cancelled by user');
+      }
+      throw error;
     }
   }
 
-  /**
-   * Estimate cost for Anthropic models
-   */
-  estimateCost(tokens, isInput = true) {
-    // Pricing per 1K tokens (as of 2024)
-    const pricing = {
-      'claude-3-5-sonnet-20241022': { input: 0.003, output: 0.015 },
-      'claude-3-opus-20240229': { input: 0.015, output: 0.075 },
-      'claude-3-sonnet-20240229': { input: 0.003, output: 0.015 },
-      'claude-3-haiku-20240307': { input: 0.00025, output: 0.00125 }
-    };
-
-    const modelPricing = pricing[this.model] || pricing['claude-3-haiku-20240307'];
-    const costPer1k = isInput ? modelPricing.input : modelPricing.output;
-    
-    return (tokens / 1000) * costPer1k;
+  estimateCost(inputTokens, outputTokens) {
+    const pricing = this.pricing[this.model] || this.pricing['claude-sonnet-4-20250514'];
+    return (inputTokens * pricing.input) + (outputTokens * pricing.output);
   }
 }
 

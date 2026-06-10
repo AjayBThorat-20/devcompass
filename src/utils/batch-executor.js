@@ -1,16 +1,16 @@
-//  src/utils/batch-executor.js
 const chalk = require('chalk');
 const ora = require('ora');
-const { execSync } = require('child_process');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+
+const execAsync = promisify(exec);
 
 class BatchExecutor {
   constructor(projectPath) {
     this.projectPath = projectPath;
+    this.activeProcesses = new Set();
   }
 
-  /**
-   * Execute a single batch of fixes
-   */
   async executeBatch(batch, fixes, options = {}) {
     const results = {
       batch: batch.id,
@@ -23,6 +23,21 @@ class BatchExecutor {
       errors: []
     };
 
+    const { preview = false } = options;
+
+    if (preview) {
+      results.preview = true;
+      results.operations = Array.isArray(fixes)
+        ? fixes.map(fix => ({
+            package: fix.package || fix.name || 'unknown',
+            type: fix.type || batch.id,
+            from: fix.current || fix.from || null,
+            to: fix.latest || fix.to || null
+          }))
+        : [];
+      return results;
+    }
+
     console.log('\n' + chalk.bold(`${batch.icon} ${batch.name.toUpperCase()}`));
     console.log(chalk.gray('─'.repeat(70)));
 
@@ -31,27 +46,27 @@ class BatchExecutor {
         case 'supply-chain':
           await this.executeSupplyChainBatch(fixes, results, options);
           break;
-        
+
         case 'license':
           await this.executeLicenseBatch(fixes, results, options);
           break;
-        
+
         case 'quality':
           await this.executeQualityBatch(fixes, results, options);
           break;
-        
+
         case 'security':
           await this.executeSecurityBatch(fixes, results, options);
           break;
-        
+
         case 'ecosystem':
           await this.executeEcosystemBatch(fixes, results, options);
           break;
-        
+
         case 'unused':
           await this.executeUnusedBatch(fixes, results, options);
           break;
-        
+
         case 'updates':
           await this.executeUpdatesBatch(fixes, results, options);
           break;
@@ -59,16 +74,21 @@ class BatchExecutor {
     } catch (error) {
       results.errors.push({
         batch: batch.id,
-        error: error.message
+        error: error.message,
+        severity: 'critical'
       });
+
+      if (error.message.includes('ENOSPC') || error.message.includes('ENOMEM')) {
+        console.error(chalk.red('\n❌ Critical error: System resources exhausted'));
+        throw error;
+      }
+    } finally {
+      await this.cleanup();
     }
 
     return results;
   }
 
-  /**
-   * Execute supply chain fixes
-   */
   async executeSupplyChainBatch(fixes, results, options) {
     const SupplyChainFixer = require('./supply-chain-fixer');
     const fixer = new SupplyChainFixer();
@@ -76,9 +96,9 @@ class BatchExecutor {
     for (const fix of fixes) {
       try {
         const spinner = ora(`Fixing ${fix.type}: ${fix.package}`).start();
-        
+
         const result = await fixer.fixWarning(fix, false);
-        
+
         if (result.success) {
           spinner.succeed(`Fixed ${fix.type}: ${fix.package}`);
           results.successful++;
@@ -92,22 +112,21 @@ class BatchExecutor {
           results.failed++;
           results.errors.push({
             package: fix.package,
-            error: result.reason
+            error: result.reason,
+            severity: 'high'
           });
         }
       } catch (error) {
         results.failed++;
         results.errors.push({
           package: fix.package,
-          error: error.message
+          error: error.message,
+          severity: 'high'
         });
       }
     }
   }
 
-  /**
-   * Execute license conflict fixes
-   */
   async executeLicenseBatch(fixes, results, options) {
     const LicenseConflictFixer = require('./license-conflict-fixer');
     const fixer = new LicenseConflictFixer();
@@ -115,9 +134,9 @@ class BatchExecutor {
     for (const fix of fixes) {
       try {
         const spinner = ora(`Replacing ${fix.package} (${fix.license})`).start();
-        
+
         const result = await fixer.fixWarning(fix, false);
-        
+
         if (result.success) {
           spinner.succeed(`Replaced ${fix.package} with ${fix.suggestedAlternative?.name || 'alternative'}`);
           results.successful++;
@@ -131,22 +150,21 @@ class BatchExecutor {
           results.failed++;
           results.errors.push({
             package: fix.package,
-            error: result.reason
+            error: result.reason,
+            severity: 'medium'
           });
         }
       } catch (error) {
         results.failed++;
         results.errors.push({
           package: fix.package,
-          error: error.message
+          error: error.message,
+          severity: 'medium'
         });
       }
     }
   }
 
-  /**
-   * Execute quality fixes
-   */
   async executeQualityBatch(fixes, results, options) {
     const QualityFixer = require('./quality-fixer');
     const fixer = new QualityFixer();
@@ -155,9 +173,9 @@ class BatchExecutor {
       try {
         const alternative = fixer.findAlternative(fix.name);
         const spinner = ora(`Replacing ${fix.name} (${fix.status})`).start();
-        
+
         const result = await fixer.fixWarning(fix, false);
-        
+
         if (result.success && result.action === 'replaced') {
           spinner.succeed(`Replaced ${fix.name} with ${alternative?.recommended || 'alternative'}`);
           results.successful++;
@@ -176,75 +194,73 @@ class BatchExecutor {
           results.failed++;
           results.errors.push({
             package: fix.name,
-            error: result.reason || 'No alternative available'
+            error: result.reason || 'No alternative available',
+            severity: 'low'
           });
         }
       } catch (error) {
         results.failed++;
         results.errors.push({
           package: fix.name,
-          error: error.message
+          error: error.message,
+          severity: 'low'
         });
       }
     }
   }
 
-  /**
-   * Execute security fixes (npm audit)
-   */
   async executeSecurityBatch(fixes, results, options) {
     const spinner = ora('Running npm audit fix...').start();
-    
+
     try {
-      execSync('npm audit fix', {
+      const { stdout, stderr } = await execAsync('npm audit fix', {
         cwd: this.projectPath,
-        stdio: options.verbose ? 'inherit' : 'pipe',
-        timeout: 60000 // 60 second timeout
+        timeout: 60000,
+        maxBuffer: 10 * 1024 * 1024
       });
-      
+
       spinner.succeed('Security vulnerabilities fixed');
       results.successful++;
       results.fixes.push({
         type: 'security',
-        action: 'npm audit fix'
+        action: 'npm audit fix',
+        output: options.verbose ? stdout : 'Completed'
       });
     } catch (error) {
       spinner.fail('Failed to run npm audit fix');
       results.failed++;
       results.errors.push({
         action: 'npm audit fix',
-        error: error.message
+        error: error.message,
+        severity: 'critical'
       });
     }
   }
 
-  /**
-   * Execute ecosystem alert fixes
-   */
   async executeEcosystemBatch(fixes, results, options) {
     for (const fix of fixes) {
       try {
         const pkg = fix.package.split('@')[0];
         const version = fix.fix;
 
-        // Skip if version is invalid
         if (!version || version.includes('Migrate') || version.includes('Use')) {
           results.skipped++;
           results.errors.push({
             package: pkg,
-            error: 'Migration required - manual intervention needed'
+            error: 'Migration required - manual intervention needed',
+            severity: 'low'
           });
           continue;
         }
 
         const spinner = ora(`Updating ${pkg} to ${version}`).start();
-        
-        execSync(`npm install ${pkg}@${version}`, {
+
+        await execAsync(`npm install ${pkg}@${version}`, {
           cwd: this.projectPath,
-          stdio: options.verbose ? 'inherit' : 'pipe',
-          timeout: 60000
+          timeout: 60000,
+          maxBuffer: 10 * 1024 * 1024
         });
-        
+
         spinner.succeed(`Updated ${pkg} to ${version}`);
         results.successful++;
         results.fixes.push({
@@ -256,28 +272,26 @@ class BatchExecutor {
         results.failed++;
         results.errors.push({
           package: fix.package,
-          error: error.message
+          error: error.message,
+          severity: 'medium'
         });
       }
     }
   }
 
-  /**
-   * Execute unused dependency removal
-   */
   async executeUnusedBatch(fixes, results, options) {
     if (!Array.isArray(fixes) || fixes.length === 0) return;
 
     const packageNames = fixes.join(' ');
     const spinner = ora(`Removing ${fixes.length} unused package(s)...`).start();
-    
+
     try {
-      execSync(`npm uninstall ${packageNames}`, {
+      await execAsync(`npm uninstall ${packageNames}`, {
         cwd: this.projectPath,
-        stdio: options.verbose ? 'inherit' : 'pipe',
-        timeout: 60000
+        timeout: 60000,
+        maxBuffer: 10 * 1024 * 1024
       });
-      
+
       spinner.succeed(`Removed ${fixes.length} unused package(s)`);
       results.successful += fixes.length;
       results.fixes.push({
@@ -289,25 +303,23 @@ class BatchExecutor {
       results.failed++;
       results.errors.push({
         packages: fixes,
-        error: error.message
+        error: error.message,
+        severity: 'low'
       });
     }
   }
 
-  /**
-   * Execute safe updates
-   */
   async executeUpdatesBatch(fixes, results, options) {
     for (const fix of fixes) {
       try {
         const spinner = ora(`Updating ${fix.name} to ${fix.latest}`).start();
-        
-        execSync(`npm install ${fix.name}@${fix.latest}`, {
+
+        await execAsync(`npm install ${fix.name}@${fix.latest}`, {
           cwd: this.projectPath,
-          stdio: options.verbose ? 'inherit' : 'pipe',
-          timeout: 60000
+          timeout: 60000,
+          maxBuffer: 10 * 1024 * 1024
         });
-        
+
         spinner.succeed(`Updated ${fix.name} to ${fix.latest}`);
         results.successful++;
         results.fixes.push({
@@ -320,10 +332,26 @@ class BatchExecutor {
         results.failed++;
         results.errors.push({
           package: fix.name,
-          error: error.message
+          error: error.message,
+          severity: 'low'
         });
       }
     }
+  }
+
+  async cleanup() {
+    for (const process of this.activeProcesses) {
+      try {
+        if (process && !process.killed) {
+          process.kill('SIGTERM');
+        }
+      } catch (error) {
+        if (process.env.DEBUG) {
+          console.error('Process cleanup error:', error.message);
+        }
+      }
+    }
+    this.activeProcesses.clear();
   }
 }
 

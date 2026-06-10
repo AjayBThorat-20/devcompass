@@ -1,16 +1,12 @@
 // src/commands/graph.js
-// v3.1.4 - Unified graph with dynamic layout/filter controls
-
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
 const ora = require('ora');
 const GraphGenerator = require('../graph/generator');
 const GraphExporter = require('../graph/exporter');
+const OutputManager = require('../utils/output-manager');
 
-/**
- * Graph command - Generate unified interactive dependency visualization
- */
 async function graphCommand(options = {}) {
   const {
     path: projectPath = process.cwd(),
@@ -24,7 +20,49 @@ async function graphCommand(options = {}) {
     open: shouldOpen = false
   } = options;
 
+  // ====== INPUT VALIDATION ======
+  // Validate layout
+  const validLayouts = ['tree', 'force', 'radial', 'conflict'];
+  if (!validLayouts.includes(layout)) {
+    console.log(chalk.red(`\n❌ Invalid layout: "${layout}"`));
+    console.log(chalk.yellow(`   Valid options: ${validLayouts.join(', ')}`));
+    console.log(chalk.gray('\nExample:'), chalk.cyan(`devcompass graph --layout force\n`));
+    process.exit(1);
+  }
+
+  // Validate filter
+  const validFilters = ['all', 'vulnerable', 'outdated', 'unused', 'deprecated', 'conflict'];
+  if (!validFilters.includes(filter)) {
+    console.log(chalk.red(`\n❌ Invalid filter: "${filter}"`));
+    console.log(chalk.yellow(`   Valid options: ${validFilters.join(', ')}`));
+    console.log(chalk.gray('\nExample:'), chalk.cyan(`devcompass graph --filter vulnerable\n`));
+    process.exit(1);
+  }
+
+  // Validate dimensions
+  if (width < 400 || width > 5000) {
+    console.log(chalk.red(`\n❌ Invalid width: ${width}`));
+    console.log(chalk.yellow('   Width must be between 400 and 5000 pixels\n'));
+    process.exit(1);
+  }
+
+  if (height < 300 || height > 5000) {
+    console.log(chalk.red(`\n❌ Invalid height: ${height}`));
+    console.log(chalk.yellow('   Height must be between 300 and 5000 pixels\n'));
+    process.exit(1);
+  }
+
+  // Validate depth
+  if (depth !== Infinity && (depth < 1 || depth > 20)) {
+    console.log(chalk.red(`\n❌ Invalid depth: ${depth}`));
+    console.log(chalk.yellow('   Depth must be between 1 and 20\n'));
+    process.exit(1);
+  }
+
   console.log(chalk.bold('\n📊 DevCompass - Dependency Graph\n'));
+
+  // Initialize output manager
+  const outputManager = new OutputManager(projectPath);
 
   // ====== VALIDATION ======
   // 1. Check if package.json exists
@@ -36,7 +74,7 @@ async function graphCommand(options = {}) {
   }
 
   // 2. Check if analysis cache exists (for enrichment, not required)
-  const cacheFile = path.join(projectPath, '.devcompass-cache.json');
+  const cacheFile = outputManager.getCachePath('analysis-cache.json');
   const hasCachedAnalysis = fs.existsSync(cacheFile);
   
   if (!hasCachedAnalysis) {
@@ -59,10 +97,8 @@ async function graphCommand(options = {}) {
 
   try {
     // ====== DATA LOADING ======
-    // Generate graph data
     const generator = new GraphGenerator(projectPath);
     
-    // Try to load analysis results for enrichment
     let analysisLoaded = false;
     let analysisResults = null;
     
@@ -70,9 +106,14 @@ async function graphCommand(options = {}) {
       try {
         const analyzeModule = require('./analyze');
         
-        if (typeof analyzeModule.analyzeProject === 'function') {
+        if (typeof analyzeModule.runAnalyze === 'function') {
           spinner.text = 'Running analysis for graph enrichment...';
-          analysisResults = await analyzeModule.analyzeProject(projectPath, { silent: true });
+          analysisResults = await analyzeModule.runAnalyze({
+            projectPath,
+            silent: true,
+            mode: 'silent',
+            saveHistory: false
+          });
           
           if (analysisResults) {
             generator.setAnalysisResults(analysisResults);
@@ -80,7 +121,6 @@ async function graphCommand(options = {}) {
           }
         }
       } catch (error) {
-        // Analysis not available, continue without enrichment
         if (process.env.DEBUG) {
           console.log(chalk.dim(`[DEBUG] Analysis enrichment skipped: ${error.message}`));
         }
@@ -96,23 +136,13 @@ async function graphCommand(options = {}) {
       enrichWithIssues: false
     });
 
-    if (!graphData) {
-      spinner.fail('Failed to generate graph data');
-      console.log(chalk.red('\n❌ Could not build dependency graph'));
-      console.log(chalk.gray('   Check if your project has valid dependencies\n'));
-      process.exit(1);
-    }
-
-    // Validate graph data structure
-    if (!graphData.nodes || graphData.nodes.length === 0) {
+    if (!graphData || !graphData.nodes || graphData.nodes.length === 0) {
       spinner.fail('No dependencies found');
-      console.log(chalk.yellow('\n⚠️  No dependencies found to visualize'));
-      console.log(chalk.gray('   Your project has no dependencies.\n'));
+      console.log(chalk.yellow('\n⚠️  No dependencies found to visualize\n'));
       process.exit(0);
     }
 
     // ====== METADATA PREPARATION ======
-    // Add metadata for unified HTML
     graphData.metadata = graphData.metadata || {};
     graphData.metadata.availableLayouts = ['tree', 'force', 'radial', 'conflict'];
     graphData.metadata.availableFilters = ['all', 'vulnerable', 'outdated', 'unused', 'deprecated', 'conflict'];
@@ -126,7 +156,6 @@ async function graphCommand(options = {}) {
     spinner.succeed(`Generated graph with ${chalk.cyan(graphData.nodes.length)} nodes${issueCount > 0 ? ` (${chalk.yellow(issueCount)} with issues)` : ''}`);
 
     // ====== FORMAT DETECTION ======
-    // Detect format
     let detectedFormat = format;
     if (!detectedFormat) {
       const ext = path.extname(output).toLowerCase();
@@ -141,13 +170,15 @@ async function graphCommand(options = {}) {
       width: parseInt(width),
       height: parseInt(height),
       filter,
-      unified: detectedFormat === 'html' // Enable unified mode for HTML
+      unified: detectedFormat === 'html'
     });
 
-    // Ensure output path has correct extension
-    let outputPath = output;
-    if (!path.isAbsolute(output)) {
-      outputPath = path.join(projectPath, output);
+    // Determine output path using OutputManager
+    let outputPath;
+    if (path.isAbsolute(output)) {
+      outputPath = output;
+    } else {
+      outputPath = outputManager.getGraphPath(output);
     }
     
     if (!output.endsWith(`.${detectedFormat}`)) {
@@ -159,12 +190,10 @@ async function graphCommand(options = {}) {
 
     // ====== OUTPUT HANDLING ======
     if (result.success) {
-      exportSpinner.succeed(`Graph exported: ${chalk.cyan(result.path)}`);
+      exportSpinner.succeed(`Graph exported: ${chalk.cyan(outputManager.getRelativePath(result.path))}`);
 
-      // Display summary
-      displaySummary(graphData, result, analysisLoaded, options);
+      displaySummary(graphData, result, analysisLoaded, options, outputManager);
 
-      // Open in browser if requested
       if (result.format === 'HTML' && shouldOpen) {
         try {
           console.log(chalk.cyan('\n🌐 Opening in browser...'));
@@ -197,10 +226,7 @@ async function graphCommand(options = {}) {
   }
 }
 
-/**
- * Display comprehensive summary
- */
-function displaySummary(graphData, result, analysisLoaded, options) {
+function displaySummary(graphData, result, analysisLoaded, options, outputManager) {
   const stats = {
     totalNodes: graphData.nodes.length,
     totalLinks: graphData.links.length,
@@ -216,6 +242,7 @@ function displaySummary(graphData, result, analysisLoaded, options) {
   console.log(chalk.bold('\n📈 GRAPH SUMMARY\n'));
   
   console.log(`  ${chalk.gray('Format:')}        ${result.format}`);
+  console.log(`  ${chalk.gray('Location:')}      ${outputManager.getRelativePath(result.path)}`);
   
   if (result.format === 'HTML') {
     console.log(`  ${chalk.gray('Mode:')}          ${chalk.green('✓ Unified Interactive')}`);
@@ -264,7 +291,6 @@ function displaySummary(graphData, result, analysisLoaded, options) {
     console.log(chalk.cyan('\n──────────────────────────────────────────────────────────────────────\n'));
   }
 
-  // Suggestions
   if (stats.vulnerable > 0 || stats.deprecated > 0 || stats.outdated > 0) {
     console.log(chalk.bold('📋 SUGGESTIONS\n'));
     
@@ -291,9 +317,6 @@ function displaySummary(graphData, result, analysisLoaded, options) {
   }
 }
 
-/**
- * Get file size helper
- */
 function getFileSize(filePath) {
   try {
     const stats = fs.statSync(filePath);
@@ -307,9 +330,6 @@ function getFileSize(filePath) {
   }
 }
 
-/**
- * Show help information
- */
 function showHelp() {
   console.log(chalk.bold.cyan('\n📊 DevCompass Graph Command\n'));
   console.log(chalk.bold('Usage:'));
@@ -331,16 +351,9 @@ function showHelp() {
   console.log(chalk.gray('  devcompass graph --open'));
   console.log(chalk.gray('  devcompass graph --format json --output graph-data.json'));
   console.log(chalk.gray('  devcompass graph --depth 3 --width 1600 --height 900\n'));
-  console.log(chalk.bold('Prerequisites:'));
-  console.log(chalk.gray('  Optional: devcompass analyze (for enriched data)\n'));
-  console.log(chalk.bold('Interactive Features (HTML):'));
-  console.log(chalk.gray('  • Switch between 4 different layouts'));
-  console.log(chalk.gray('  • Apply filters dynamically'));
-  console.log(chalk.gray('  • Search for packages'));
-  console.log(chalk.gray('  • Zoom and pan navigation'));
-  console.log(chalk.gray('  • Export as PNG or JSON\n'));
+  console.log(chalk.bold('Output Location:'));
+  console.log(chalk.gray('  Files are saved to .devcompass/graphs/ by default\n'));
 }
 
-// Export both the main function and help
 module.exports = graphCommand;
 module.exports.showHelp = showHelp;

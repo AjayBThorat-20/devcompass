@@ -1,5 +1,4 @@
 // src/dashboard/scripts/controls.js
-
 let currentZoom = null;
 let currentSvg = null;
 let currentG = null;
@@ -22,21 +21,21 @@ function initZoom(svg, g) {
       currentTransform = event.transform;
       updateZoomDisplay(event.transform.k);
     });
-  
+
   svg.call(currentZoom);
-  
+
   currentSvg = svg;
   currentG = g;
 }
 
 function updateZoomDisplay(scale) {
   const zoomPercent = Math.round(scale * 100) + '%';
-  
+
   const zoomLevelEl = document.getElementById('zoomLevel');
   if (zoomLevelEl) {
     zoomLevelEl.textContent = zoomPercent;
   }
-  
+
   const zoomStatEl = document.getElementById('zoom-stat');
   if (zoomStatEl) {
     zoomStatEl.textContent = zoomPercent;
@@ -65,25 +64,28 @@ function resetZoom() {
 }
 
 function resetView() {
+  if (window.DevCompass && typeof window.DevCompass.resetPagination === 'function') {
+    window.DevCompass.resetPagination();
+  }
   resetZoom();
 }
 
 function centerGraph() {
   if (!currentSvg || !currentZoom || !currentG) return;
-  
+
   try {
     const bounds = currentG.node().getBBox();
     const containerWidth = currentSvg.node().clientWidth;
     const containerHeight = currentSvg.node().clientHeight;
-    
+
     const padding = 50;
     const scaleX = (containerWidth - padding * 2) / bounds.width;
     const scaleY = (containerHeight - padding * 2) / bounds.height;
     const scale = Math.min(scaleX, scaleY, 1);
-    
+
     const tx = (containerWidth - bounds.width * scale) / 2 - bounds.x * scale;
     const ty = (containerHeight - bounds.height * scale) / 2 - bounds.y * scale;
-    
+
     currentSvg.transition().duration(750).call(
       currentZoom.transform,
       d3.zoomIdentity.translate(tx, ty).scale(scale)
@@ -120,12 +122,12 @@ function handleSearch(value) {
 
 function handleDepthChange(value) {
   currentFilters.maxDepth = parseInt(value);
-  
+
   const depthValueEl = document.getElementById('depthValue');
   if (depthValueEl) {
     depthValueEl.textContent = value === '10' ? '∞' : value;
   }
-  
+
   applyFilters();
 }
 
@@ -134,7 +136,11 @@ function applyFilters() {
   if (healthFilterEl) {
     currentFilters.health = healthFilterEl.value;
   }
-  
+
+  if (window.DevCompass && typeof window.DevCompass.resetPagination === 'function') {
+    window.DevCompass.resetPagination();
+  }
+
   if (typeof window.renderCurrentLayout === 'function') {
     window.renderCurrentLayout();
   }
@@ -151,7 +157,7 @@ function exportPNG() {
       alert('Graph not found');
       return;
     }
-    
+
     const svgData = new XMLSerializer().serializeToString(svgElement);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -163,9 +169,9 @@ function exportPNG() {
     img.onload = function() {
       ctx.fillStyle = getComputedStyle(document.body).backgroundColor;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
+
       ctx.drawImage(img, 0, 0);
-      
+
       canvas.toBlob(function(blob) {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -188,16 +194,16 @@ function exportJSON() {
     alert('No graph data available');
     return;
   }
-  
+
   const exportData = {
-    version: '3.2.0',
+    version: '3.2.6',
     timestamp: new Date().toISOString(),
     nodes: window.graphData.nodes,
     links: window.graphData.links,
     metadata: window.graphData.metadata || {},
     filters: currentFilters
   };
-  
+
   window.exportAsJSON(exportData, `devcompass-data-${Date.now()}.json`);
 }
 
@@ -206,10 +212,10 @@ function exportReport() {
     alert('No graph data available');
     return;
   }
-  
+
   const stats = window.getStats();
   const healthDist = window.statsManager ? window.statsManager.getHealthDistribution(window.graphData.nodes) : {};
-  
+
   const report = {
     title: 'DevCompass Dependency Report',
     generated: new Date().toISOString(),
@@ -227,7 +233,7 @@ function exportReport() {
       issues: n.issues
     }))
   };
-  
+
   window.exportAsJSON(report, `devcompass-report-${Date.now()}.json`);
 }
 
@@ -244,7 +250,7 @@ function toggleFullscreen() {
 function toggleTheme() {
   const body = document.body;
   const isDark = body.classList.contains('theme-dark');
-  
+
   if (isDark) {
     body.classList.remove('theme-dark');
     body.classList.add('theme-light');
@@ -261,7 +267,7 @@ function toggleTheme() {
 function initTheme() {
   const savedTheme = window.storage.get('theme', 'dark');
   const body = document.body;
-  
+
   if (savedTheme === 'light') {
     body.classList.remove('theme-dark');
     body.classList.add('theme-light');
@@ -277,7 +283,7 @@ function initKeyboardShortcuts() {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
       return;
     }
-    
+
     switch(e.key.toLowerCase()) {
       case '+':
       case '=':
@@ -311,7 +317,24 @@ function initKeyboardShortcuts() {
   });
 }
 
-// Export to window
+function nextGraphPage() {
+  window.graphPagination.currentPage++;
+
+  if (typeof window.renderCurrentLayout === 'function') {
+    window.renderCurrentLayout();
+  }
+}
+
+function previousGraphPage() {
+  if (window.graphPagination.currentPage > 1) {
+    window.graphPagination.currentPage--;
+  }
+
+  if (typeof window.renderCurrentLayout === 'function') {
+    window.renderCurrentLayout();
+  }
+}
+
 window.initZoom = initZoom;
 window.zoomIn = zoomIn;
 window.zoomOut = zoomOut;
@@ -334,6 +357,8 @@ window.toggleTheme = toggleTheme;
 window.initTheme = initTheme;
 window.initKeyboardShortcuts = initKeyboardShortcuts;
 window.currentFilters = currentFilters;
+window.nextGraphPage = nextGraphPage;
+window.previousGraphPage = previousGraphPage;
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -358,6 +383,8 @@ if (typeof module !== 'undefined' && module.exports) {
     toggleTheme,
     initTheme,
     initKeyboardShortcuts,
-    currentFilters
+    currentFilters,
+    nextGraphPage,
+    previousGraphPage
   };
 }

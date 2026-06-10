@@ -1,37 +1,76 @@
-// src/utils/logger.js
 const chalk = require('chalk');
 
-function log(message) {
-  console.log(message);
-}
+class Logger {
+  constructor(options = {}) {
+    this.level = options.level || process.env.LOG_LEVEL || 'info';
+    this.silent = options.silent || false;
+    this.prefix = options.prefix || '';
 
-function logSection(title, count) {
-  const countStr = count !== undefined 
-    ? chalk.gray(` (${count})`) 
-    : '';
-  log(chalk.bold(`\n${title}${countStr}\n`));
-}
+    this.levels = {
+      debug: 0,
+      info: 1,
+      warn: 2,
+      error: 3
+    };
+  }
 
-function logDivider() {
-  const line = '━'.repeat(70);
-  log(chalk.gray(line) + '\n');
-}
+  shouldLog(level) {
+    if (this.silent) return false;
+    return this.levels[level] >= this.levels[this.level];
+  }
 
-function getScoreColor(score) {
-  if (score >= 8) {
-    return chalk.green.bold;
-  } else if (score >= 6) {
-    return chalk.yellow.bold;
-  } else {
-    return chalk.red.bold;
+  debug(message, ...args) {
+    if (this.shouldLog('debug')) {
+      console.log(chalk.gray(`[DEBUG]${this.prefix ? ` ${this.prefix}:` : ''} ${message}`), ...args);
+    }
+  }
+
+  info(message, ...args) {
+    if (this.shouldLog('info')) {
+      console.log(chalk.cyan(`[INFO]${this.prefix ? ` ${this.prefix}:` : ''} ${message}`), ...args);
+    }
+  }
+
+  warn(message, ...args) {
+    if (this.shouldLog('warn')) {
+      console.warn(chalk.yellow(`[WARN]${this.prefix ? ` ${this.prefix}:` : ''} ${message}`), ...args);
+    }
+  }
+
+  error(message, ...args) {
+    if (this.shouldLog('error')) {
+      console.error(chalk.red(`[ERROR]${this.prefix ? ` ${this.prefix}:` : ''} ${message}`), ...args);
+    }
+  }
+
+  success(message, ...args) {
+    if (this.shouldLog('info')) {
+      console.log(chalk.green(`[SUCCESS]${this.prefix ? ` ${this.prefix}:` : ''} ${message}`), ...args);
+    }
+  }
+
+  log(message, ...args) {
+    if (!this.silent) {
+      console.log(message, ...args);
+    }
+  }
+
+  setLevel(level) {
+    if (this.levels.hasOwnProperty(level)) {
+      this.level = level;
+    }
+  }
+
+  setSilent(silent) {
+    this.silent = silent;
+  }
+
+  setPrefix(prefix) {
+    this.prefix = prefix;
   }
 }
 
-module.exports = { 
-  log, 
-  logSection, 
-  logDivider,
-  getScoreColor
-};
+const defaultLogger = new Logger();
 
-
+module.exports = Logger;
+module.exports.default = defaultLogger;

@@ -7,9 +7,6 @@ class StreamFormatter {
     this.isFirstChunk = true;
   }
 
-  /**
-   * Format streaming chunk for terminal output
-   */
   formatChunk(chunk) {
     if (this.isFirstChunk) {
       this.isFirstChunk = false;
@@ -20,9 +17,7 @@ class StreamFormatter {
     this.buffer += chunk;
   }
 
-  /**
-   * Finish streaming
-   */
+
   finish() {
     process.stdout.write('\n\n');
     const content = this.buffer;
@@ -31,16 +26,11 @@ class StreamFormatter {
     return content;
   }
 
-  /**
-   * Show typing indicator
-   */
   showTyping(message = 'AI is thinking') {
     process.stdout.write(chalk.gray(`${message}...`));
   }
 
-  /**
-   * Clear typing indicator
-   */
+
   clearTyping() {
     process.stdout.write('\r' + ' '.repeat(50) + '\r');
   }
