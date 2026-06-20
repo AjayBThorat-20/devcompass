@@ -1,0 +1,48 @@
+// src/shared/utils/encryption.js
+
+const crypto = require('crypto');
+const os = require('os');
+
+const ALGORITHM = 'aes-256-gcm';
+const IV_LENGTH = 12;
+const AUTH_TAG_LENGTH = 16;
+
+function getEncryptionKey() {
+  return crypto.createHash('sha256').update(`${os.hostname()}-${os.userInfo().username}`).digest();
+}
+
+function encrypt(text) {
+  if (!text) return null;
+  const key = getEncryptionKey();
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const authTag = cipher.getAuthTag();
+  return iv.toString('hex') + authTag.toString('hex') + encrypted;
+}
+
+function decrypt(encryptedData) {
+  if (!encryptedData) return null;
+  try {
+    const key = getEncryptionKey();
+    const iv = Buffer.from(encryptedData.slice(0, IV_LENGTH * 2), 'hex');
+    const authTag = Buffer.from(encryptedData.slice(IV_LENGTH * 2, (IV_LENGTH + AUTH_TAG_LENGTH) * 2), 'hex');
+    const encrypted = encryptedData.slice((IV_LENGTH + AUTH_TAG_LENGTH) * 2);
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAuthTag(authTag);
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (error) {
+    if (process.env.DEBUG) console.error('Decryption failed:', error.message);
+    return null;
+  }
+}
+
+function maskToken(token) {
+  if (!token || token.length < 12) return '***';
+  return token.slice(0, 7) + '***' + token.slice(-4);
+}
+
+module.exports = { encrypt, decrypt, maskToken };

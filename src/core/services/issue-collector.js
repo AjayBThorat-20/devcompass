@@ -1,13 +1,12 @@
+// src/core/services/issue-collector.js
+
 const { createIssue } = require('../models/issue.model');
 
 class IssueCollector {
-  constructor() {
-    this.issues = [];
-  }
+  constructor() { this.issues = []; }
 
   addCVEIssues(cveData) {
     if (!Array.isArray(cveData)) return;
-    
     cveData.forEach(vuln => {
       this.issues.push(createIssue({
         name: vuln.package || vuln.name,
@@ -20,21 +19,15 @@ class IssueCollector {
         fix: vuln.fixVersion ? `Update to ${vuln.fixVersion}` : 'Update to latest',
         safeFix: this.isSafeUpdate(vuln),
         source: vuln.source || 'CVE',
-        metadata: {
-          cve: vuln.id || vuln.cve,
-          cvss: vuln.cvss,
-          references: vuln.references
-        }
+        metadata: { cve: vuln.id || vuln.cve, cvss: vuln.cvss, references: vuln.references }
       }));
     });
   }
 
   addLicenseIssues(licenseData) {
     if (!Array.isArray(licenseData)) return;
-    
     licenseData.forEach(license => {
       if (license.riskLevel === 'low') return;
-      
       this.issues.push(createIssue({
         name: license.package,
         version: license.version,
@@ -46,69 +39,53 @@ class IssueCollector {
         fix: license.alternative ? `Replace with ${license.alternative.replacement}` : 'Review license',
         safeFix: !!license.alternative,
         source: 'License',
-        metadata: {
-          license: license.license,
-          alternative: license.alternative
-        }
+        metadata: { license: license.license, alternative: license.alternative }
       }));
     });
   }
 
   addQualityIssues(qualityData) {
     if (!Array.isArray(qualityData)) return;
-    
     qualityData.forEach(pkg => {
       if (pkg.status === 'healthy') return;
-      
       this.issues.push(createIssue({
         name: pkg.package,
         version: pkg.version,
         type: 'quality',
         severity: this.mapQualitySeverity(pkg.status),
-        score: 10 - pkg.healthScore,
+        score: 10 - (pkg.healthScore || 5),
         message: this.getQualityMessage(pkg.status),
         risk: pkg.deprecated ? 'Package is deprecated' : `Last updated ${pkg.ageMonths} months ago`,
         fix: pkg.alternative ? `Replace with ${pkg.alternative.replacement}` : 'Find alternative',
         safeFix: false,
         source: 'Quality',
-        metadata: {
-          status: pkg.status,
-          lastUpdate: pkg.lastUpdate,
-          ageMonths: pkg.ageMonths,
-          alternative: pkg.alternative
-        }
+        metadata: { status: pkg.status, lastUpdate: pkg.lastUpdate, ageMonths: pkg.ageMonths, alternative: pkg.alternative }
       }));
     });
   }
 
   addSecurityIssues(securityData) {
     if (!securityData) return;
-    
-    if (Array.isArray(securityData.typosquatting)) {
-      securityData.typosquatting.forEach(typo => {
-        this.issues.push(createIssue({
-          name: typo.package,
-          version: typo.version || 'unknown',
-          type: 'security',
-          severity: 'HIGH',
-          score: 8,
-          message: 'Possible typosquatting',
-          risk: typo.warning || `Similar to ${typo.similarTo}`,
-          fix: typo.similarTo ? `Replace with ${typo.similarTo}` : 'Remove package',
-          safeFix: false,
-          source: 'Typosquat',
-          metadata: {
-            similarTo: typo.similarTo,
-            distance: typo.distance
-          }
-        }));
-      });
-    }
+    const warnings = Array.isArray(securityData) ? securityData : (securityData.warnings || []);
+    warnings.filter(w => w.type === 'typosquatting').forEach(typo => {
+      this.issues.push(createIssue({
+        name: typo.package,
+        version: typo.version || 'unknown',
+        type: 'security',
+        severity: 'HIGH',
+        score: 8,
+        message: 'Possible typosquatting',
+        risk: typo.warning || `Similar to ${typo.similarTo || typo.correctPackage}`,
+        fix: (typo.similarTo || typo.correctPackage) ? `Replace with ${typo.similarTo || typo.correctPackage}` : 'Remove package',
+        safeFix: false,
+        source: 'Typosquat',
+        metadata: { similarTo: typo.similarTo || typo.correctPackage, distance: typo.distance }
+      }));
+    });
   }
 
   addOutdatedIssues(outdatedData) {
     if (!Array.isArray(outdatedData)) return;
-    
     outdatedData.forEach(pkg => {
       this.issues.push(createIssue({
         name: pkg.name,
@@ -121,24 +98,18 @@ class IssueCollector {
         fix: `Update to ${pkg.latest}`,
         safeFix: this.isSafeUpdate(pkg),
         source: 'NPM',
-        metadata: {
-          current: pkg.current,
-          latest: pkg.latest,
-          wanted: pkg.wanted,
-          updateType: pkg.updateType
-        }
+        metadata: { current: pkg.current, latest: pkg.latest, wanted: pkg.wanted, updateType: pkg.updateType }
       }));
     });
   }
 
   addUnusedIssues(unusedData) {
     if (!Array.isArray(unusedData)) return;
-    
     unusedData.forEach(pkg => {
       const name = typeof pkg === 'string' ? pkg : pkg.name;
-      
+      if (!name) return;
       this.issues.push(createIssue({
-        name: name,
+        name,
         version: 'unknown',
         type: 'unused',
         severity: 'LOW',
@@ -153,17 +124,9 @@ class IssueCollector {
     });
   }
 
-  getAll() {
-    return this.issues;
-  }
-
-  getByType(type) {
-    return this.issues.filter(issue => issue.type === type);
-  }
-
-  getBySeverity(severity) {
-    return this.issues.filter(issue => issue.severity === severity);
-  }
+  getAll() { return this.issues; }
+  getByType(type) { return this.issues.filter(issue => issue.type === type); }
+  getBySeverity(severity) { return this.issues.filter(issue => issue.severity === severity); }
 
   mapCVESeverity(severity) {
     if (!severity) return 'MEDIUM';
@@ -180,72 +143,45 @@ class IssueCollector {
     return 'MEDIUM';
   }
 
-  getLicenseScore(risk) {
-    if (risk === 'critical') return 9;
-    if (risk === 'high') return 7;
-    return 5;
-  }
+  getLicenseScore(risk) { return risk === 'critical' ? 9 : risk === 'high' ? 7 : 5; }
 
   mapQualitySeverity(status) {
-    if (status === 'deprecated') return 'HIGH';
-    if (status === 'abandoned') return 'HIGH';
+    if (status === 'deprecated' || status === 'abandoned') return 'HIGH';
     if (status === 'stale') return 'MEDIUM';
     return 'LOW';
   }
 
   getQualityMessage(status) {
-    if (status === 'deprecated') return 'Package is deprecated';
-    if (status === 'abandoned') return 'Package is abandoned';
-    if (status === 'stale') return 'Package is stale';
-    return 'Quality issue';
+    return { deprecated: 'Package is deprecated', abandoned: 'Package is abandoned', stale: 'Package is stale' }[status] || 'Quality issue';
   }
 
   mapOutdatedSeverity(pkg) {
     if (!pkg.current || !pkg.latest) return 'LOW';
-    
-    const [currMajor] = pkg.current.split('.').map(Number);
-    const [latestMajor] = pkg.latest.split('.').map(Number);
-    
+    const currMajor = parseInt((pkg.current || '0').split('.')[0]);
+    const latestMajor = parseInt((pkg.latest || '0').split('.')[0]);
     if (latestMajor > currMajor + 1) return 'HIGH';
     if (latestMajor > currMajor) return 'MEDIUM';
     return 'LOW';
   }
 
-  getOutdatedScore(pkg) {
-    const severity = this.mapOutdatedSeverity(pkg);
-    if (severity === 'HIGH') return 7;
-    if (severity === 'MEDIUM') return 5;
-    return 3;
-  }
+  getOutdatedScore(pkg) { const s = this.mapOutdatedSeverity(pkg); return s === 'HIGH' ? 7 : s === 'MEDIUM' ? 5 : 3; }
 
   getOutdatedRisk(pkg) {
-    const [currMajor] = (pkg.current || '0').split('.').map(Number);
-    const [latestMajor] = (pkg.latest || '0').split('.').map(Number);
-    
-    if (latestMajor > currMajor) {
-      return `Major version behind (${currMajor} → ${latestMajor})`;
-    }
-    return 'Minor updates available';
+    const currMajor = parseInt((pkg.current || '0').split('.')[0]);
+    const latestMajor = parseInt((pkg.latest || '0').split('.')[0]);
+    return latestMajor > currMajor ? `Major version behind (${currMajor} → ${latestMajor})` : 'Minor updates available';
   }
 
   isSafeUpdate(pkg) {
     const current = pkg.current || pkg.version;
     const target = pkg.fixVersion || pkg.latest;
-    
     if (!current || !target) return false;
-    
-    const [currMajor] = current.split('.').map(Number);
-    const [targetMajor] = target.split('.').map(Number);
-    
+    const currMajor = parseInt((current || '0').split('.')[0]);
+    const targetMajor = parseInt((target || '0').split('.')[0]);
     return currMajor === targetMajor;
   }
 }
 
-function createIssueCollector() {
-  return new IssueCollector();
-}
+function createIssueCollector() { return new IssueCollector(); }
 
-module.exports = {
-  IssueCollector,
-  createIssueCollector
-};
+module.exports = { IssueCollector, createIssueCollector };

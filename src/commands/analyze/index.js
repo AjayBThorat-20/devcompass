@@ -1,3 +1,4 @@
+// src/commands/analyze/index.js
 const fs = require('fs');
 const path = require('path');
 const { createIssueCollector } = require('../../core/services/issue-collector');
@@ -5,7 +6,6 @@ const { HealthCalculator } = require('../../core/services/health-calculator');
 const { saveSnapshot } = require('../../core/services/snapshot-manager');
 const { saveAnalysisCache } = require('../../utils/analysis-cache');
 const fileCache = require('../../utils/file-cache');
-const OutputManager = require('../../utils/output-manager');
 
 const { collectCVEData } = require('./collectors/cve-collector');
 const { collectLicenseData } = require('./collectors/license-collector');
@@ -16,6 +16,7 @@ const { collectOutdatedData, collectUnusedData } = require('./collectors/depende
 const { renderDefaultOutput } = require('./renderers/default-renderer');
 const { renderDeepOutput } = require('./renderers/deep-renderer');
 const { renderJSONOutput } = require('./renderers/json-renderer');
+const OutputManager = require('../../shared/utils/output-manager');
 
 async function runAnalyze(options = {}) {
   const {

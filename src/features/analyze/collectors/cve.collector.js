@@ -1,0 +1,15 @@
+// src/features/analyze/collectors/cve.collector.js
+
+const vulnerabilityChecker = require('../../cve/vulnerability-checker');
+
+async function collectCVEData(projectPath, packageJson = null) {
+  try {
+    const result = await vulnerabilityChecker.checkProject(projectPath, packageJson);
+    return result.vulnerabilities || [];
+  } catch (error) {
+    if (process.env.DEBUG) console.error('CVE collection failed:', error.message);
+    return [];
+  }
+}
+
+module.exports = { collectCVEData };

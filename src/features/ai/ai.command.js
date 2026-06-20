@@ -1,0 +1,168 @@
+// src/features/ai/ai.command.js
+
+const chalk = require('chalk');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+
+const tokenManager = require('./token.manager');
+const conversationManager = require('./conversation.manager');
+const contextBuilder = require('./context.builder');
+const costTracker = require('./cost.tracker');
+const promptTemplates = require('./prompt.templates');
+const RateLimiter = require('../../shared/utils/rate-limiter');
+
+let currentProvider = null;
+const rateLimiter = new RateLimiter(10, 60000);
+const costLimiter = { dailyLimit: 10.0, currentSpend: 0, lastReset: Date.now() };
+
+function setupCancellation() {
+  process.removeAllListeners('SIGINT');
+  process.on('SIGINT', () => {
+    console.log(chalk.yellow('\n⚠️ Cancelling AI request...'));
+    if (currentProvider?.cancel) currentProvider.cancel();
+    console.log(chalk.gray('Request cancelled.\n'));
+    process.exit(0);
+  });
+}
+
+function checkDailyCostLimit(estimatedCost) {
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+  if (now - costLimiter.lastReset > dayMs) { costLimiter.currentSpend = 0; costLimiter.lastReset = now; }
+  if (costLimiter.currentSpend + estimatedCost > costLimiter.dailyLimit) {
+    throw new Error(`Daily cost limit reached ($${costLimiter.dailyLimit}).`);
+  }
+}
+
+async function getProvider() {
+  try {
+    const provider = tokenManager.getProvider();
+    if (!provider) {
+      console.log(chalk.red('\n❌ No AI provider configured'));
+      console.log(chalk.cyan('\nSetup:\n  devcompass llm add --provider openai --token YOUR_API_KEY\n'));
+      return null;
+    }
+    return provider;
+  } catch (error) {
+    if (error.message.includes('No default provider')) {
+      console.log(chalk.red('\n❌ No AI provider configured'));
+      console.log(chalk.cyan('\n  devcompass llm add --provider openai --token YOUR_API_KEY\n'));
+    } else {
+      console.log(chalk.red('\n❌ AI Provider Error:'), chalk.gray(error.message + '\n'));
+    }
+    return null;
+  }
+}
+
+async function askQuestion(question, projectPath = process.cwd(), options = {}) {
+  setupCancellation();
+  try {
+    if (!rateLimiter.tryAcquire()) {
+      const wait = Math.ceil(rateLimiter.getTimeUntilReset() / 1000);
+      throw new Error(`Rate limit exceeded. Please wait ${wait} seconds.`);
+    }
+
+    const provider = await getProvider();
+    if (!provider) return;
+    currentProvider = provider;
+
+    const resolvedPath = path.resolve(options.projectPath || projectPath || process.cwd());
+    const context = options.context || await contextBuilder.buildContext(resolvedPath);
+
+    const conversationId = options.conversationId || uuidv4();
+    if (typeof conversationManager.addMessage === 'function') {
+      conversationManager.addMessage(conversationId, 'user', question);
+    }
+
+    const messages = [
+      { role: 'system', content: promptTemplates.getSystemPrompt('qa') },
+      { role: 'user', content: promptTemplates.buildAnalysisContext(context, question) }
+    ];
+
+    const estimatedInputTokens = Math.ceil(JSON.stringify(messages).length / 4);
+    const estimatedCost = provider.estimateCost ? provider.estimateCost(estimatedInputTokens, 500) : 0;
+    checkDailyCostLimit(estimatedCost);
+
+    let fullResponse = '';
+    let hasOutput = false;
+    process.stdout.write(chalk.cyan('\n🤖 '));
+
+    try {
+      await provider.streamPrompt(messages, (chunk) => {
+        if (chunk?.trim()) { process.stdout.write(chunk); fullResponse += chunk; hasOutput = true; }
+      }, options);
+    } catch (streamError) {
+      console.error(chalk.red('\n\n❌ Streaming Error:'), streamError.message);
+      if (streamError.message.includes('ECONNREFUSED')) {
+        console.log(chalk.yellow('\n💡 Is Ollama running? Start with: ollama serve\n'));
+      }
+      currentProvider = null;
+      return;
+    }
+
+    process.stdout.write('\n\n');
+
+    if (!hasOutput || !fullResponse.trim()) {
+      console.log(chalk.yellow('⚠️  Received empty response from AI provider'));
+      console.log(chalk.gray('  devcompass llm test local\n'));
+      currentProvider = null;
+      return;
+    }
+
+    if (typeof conversationManager.addMessage === 'function') {
+      conversationManager.addMessage(conversationId, 'assistant', fullResponse);
+    }
+
+    const estimatedOutput = Math.ceil(fullResponse.length / 4);
+    const finalCost = provider.estimateCost ? provider.estimateCost(estimatedInputTokens, estimatedOutput) : 0;
+    costLimiter.currentSpend += finalCost;
+
+    const providerId = provider?.config?.id || provider?.id;
+    if (providerId) costTracker.trackUsage(providerId, estimatedInputTokens + estimatedOutput, finalCost);
+
+    console.log(chalk.gray(`💰 Cost: $${finalCost.toFixed(4)} | Daily: $${costLimiter.currentSpend.toFixed(2)}/$${costLimiter.dailyLimit}`));
+    currentProvider = null;
+  } catch (error) {
+    currentProvider = null;
+    if (error.message === 'Request cancelled by user') { console.log(chalk.yellow('\nOperation cancelled.')); return; }
+    console.error(chalk.red('\n❌ Error:'), error.message);
+    if (process.env.DEBUG) console.error(chalk.gray(error.stack));
+  }
+}
+
+async function getRecommendations(projectPath = process.cwd(), options = {}) {
+  return askQuestion('Analyze this project and provide recommendations.', projectPath, options);
+}
+
+async function getAlternatives(packageName, projectPath = process.cwd(), options = {}) {
+  return askQuestion(`Suggest alternatives for package: ${packageName}`, projectPath, options);
+}
+
+async function startChat(projectPath = process.cwd(), options = {}) {
+  setupCancellation();
+  try {
+    const provider = await getProvider();
+    if (!provider) return;
+    currentProvider = provider;
+
+    const readline = require('readline');
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+    console.log(chalk.cyan('\n💬 DevCompass AI Chat\n'));
+    console.log(chalk.gray('Type your questions. Ctrl+C to exit.\n'));
+
+    const askLoop = () => {
+      rl.question(chalk.green('You: '), async (input) => {
+        if (!input.trim()) return askLoop();
+        await askQuestion(input, projectPath, options);
+        askLoop();
+      });
+    };
+    askLoop();
+  } catch (error) {
+    currentProvider = null;
+    console.error(chalk.red('\n❌ Error:'), error.message);
+  }
+}
+
+module.exports = { askQuestion, getRecommendations, getAlternatives, startChat };

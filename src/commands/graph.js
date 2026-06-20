@@ -5,7 +5,7 @@ const chalk = require('chalk');
 const ora = require('ora');
 const GraphGenerator = require('../graph/generator');
 const GraphExporter = require('../graph/exporter');
-const OutputManager = require('../utils/output-manager');
+const OutputManager = require('../shared/utils/output-manager');
 
 async function graphCommand(options = {}) {
   const {

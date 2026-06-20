@@ -1,6 +1,7 @@
+// src/commands/clean.js
 const chalk = require('chalk');
 const fs = require('fs');
-const OutputManager = require('../utils/output-manager');
+const OutputManager = require('../shared/utils/output-manager');
 
 async function cleanCommand(options = {}) {
   const {

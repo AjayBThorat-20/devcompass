@@ -1,12 +1,12 @@
+// src/core/formatters/console-formatter.js
+
 const chalk = require('chalk');
 
 class ConsoleFormatter {
   static header(title, subtitle = '') {
     console.log('');
     console.log(chalk.bold.cyan(`📊 ${title}`));
-    if (subtitle) {
-      console.log(chalk.gray(subtitle));
-    }
+    if (subtitle) console.log(chalk.gray(subtitle));
     console.log('');
   }
 
@@ -22,23 +22,16 @@ class ConsoleFormatter {
 
   static issueList(issues, maxShow = null) {
     const toShow = maxShow ? issues.slice(0, maxShow) : issues;
-    
     toShow.forEach((issue, index) => {
       const icon = this.getSeverityIcon(issue.severity);
       const color = this.getSeverityColor(issue.severity);
-      
       console.log(chalk[color](`${index + 1}. ${icon} ${issue.severity} — ${issue.name}@${issue.version}`));
       console.log(chalk.gray(`   → ${issue.message}`));
-      if (issue.risk) {
-        console.log(chalk.gray(`   → Risk: ${issue.risk}`));
-      }
+      if (issue.risk) console.log(chalk.gray(`   → Risk: ${issue.risk}`));
       console.log(chalk.gray(`   → Fix: ${issue.fix}`));
       console.log('');
     });
-    
-    if (maxShow && issues.length > maxShow) {
-      console.log(chalk.gray(`   ... and ${issues.length - maxShow} more\n`));
-    }
+    if (maxShow && issues.length > maxShow) console.log(chalk.gray(`   ... and ${issues.length - maxShow} more\n`));
   }
 
   static summary(stats) {
@@ -48,16 +41,8 @@ class ConsoleFormatter {
       { label: '🟡 Medium', value: stats.medium, color: 'blue' },
       { label: '⚪ Low', value: stats.low, color: 'gray' }
     ];
-
-    items.forEach(item => {
-      if (item.value > 0) {
-        console.log(chalk[item.color](`${item.label}: ${item.value}`));
-      }
-    });
-
-    if (stats.total === 0) {
-      console.log(chalk.green('✅ No issues found'));
-    }
+    items.forEach(item => { if (item.value > 0) console.log(chalk[item.color](`${item.label}: ${item.value}`)); });
+    if (stats.total === 0) console.log(chalk.green('✅ No issues found'));
   }
 
   static actions(actions) {
@@ -102,39 +87,18 @@ class ConsoleFormatter {
     const width = 60;
     const top = '┌' + '─'.repeat(width - 2) + '┐';
     const bottom = '└' + '─'.repeat(width - 2) + '┘';
-    
     console.log(chalk.cyan(top));
-    if (title) {
-      console.log(chalk.bold.cyan(`│ ${title}`.padEnd(width - 1)) + chalk.cyan('│'));
-      console.log(chalk.cyan('├' + '─'.repeat(width - 2) + '┤'));
-    }
-    
-    const lines = content.split('\n');
-    lines.forEach(line => {
-      console.log(chalk.white(`│ ${line}`.padEnd(width - 1)) + chalk.cyan('│'));
-    });
-    
+    if (title) { console.log(chalk.bold.cyan(`│ ${title}`.padEnd(width - 1)) + chalk.cyan('│')); console.log(chalk.cyan('├' + '─'.repeat(width - 2) + '┤')); }
+    content.split('\n').forEach(line => console.log(chalk.white(`│ ${line}`.padEnd(width - 1)) + chalk.cyan('│')));
     console.log(chalk.cyan(bottom));
   }
 
   static getSeverityIcon(severity) {
-    const icons = {
-      CRITICAL: '🔴',
-      HIGH: '🟠',
-      MEDIUM: '🟡',
-      LOW: '⚪'
-    };
-    return icons[severity] || '⚠️';
+    return { CRITICAL: '🔴', HIGH: '🟠', MEDIUM: '🟡', LOW: '⚪' }[severity] || '⚠️';
   }
 
   static getSeverityColor(severity) {
-    const colors = {
-      CRITICAL: 'red',
-      HIGH: 'yellow',
-      MEDIUM: 'blue',
-      LOW: 'gray'
-    };
-    return colors[severity] || 'white';
+    return { CRITICAL: 'red', HIGH: 'yellow', MEDIUM: 'blue', LOW: 'gray' }[severity] || 'white';
   }
 }
 

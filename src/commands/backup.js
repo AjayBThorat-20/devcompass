@@ -4,7 +4,7 @@ const path = require('path');
 const chalk = require('chalk');
 const BackupManager = require('../utils/backup-manager');
 const BackupRestorer = require('../utils/backup-restorer');
-const OutputManager = require('../utils/output-manager');
+const OutputManager = require('../shared/utils/output-manager');
 
 async function backup(action, options = {}) {
   const projectPath = options.path || process.cwd();

@@ -1,212 +1,79 @@
-const fs = require('fs');
-const path = require('path');
+// // src/shared/utils/output-manager.js
 
-class OutputManager {
-  constructor(projectPath = process.cwd()) {
-    this.projectPath = projectPath;
-    this.baseDir = path.join(projectPath, '.devcompass');
-    
-    this.directories = {
-      root: this.baseDir,
-      cache: path.join(this.baseDir, 'cache'),
-      backups: path.join(this.baseDir, 'backups'),
-      graphs: path.join(this.baseDir, 'graphs'),
-      reports: path.join(this.baseDir, 'reports'),
-      exports: path.join(this.baseDir, 'exports'),
-      temp: path.join(this.baseDir, 'temp')
-    };
-  }
+// const fs = require('fs');
+// const path = require('path');
 
-  ensureDirectories() {
-    Object.values(this.directories).forEach(dir => {
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-    });
+// class OutputManager {
+//   constructor(projectPath = process.cwd()) {
+//     this.projectPath = projectPath;
+//     this.baseDir = path.join(projectPath, '.devcompass');
+//     this.directories = {
+//       root: this.baseDir,
+//       cache: path.join(this.baseDir, 'cache'),
+//       backups: path.join(this.baseDir, 'backups'),
+//       graphs: path.join(this.baseDir, 'graphs'),
+//       reports: path.join(this.baseDir, 'reports'),
+//       exports: path.join(this.baseDir, 'exports'),
+//       temp: path.join(this.baseDir, 'temp')
+//     };
+//   }
 
-    this.ensureGitignore();
-    this.ensureReadme();
-  }
+//   ensureDirectories() {
+//     Object.values(this.directories).forEach(dir => { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); });
+//     this.ensureGitignore();
+//   }
 
-  ensureGitignore() {
-    const gitignorePath = path.join(this.projectPath, '.gitignore');
-    const devcompassEntry = '.devcompass/';
+//   ensureGitignore() {
+//     const gitignorePath = path.join(this.projectPath, '.gitignore');
+//     const entry = '.devcompass/';
+//     try {
+//       let content = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
+//       if (!content.includes(entry)) fs.writeFileSync(gitignorePath, content.trim() + '\n\n# DevCompass outputs\n' + entry + '\n', 'utf8');
+//     } catch (error) { if (process.env.DEBUG) console.error('Failed to update .gitignore:', error.message); }
+//   }
 
-    try {
-      let gitignoreContent = '';
-      
-      if (fs.existsSync(gitignorePath)) {
-        gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
-      }
+//   getPath(type, filename = '') {
+//     const dir = this.directories[type] || this.directories.root;
+//     this.ensureDirectories();
+//     return filename ? path.join(dir, filename) : dir;
+//   }
 
-      if (!gitignoreContent.includes(devcompassEntry)) {
-        const newContent = gitignoreContent.trim() + '\n\n# DevCompass outputs\n' + devcompassEntry + '\n';
-        fs.writeFileSync(gitignorePath, newContent, 'utf8');
-      }
-    } catch (error) {
-      if (process.env.DEBUG) {
-        console.error('Failed to update .gitignore:', error.message);
-      }
-    }
-  }
+//   getCachePath(filename = '') { return this.getPath('cache', filename); }
+//   getBackupPath(filename = '') { return this.getPath('backups', filename); }
+//   getGraphPath(filename = '') { return this.getPath('graphs', filename); }
+//   getReportPath(filename = '') { return this.getPath('reports', filename); }
+//   getExportPath(filename = '') { return this.getPath('exports', filename); }
+//   getTempPath(filename = '') { return this.getPath('temp', filename); }
 
-  ensureReadme() {
-    const readmePath = path.join(this.baseDir, 'README.md');
-    
-    if (!fs.existsSync(readmePath)) {
-      const content = `# DevCompass Output Directory
+//   getRelativePath(absolutePath) { return path.relative(this.projectPath, absolutePath); }
+//   exists(type, filename = '') { return fs.existsSync(this.getPath(type, filename)); }
 
-This directory contains all DevCompass-generated files.
+//   list(type) {
+//     const dir = this.directories[type];
+//     if (!fs.existsSync(dir)) return [];
+//     try {
+//       return fs.readdirSync(dir).map(file => {
+//         const filePath = path.join(dir, file);
+//         return { name: file, path: filePath, relativePath: path.relative(this.projectPath, filePath), stats: fs.statSync(filePath) };
+//       });
+//     } catch (error) { return []; }
+//   }
 
-## Structure
+//   getSize(type) { return this.list(type).reduce((total, file) => file.stats.isDirectory() ? total : total + file.stats.size, 0); }
 
-- \`cache/\` - Analysis cache files (24h TTL)
-- \`backups/\` - Backup files from fix operations
-- \`graphs/\` - Generated dependency graphs
-- \`reports/\` - Analysis reports
-- \`exports/\` - Exported data
-- \`temp/\` - Temporary files (auto-cleaned)
+//   getSummary() {
+//     return {
+//       baseDir: this.baseDir,
+//       relativePath: path.relative(this.projectPath, this.baseDir),
+//       directories: Object.keys(this.directories).map(type => ({
+//         type,
+//         path: this.directories[type],
+//         exists: fs.existsSync(this.directories[type]),
+//         files: this.list(type).length,
+//         size: this.getSize(type)
+//       }))
+//     };
+//   }
+// }
 
-## Gitignore
-
-This directory is automatically added to \`.gitignore\`.
-
-You can safely delete this entire directory - it will be recreated as needed.
-
-## Commands
-
-\`\`\`bash
-# View directory contents
-devcompass clean
-
-# Clean cache only
-devcompass clean --cache
-
-# Clean everything
-devcompass clean --all
-\`\`\`
-
-Generated by DevCompass v3.2.6
-`;
-      
-      fs.writeFileSync(readmePath, content, 'utf8');
-    }
-  }
-
-  getPath(type, filename = '') {
-    const dir = this.directories[type] || this.directories.root;
-    this.ensureDirectories();
-    return filename ? path.join(dir, filename) : dir;
-  }
-
-  getCachePath(filename = '') {
-    return this.getPath('cache', filename);
-  }
-
-  getBackupPath(filename = '') {
-    return this.getPath('backups', filename);
-  }
-
-  getGraphPath(filename = '') {
-    return this.getPath('graphs', filename);
-  }
-
-  getReportPath(filename = '') {
-    return this.getPath('reports', filename);
-  }
-
-  getExportPath(filename = '') {
-    return this.getPath('exports', filename);
-  }
-
-  getTempPath(filename = '') {
-    return this.getPath('temp', filename);
-  }
-
-  cleanTemp() {
-    const tempDir = this.directories.temp;
-    
-    if (fs.existsSync(tempDir)) {
-      try {
-        const files = fs.readdirSync(tempDir);
-        files.forEach(file => {
-          const filePath = path.join(tempDir, file);
-          try {
-            const stats = fs.statSync(filePath);
-            if (stats.isDirectory()) {
-              fs.rmSync(filePath, { recursive: true, force: true });
-            } else {
-              fs.unlinkSync(filePath);
-            }
-          } catch (error) {
-            // Ignore individual file errors
-          }
-        });
-      } catch (error) {
-        if (process.env.DEBUG) {
-          console.error('Failed to clean temp directory:', error.message);
-        }
-      }
-    }
-  }
-
-  getRelativePath(absolutePath) {
-    return path.relative(this.projectPath, absolutePath);
-  }
-
-  exists(type, filename = '') {
-    const fullPath = this.getPath(type, filename);
-    return fs.existsSync(fullPath);
-  }
-
-  list(type) {
-    const dir = this.directories[type];
-    
-    if (!fs.existsSync(dir)) {
-      return [];
-    }
-
-    try {
-      return fs.readdirSync(dir).map(file => {
-        const filePath = path.join(dir, file);
-        return {
-          name: file,
-          path: filePath,
-          relativePath: path.relative(this.projectPath, filePath),
-          stats: fs.statSync(filePath)
-        };
-      });
-    } catch (error) {
-      if (process.env.DEBUG) {
-        console.error(`Failed to list ${type} directory:`, error.message);
-      }
-      return [];
-    }
-  }
-
-  getSize(type) {
-    const files = this.list(type);
-    return files.reduce((total, file) => {
-      if (file.stats.isDirectory()) {
-        return total;
-      }
-      return total + file.stats.size;
-    }, 0);
-  }
-
-  getSummary() {
-    return {
-      baseDir: this.baseDir,
-      relativePath: path.relative(this.projectPath, this.baseDir),
-      directories: Object.keys(this.directories).map(type => ({
-        type,
-        path: this.directories[type],
-        exists: fs.existsSync(this.directories[type]),
-        files: this.list(type).length,
-        size: this.getSize(type)
-      }))
-    };
-  }
-}
-
-module.exports = OutputManager;
+// module.exports = OutputManager;

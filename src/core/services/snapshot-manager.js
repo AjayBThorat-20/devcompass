@@ -1,10 +1,10 @@
-const snapshotSaver = require('../../history/snapshot-saver');
+// src/core/services/snapshot-manager.js
+
+const snapshotSaver = require('../../features/history/snapshot-saver');
 
 async function saveSnapshot(data) {
   try {
-    if (!data || !data.issues) {
-      return { success: false, error: 'No data to save' };
-    }
+    if (!data?.issues) return { success: false, error: 'No data to save' };
 
     const graphData = {
       nodes: data.issues.map(issue => ({
@@ -13,11 +13,7 @@ async function saveSnapshot(data) {
         version: issue.version,
         type: issue.type,
         healthScore: 10 - (issue.score || 0),
-        issues: [{
-          type: issue.type,
-          severity: issue.severity,
-          message: issue.message
-        }],
+        issues: [{ type: issue.type, severity: issue.severity, message: issue.message }],
         isVulnerable: issue.type === 'security',
         isDeprecated: issue.type === 'quality' || issue.type === 'deprecated',
         isOutdated: issue.type === 'outdated',
@@ -38,20 +34,11 @@ async function saveSnapshot(data) {
     };
 
     const result = snapshotSaver.saveSnapshot(analysisData, graphData);
-
-    return {
-      success: true,
-      snapshotId: result.snapshotId,
-      duration: result.duration
-    };
+    return { success: true, snapshotId: result.snapshotId, duration: result.duration };
   } catch (error) {
-    if (process.env.DEBUG) {
-      console.error('Snapshot save failed:', error.message);
-    }
+    if (process.env.DEBUG) console.error('Snapshot save failed:', error.message);
     return { success: false, error: error.message };
   }
 }
 
-module.exports = {
-  saveSnapshot
-};
+module.exports = { saveSnapshot };
