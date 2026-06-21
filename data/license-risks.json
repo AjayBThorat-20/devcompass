@@ -11,6 +11,10 @@
     "level": "critical",
     "risk": "Requires disclosing source code of network services"
   },
+  "AGPL-1.0": {
+    "level": "critical",
+    "risk": "Requires disclosing source code of network services"
+  },
   "GPL-3.0": {
     "level": "high",
     "risk": "Requires derivative works to be GPL licensed"
@@ -32,6 +36,10 @@
     "risk": "Requires derivative works to be GPL licensed"
   },
   "GPL-2.0-or-later": {
+    "level": "high",
+    "risk": "Requires derivative works to be GPL licensed"
+  },
+  "GPL-1.0": {
     "level": "high",
     "risk": "Requires derivative works to be GPL licensed"
   },
@@ -59,7 +67,15 @@
     "level": "medium",
     "risk": "Modifications to the library must be shared"
   },
+  "LGPL-2.0": {
+    "level": "medium",
+    "risk": "Modifications to the library must be shared"
+  },
   "MPL-2.0": {
+    "level": "medium",
+    "risk": "File-level copyleft, changes to MPL files must be shared"
+  },
+  "MPL-1.1": {
     "level": "medium",
     "risk": "File-level copyleft, changes to MPL files must be shared"
   },
@@ -75,7 +91,15 @@
     "level": "medium",
     "risk": "File-level copyleft"
   },
+  "CDDL-1.1": {
+    "level": "medium",
+    "risk": "File-level copyleft"
+  },
   "MIT": {
+    "level": "low",
+    "risk": "Permissive - commercial friendly"
+  },
+  "MIT-0": {
     "level": "low",
     "risk": "Permissive - commercial friendly"
   },
@@ -91,7 +115,15 @@
     "level": "low",
     "risk": "Permissive - commercial friendly"
   },
+  "BSD-3-Clause-Clear": {
+    "level": "low",
+    "risk": "Permissive - commercial friendly"
+  },
   "Apache-2.0": {
+    "level": "low",
+    "risk": "Permissive with patent grant"
+  },
+  "Apache-1.1": {
     "level": "low",
     "risk": "Permissive with patent grant"
   },
@@ -108,6 +140,18 @@
     "risk": "Public domain"
   },
   "WTFPL": {
+    "level": "low",
+    "risk": "Permissive"
+  },
+  "Python-2.0": {
+    "level": "low",
+    "risk": "Permissive"
+  },
+  "Zlib": {
+    "level": "low",
+    "risk": "Permissive"
+  },
+  "BlueOak-1.0.0": {
     "level": "low",
     "risk": "Permissive"
   }

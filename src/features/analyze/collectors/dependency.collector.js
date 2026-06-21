@@ -5,6 +5,7 @@ const { promisify } = require('util');
 const path = require('path');
 const fs = require('fs');
 const semver = require('semver');
+const { analyzeUnusedDependencies } = require('./unused-deps.collector');
 
 const execAsync = promisify(exec);
 
@@ -31,12 +32,14 @@ async function collectOutdatedData(projectPath, packageJson = null) {
 
     const outdated = JSON.parse(jsonLine);
     if (!packageJson) {
-      packageJson = JSON.parse(fs.readFileSync(path.join(projectPath, 'package.json'), 'utf8'));
+      const packageJsonPath = path.join(projectPath, 'package.json');
+      if (!fs.existsSync(packageJsonPath)) return [];
+      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     }
 
     return Object.entries(outdated).map(([name, latest]) => {
       const current = packageJson.dependencies?.[name] || packageJson.devDependencies?.[name];
-      const cleanCurrent = current?.replace(/^[\^~]/, '');
+      const cleanCurrent = typeof current === 'string' ? current.replace(/^[\^~]/, '') : current;
       return { name, current: cleanCurrent, latest, wanted: latest, updateType: getUpdateType(cleanCurrent, latest) };
     });
   } catch (error) {
@@ -45,21 +48,9 @@ async function collectOutdatedData(projectPath, packageJson = null) {
   }
 }
 
-async function collectUnusedData(projectPath, packageJson = null) {
+async function collectUnusedData(projectPath) {
   try {
-    const knipConfigPath = path.join(projectPath, 'knip.json');
-    if (!fs.existsSync(knipConfigPath)) return [];
-
-    const { stdout } = await execAsync('npx knip --json', {
-      cwd: projectPath,
-      encoding: 'utf8',
-      timeout: 30000,
-      maxBuffer: 10 * 1024 * 1024
-    });
-
-    let result;
-    try { result = JSON.parse(stdout); } catch (e) { return []; }
-    return result.dependencies || [];
+    return await analyzeUnusedDependencies(projectPath);
   } catch (error) {
     if (process.env.DEBUG) console.error('Unused collection failed:', error.message);
     return [];

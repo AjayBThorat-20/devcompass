@@ -12,7 +12,9 @@ class OSVClient {
         package: { name: packageName, ecosystem },
         version
       }, { timeout: 10000, headers: { 'Content-Type': 'application/json' } });
-      return { package: packageName, version, vulnerabilities: response.data.vulns || [], source: 'OSV' };
+
+      const vulns = (response.data.vulns || []).map(v => this.parseVulnerability(v));
+      return { package: packageName, version, vulnerabilities: vulns, source: 'OSV' };
     } catch (error) {
       if (process.env.DEBUG) console.error(chalk.red(`❌ OSV error for ${packageName}:`), error.message);
       return { package: packageName, version, vulnerabilities: [], error: error.message };
@@ -26,10 +28,11 @@ class OSVClient {
         timeout: 30000,
         headers: { 'Content-Type': 'application/json' }
       });
+
       return response.data.results.map((result, index) => ({
         package: packages[index].name,
         version: packages[index].version,
-        vulnerabilities: result.vulns || [],
+        vulnerabilities: (result.vulns || []).map(v => this.parseVulnerability(v)),
         source: 'OSV'
       }));
     } catch (error) {
@@ -40,8 +43,8 @@ class OSVClient {
 
   parseVulnerability(vuln) {
     let summary = 'No summary available';
-    if (vuln.summary?.trim()) summary = vuln.summary.substring(0, 150);
-    else if (vuln.details?.trim()) summary = vuln.details.split('\n')[0].substring(0, 150);
+    if (vuln.summary && vuln.summary.trim()) summary = vuln.summary.substring(0, 150);
+    else if (vuln.details && vuln.details.trim()) summary = vuln.details.split('\n')[0].substring(0, 150);
 
     return {
       id: vuln.id || 'UNKNOWN',
@@ -56,7 +59,7 @@ class OSVClient {
   }
 
   extractSeverity(vuln) {
-    if (vuln.database_specific?.severity) {
+    if (vuln.database_specific && vuln.database_specific.severity) {
       const s = vuln.database_specific.severity.toUpperCase();
       if (s === 'MODERATE') return 'MEDIUM';
       if (['CRITICAL', 'HIGH', 'LOW'].includes(s)) return s;
@@ -64,7 +67,7 @@ class OSVClient {
     }
     if (vuln.severity && Array.isArray(vuln.severity)) {
       const cvss = vuln.severity.find(s => s.type === 'CVSS_V3' || s.type === 'CVSS_V4');
-      if (cvss?.score) {
+      if (cvss && cvss.score) {
         const vectorMatch = cvss.score.match(/CVSS:[^/]+\/(.+)/);
         if (vectorMatch) {
           const vector = vectorMatch[1];
@@ -81,7 +84,7 @@ class OSVClient {
         }
       }
     }
-    if (vuln.affected?.[0]?.database_specific?.severity) {
+    if (vuln.affected && vuln.affected[0] && vuln.affected[0].database_specific && vuln.affected[0].database_specific.severity) {
       const s = vuln.affected[0].database_specific.severity.toUpperCase();
       return s === 'MODERATE' ? 'MEDIUM' : s;
     }
@@ -91,7 +94,7 @@ class OSVClient {
   extractCVSSScore(vuln) {
     if (vuln.severity && Array.isArray(vuln.severity)) {
       const cvss = vuln.severity.find(s => s.type === 'CVSS_V3' || s.type === 'CVSS_V4');
-      if (cvss?.score) {
+      if (cvss && cvss.score) {
         const numericScore = parseFloat(cvss.score);
         if (!isNaN(numericScore)) return numericScore;
         const scoreMatch = cvss.score.match(/(\d+\.\d+)(?:\/|$)/);

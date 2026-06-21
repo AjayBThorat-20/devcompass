@@ -8,15 +8,25 @@ const securityData = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../../../data/popular-packages.json'), 'utf8')
 );
 
-const POPULAR_PACKAGES = securityData.packages;
-const WHITELIST = new Set(securityData.whitelist);
+const POPULAR_PACKAGES = securityData.packages || [];
+const WHITELIST = new Set(securityData.whitelist || []);
 
 function checkTyposquatting(packageName) {
+  if (!packageName || typeof packageName !== 'string') return null;
   if (WHITELIST.has(packageName)) return null;
+
   for (const official of POPULAR_PACKAGES) {
+    if (official === packageName) continue;
     const distance = levenshteinDistance(packageName, official);
-    if (distance > 0 && distance === 1) {
-      return { package: packageName, similarTo: official, distance, type: 'typosquat', severity: 'high', warning: `Possible typosquatting - similar to "${official}"` };
+    if (distance === 1) {
+      return {
+        package: packageName,
+        similarTo: official,
+        distance,
+        type: 'typosquat',
+        severity: 'high',
+        warning: `Possible typosquatting - similar to "${official}"`
+      };
     }
   }
   return null;
@@ -24,47 +34,140 @@ function checkTyposquatting(packageName) {
 
 function checkInstallScripts(packageJsonPath) {
   try {
+    if (!fs.existsSync(packageJsonPath)) return [];
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
     const scripts = packageJson.scripts || {};
-    const suspiciousPatterns = [/curl.*\|.*sh/i, /wget.*\|.*sh/i, /eval.*\(/i, /exec.*\(/i, /child_process/i, /http:\/\//i, /bitcoin/i, /mining/i, /keylogger/i];
+    const suspiciousPatterns = [
+      /curl.*\|.*sh/i,
+      /wget.*\|.*sh/i,
+      /eval\s*\(/i,
+      /exec\s*\(/i,
+      /child_process/i,
+      /http:\/\//i,
+      /https:\/\//i,
+      /bitcoin/i,
+      /mining/i,
+      /keylogger/i
+    ];
+
     const suspiciousScripts = [];
+
     for (const [scriptName, scriptContent] of Object.entries(scripts)) {
-      if (['postinstall', 'preinstall', 'install'].includes(scriptName)) {
-        for (const pattern of suspiciousPatterns) {
-          if (pattern.test(scriptContent)) { suspiciousScripts.push({ script: scriptName, content: scriptContent, pattern: pattern.toString(), severity: 'medium' }); break; }
+      if (!['postinstall', 'preinstall', 'install'].includes(scriptName)) continue;
+      if (typeof scriptContent !== 'string') continue;
+
+      for (const pattern of suspiciousPatterns) {
+        if (pattern.test(scriptContent)) {
+          suspiciousScripts.push({
+            script: scriptName,
+            content: scriptContent,
+            pattern: pattern.toString(),
+            severity: 'medium'
+          });
+          break;
         }
       }
     }
     return suspiciousScripts;
-  } catch (error) { return []; }
+  } catch (error) {
+    if (process.env.DEBUG) console.error('[dynamic-security] checkInstallScripts failed:', error.message);
+    return [];
+  }
 }
 
 async function runNpmAudit(projectPath) {
   try {
-    const output = execSync('npm audit --json', { cwd: projectPath, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'ignore'] });
+    const output = execSync('npm audit --json', {
+      cwd: projectPath,
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'ignore'],
+      timeout: 30000,
+      maxBuffer: 10 * 1024 * 1024
+    });
     return parseAuditData(JSON.parse(output));
   } catch (error) {
     if (error.stdout) {
-      try { return parseAuditData(JSON.parse(error.stdout)); } catch (e) { return []; }
+      try {
+        const stdoutText = Buffer.isBuffer(error.stdout) ? error.stdout.toString('utf-8') : error.stdout;
+        return parseAuditData(JSON.parse(stdoutText));
+      } catch (parseError) {
+        if (process.env.DEBUG) console.error('[dynamic-security] failed to parse npm audit error output:', parseError.message);
+        return { vulnerabilities: [], summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 } };
+      }
     }
-    return [];
+    if (process.env.DEBUG) console.error('[dynamic-security] npm audit execSync failed with no stdout:', error.message);
+    return { vulnerabilities: [], summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 } };
   }
 }
 
 function parseAuditData(auditData) {
   const vulnerabilities = [];
+  let critical = 0, high = 0, moderate = 0, low = 0;
+
   try {
     if (auditData.vulnerabilities && typeof auditData.vulnerabilities === 'object') {
       for (const [name, vuln] of Object.entries(auditData.vulnerabilities)) {
-        vulnerabilities.push({ package: name, severity: vuln.severity || 'unknown', via: Array.isArray(vuln.via) ? vuln.via : [vuln.via], fixAvailable: vuln.fixAvailable || false });
+        const severity = vuln.severity || 'unknown';
+        vulnerabilities.push({
+          package: name,
+          severity,
+          via: Array.isArray(vuln.via) ? vuln.via : [vuln.via],
+          fixAvailable: vuln.fixAvailable || false
+        });
+        if (severity === 'critical') critical++;
+        else if (severity === 'high') high++;
+        else if (severity === 'moderate') moderate++;
+        else if (severity === 'low') low++;
       }
     } else if (auditData.advisories && typeof auditData.advisories === 'object') {
       for (const advisory of Object.values(auditData.advisories)) {
-        vulnerabilities.push({ package: advisory.module_name || 'unknown', severity: advisory.severity || 'unknown', via: [advisory.title || 'Unknown vulnerability'], fixAvailable: true });
+        const severity = advisory.severity || 'unknown';
+        vulnerabilities.push({
+          package: advisory.module_name || 'unknown',
+          severity,
+          via: [advisory.title || 'Unknown vulnerability'],
+          fixAvailable: true
+        });
+        if (severity === 'critical') critical++;
+        else if (severity === 'high') high++;
+        else if (severity === 'moderate') moderate++;
+        else if (severity === 'low') low++;
       }
     }
-  } catch (error) { /* ignore */ }
-  return vulnerabilities;
+  } catch (error) {
+    if (process.env.DEBUG) console.error('[dynamic-security] parseAuditData failed:', error.message);
+  }
+
+  return { vulnerabilities, summary: { total: vulnerabilities.length, critical, high, moderate, low } };
+}
+
+async function analyzeProject(projectPath, dependencyNames = []) {
+  const results = { typosquatting: [], suspiciousScripts: [], vulnerabilities: [], summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 } };
+
+  try {
+    const packageJsonPath = path.join(projectPath, 'package.json');
+    if (!fs.existsSync(packageJsonPath)) return results;
+
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+    const dependencies = Array.isArray(dependencyNames) && dependencyNames.length > 0
+      ? dependencyNames
+      : Object.keys({ ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) });
+
+    for (const dep of dependencies) {
+      const typosquat = checkTyposquatting(dep);
+      if (typosquat) results.typosquatting.push(typosquat);
+    }
+
+    results.suspiciousScripts = checkInstallScripts(packageJsonPath);
+
+    const auditResult = await runNpmAudit(projectPath);
+    results.vulnerabilities = auditResult.vulnerabilities || [];
+    results.summary = auditResult.summary || { total: results.vulnerabilities.length, critical: 0, high: 0, moderate: 0, low: 0 };
+  } catch (error) {
+    if (process.env.DEBUG) console.error('[dynamic-security] analyzeProject failed:', error.message);
+  }
+
+  return results;
 }
 
 function levenshteinDistance(str1, str2) {
@@ -81,4 +184,12 @@ function levenshteinDistance(str1, str2) {
   return matrix[str2.length][str1.length];
 }
 
-module.exports = { checkTyposquatting, checkInstallScripts, runNpmAudit, parseAuditData, POPULAR_PACKAGES, WHITELIST };
+module.exports = {
+  checkTyposquatting,
+  checkInstallScripts,
+  runNpmAudit,
+  parseAuditData,
+  analyzeProject,
+  POPULAR_PACKAGES,
+  WHITELIST
+};

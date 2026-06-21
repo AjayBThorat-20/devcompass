@@ -2,7 +2,6 @@
 
 const path = require('path');
 const fs = require('fs');
-const { execSync } = require('child_process');
 const dynamicSecurity = require('../quality/dynamic-security.service');
 
 const TRUSTED_PACKAGES = new Set([
@@ -12,8 +11,10 @@ const TRUSTED_PACKAGES = new Set([
 ]);
 
 async function analyzeSupplyChain(projectPath, dependencies = {}) {
-  const packages = Object.keys(dependencies);
-  if (packages.length === 0) return { warnings: [], total: 0, summary: { typosquatting: 0, suspiciousScripts: 0, vulnerabilities: 0 } };
+  const packages = Object.keys(dependencies || {});
+  const emptyResult = { warnings: [], total: 0, summary: { typosquatting: 0, suspiciousScripts: 0, vulnerabilities: 0 } };
+
+  if (packages.length === 0) return emptyResult;
 
   try {
     const warnings = [];
@@ -21,7 +22,7 @@ async function analyzeSupplyChain(projectPath, dependencies = {}) {
     for (const pkg of packages) {
       if (TRUSTED_PACKAGES.has(pkg)) continue;
       const typosquat = dynamicSecurity.checkTyposquatting(pkg);
-      if (typosquat?.similarTo && typosquat.similarTo !== 'undefined' && typosquat.distance <= 1) {
+      if (typosquat && typosquat.similarTo && typosquat.distance <= 1) {
         warnings.push({
           package: pkg,
           type: 'typosquatting',
@@ -37,14 +38,31 @@ async function analyzeSupplyChain(projectPath, dependencies = {}) {
       }
     }
 
-    let auditResults = { vulnerabilities: [], summary: { total: 0 } };
+    const packageJsonPath = path.join(projectPath, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+      const suspiciousScripts = dynamicSecurity.checkInstallScripts(packageJsonPath);
+      suspiciousScripts.forEach(script => {
+        warnings.push({
+          package: script.script,
+          type: 'install_script',
+          severity: script.severity || 'medium',
+          description: `Suspicious pattern detected in "${script.script}" script`,
+          reason: `Script content matched pattern: ${script.pattern}`,
+          risk: 'Potentially malicious install script',
+          action: 'review',
+          autoFixable: false
+        });
+      });
+    }
+
+    let auditResult = { vulnerabilities: [], summary: { total: 0 } };
     try {
-      auditResults = await dynamicSecurity.runNpmAudit(projectPath);
+      auditResult = await dynamicSecurity.runNpmAudit(projectPath);
     } catch (error) {
       if (process.env.DEBUG) console.error('[supply-chain] npm audit failed:', error.message);
     }
 
-    const vulnArray = Array.isArray(auditResults.vulnerabilities) ? auditResults.vulnerabilities : [];
+    const vulnArray = Array.isArray(auditResult.vulnerabilities) ? auditResult.vulnerabilities : [];
     for (const vuln of vulnArray) {
       const severity = (vuln.severity || 'moderate').toLowerCase();
       if (severity === 'critical' || severity === 'high') {
@@ -52,13 +70,11 @@ async function analyzeSupplyChain(projectPath, dependencies = {}) {
           package: vuln.package || 'unknown',
           type: 'vulnerability',
           severity,
-          description: vuln.title || vuln.via || 'Security vulnerability detected',
-          reason: vuln.title || vuln.via || 'Security vulnerability',
+          description: Array.isArray(vuln.via) ? vuln.via.filter(v => typeof v === 'string').join(', ') || 'Security vulnerability detected' : 'Security vulnerability detected',
+          reason: 'npm audit flagged this package',
           risk: `${severity.toUpperCase()} security vulnerability`,
           action: 'update',
-          url: vuln.url,
-          range: vuln.range,
-          autoFixable: true
+          autoFixable: !!vuln.fixAvailable
         });
       }
     }
@@ -68,16 +84,16 @@ async function analyzeSupplyChain(projectPath, dependencies = {}) {
       total: warnings.length,
       summary: {
         typosquatting: warnings.filter(w => w.type === 'typosquatting').length,
-        suspiciousScripts: 0,
-        vulnerabilities: auditResults.summary?.total || 0,
-        critical: auditResults.summary?.critical || 0,
-        high: auditResults.summary?.high || 0
+        suspiciousScripts: warnings.filter(w => w.type === 'install_script').length,
+        vulnerabilities: auditResult.summary?.total || 0,
+        critical: auditResult.summary?.critical || 0,
+        high: auditResult.summary?.high || 0
       },
-      audit: auditResults
+      audit: auditResult
     };
   } catch (error) {
     if (process.env.DEBUG) console.error('[supply-chain] Analysis failed:', error.message);
-    return { warnings: [], total: 0, summary: { typosquatting: 0, suspiciousScripts: 0, vulnerabilities: 0 } };
+    return emptyResult;
   }
 }
 

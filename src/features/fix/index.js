@@ -32,8 +32,8 @@ async function runFix(options = {}) {
   }
 
   try {
-    const analysisResult = await runAnalyze({ projectPath, mode: 'silent', silent: true, json: false, saveHistory: false });
-    const beforeScore = analysisResult.healthScore;
+const analysisResult = await runAnalyze({ projectPath, mode: 'silent', silent: true, json: false, saveHistory: false });
+const beforeScore = analysisResult.healthScore;
     const issues = analysisResult.issues;
 
     if (!issues || issues.length === 0) {
@@ -84,10 +84,9 @@ async function runFix(options = {}) {
     const progress = new ProgressRenderer();
     progress.start(actions.length);
 
-    for (const action of actions) {
-      const result = await executor.executeAction(action);
-      progress.updateAction(action, result.success);
-    }
+    await executor.executeActions(actions, (action, success) => {
+      progress.updateAction(action, success);
+    });
 
     progress.finish();
     progress.complete();
@@ -106,8 +105,8 @@ async function runFix(options = {}) {
 
 async function confirmFix() {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise(resolve => {
-    rl.question('> ', answer => {
+  return new Promise((resolve) => {
+    rl.question('> ', (answer) => {
       rl.close();
       const n = answer.toLowerCase().trim();
       resolve(n === 'y' || n === 'yes' || n === '');

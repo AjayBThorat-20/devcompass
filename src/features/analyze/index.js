@@ -14,6 +14,8 @@ const { collectLicenseData } = require('./collectors/license.collector');
 const { collectQualityData } = require('./collectors/quality.collector');
 const { collectSecurityData } = require('./collectors/security.collector');
 const { collectOutdatedData, collectUnusedData } = require('./collectors/dependency.collector');
+const { collectEcosystemData } = require('./collectors/ecosystem.collector');
+const { collectPredictiveData } = require('./collectors/predictive.collector');
 
 const { renderDefaultOutput } = require('./renderers/default.renderer');
 const { renderDeepOutput } = require('./renderers/deep.renderer');
@@ -28,7 +30,8 @@ async function runAnalyze(options = {}) {
     saveHistory = true,
     ci = false,
     silent = false,
-    ciThreshold = 7.0
+    ciThreshold = 7.0,
+    includeEcosystem = true
   } = options;
 
   const outputManager = new OutputManager(projectPath);
@@ -45,25 +48,33 @@ async function runAnalyze(options = {}) {
 
     const packageJson = fileCache.readJSON(packageJsonPath);
 
-    const results = await Promise.allSettled([
+    const collectorTasks = [
       collectCVEData(projectPath, packageJson),
       collectLicenseData(projectPath, packageJson),
       collectQualityData(projectPath, packageJson),
       collectSecurityData(projectPath, packageJson),
       collectOutdatedData(projectPath, packageJson),
       collectUnusedData(projectPath, packageJson)
-    ]);
+    ];
 
-    const [cveData, licenseData, qualityData, securityData, outdatedData, unusedData] = results.map(
-      result => result.status === 'fulfilled' ? result.value : []
-    );
+    // Ecosystem/predictive checks call GitHub's API; skip in silent/CI runs to keep
+    // those paths fast, and let callers opt back in via includeEcosystem.
+    const shouldRunEcosystem = includeEcosystem && mode !== 'silent' && !silent;
+
+    if (shouldRunEcosystem) {
+      collectorTasks.push(collectEcosystemData(projectPath, packageJson));
+      collectorTasks.push(collectPredictiveData(projectPath, packageJson));
+    }
+
+    const results = await Promise.allSettled(collectorTasks);
+
+    const [cveData, licenseData, qualityData, securityData, outdatedData, unusedData, ecosystemData, predictiveData] =
+      results.map(result => (result.status === 'fulfilled' ? result.value : []));
 
     if (process.env.DEBUG) {
+      const names = ['CVE', 'License', 'Quality', 'Security', 'Outdated', 'Unused', 'Ecosystem', 'Predictive'];
       results.forEach((r, i) => {
-        if (r.status === 'rejected') {
-          const names = ['CVE', 'License', 'Quality', 'Security', 'Outdated', 'Unused'];
-          console.error(`${names[i]} collector failed:`, r.reason?.message);
-        }
+        if (r.status === 'rejected') console.error(`${names[i]} collector failed:`, r.reason?.message);
       });
     }
 
@@ -73,6 +84,10 @@ async function runAnalyze(options = {}) {
     collector.addSecurityIssues(securityData);
     collector.addOutdatedIssues(outdatedData);
     collector.addUnusedIssues(unusedData);
+    if (shouldRunEcosystem) {
+      collector.addEcosystemIssues(ecosystemData);
+      collector.addPredictiveIssues(predictiveData);
+    }
 
     const allIssues = collector.getAll();
     const healthScore = HealthCalculator.calculate(allIssues);
