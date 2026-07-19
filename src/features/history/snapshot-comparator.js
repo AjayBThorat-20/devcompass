@@ -15,7 +15,7 @@ class SnapshotComparator {
 
     packages2.forEach((pkg2, name) => {
       if (!packages1.has(name)) {
-        added.push({ name, version: pkg2.version, healthScore: pkg2.healthScore || 0, status: 'added' });
+        added.push({ name, version: pkg2.version, healthScore: pkg2.health_score || 0, status: 'added' });
       } else {
         const pkg1 = packages1.get(name);
         const changes = this.detectPackageChanges(pkg1, pkg2);
@@ -25,7 +25,7 @@ class SnapshotComparator {
     });
 
     packages1.forEach((pkg1, name) => {
-      if (!packages2.has(name)) removed.push({ name, version: pkg1.version, healthScore: pkg1.healthScore || 0, status: 'removed' });
+      if (!packages2.has(name)) removed.push({ name, version: pkg1.version, healthScore: pkg1.health_score || 0, status: 'removed' });
     });
 
     const summary = {

@@ -13,6 +13,13 @@ class BaseProvider {
   cancel() { if (this.activeRequest) { this.activeRequest.abort(); this.activeRequest = null; } }
   createAbortController() { const controller = new AbortController(); this.activeRequest = controller; return controller; }
   clearAbortController() { this.activeRequest = null; }
+
+  // tokenManager.getProvider() always attaches _getDecryptedKey; falling back to
+  // this.config.api_key here would silently use the still-encrypted ciphertext.
+  getApiKey() {
+    if (typeof this._getDecryptedKey === 'function') return this._getDecryptedKey();
+    throw new Error('No API key resolver configured for this provider instance');
+  }
 }
 
 module.exports = BaseProvider;

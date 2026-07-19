@@ -64,18 +64,24 @@ class NVDClient {
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         const response = await axios.get(NVD_API, { params: { cveId }, headers: { apiKey }, timeout: 15000 });
+        this.recordSuccess();
         if (response.data.vulnerabilities?.length > 0) {
-          this.recordSuccess();
           return this.parseCVE(response.data.vulnerabilities[0]);
         }
         return null;
       } catch (error) {
-        if (error.response?.status === 429 && attempt < retries) {
+        const status = error.response?.status;
+        if (status === 403) { this.clearKeyCache(); this.recordFailure(); return null; }
+
+        // Back off for rate limiting, server errors, and network failures (no response) —
+        // not just 429 — otherwise transient 5xx/timeouts get hammered with no delay.
+        const isRetryable = status === 429 || !status || status >= 500;
+        if (isRetryable && attempt < retries) {
           await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
           continue;
         }
-        if (error.response?.status === 403) { this.clearKeyCache(); this.recordFailure(); return null; }
-        if (attempt === retries) { this.recordFailure(); return null; }
+        this.recordFailure();
+        return null;
       }
     }
     return null;

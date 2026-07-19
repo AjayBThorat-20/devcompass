@@ -9,15 +9,14 @@ class AnthropicProvider extends BaseProvider {
     this.baseURL = config.baseURL || 'https://api.anthropic.com/v1';
     this.model = config.model || 'claude-sonnet-4-20250514';
     this.pricing = {
-      'claude-sonnet-4-20250514': { input: 3.00 / 1000, output: 15.00 / 1000 },
-      'claude-opus-4-20250514': { input: 15.00 / 1000, output: 75.00 / 1000 },
-      'claude-haiku-4-20250301': { input: 0.80 / 1000, output: 4.00 / 1000 }
+      'claude-sonnet-4-20250514': { input: 3.00 / 1000000, output: 15.00 / 1000000 },
+      'claude-opus-4-20250514': { input: 15.00 / 1000000, output: 75.00 / 1000000 },
+      'claude-haiku-4-20250301': { input: 0.80 / 1000000, output: 4.00 / 1000000 }
     };
   }
 
   _getHeaders() {
-    const apiKey = this._getDecryptedKey ? this._getDecryptedKey() : this.config.api_key;
-    return { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' };
+    return { 'x-api-key': this.getApiKey(), 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' };
   }
 
   async sendPrompt(messages, options = {}) {

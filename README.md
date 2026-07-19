@@ -683,7 +683,7 @@ npx devcompass analyze
 **Old version installed**
 ```bash
 npm update -g devcompass
-devcompass --version  # Should show 3.2.5
+devcompass --version  # Should show 3.2.6
 ```
 
 **No analysis cache found**
@@ -741,6 +741,17 @@ devcompass llm test local
 ---
 
 ## 📈 Version History
+
+### v3.2.6 (2026-07-19) - Security & Stability
+- 🔒 **Command Injection Fixes** - Sanitized package names/versions before all `npm install`/`uninstall` shell calls
+- 🔒 **Path Traversal Fix** - Backup restore/info/delete now validate backup names before touching the filesystem
+- 🔒 **Salted Key Derivation** - API key encryption upgraded to salted `scrypt`, with transparent decryption of tokens saved under the old scheme
+- 🐛 **Graph Fixes** - Diamond dependencies (shared by multiple packages) now render correctly instead of being dropped as false cycles
+- 🐛 **AI Cost Tracking** - Fixed a 1000× pricing bug in provider cost estimates and switched to real token usage when providers report it
+- 🐛 **CVE Retry Logic** - NVD lookups now back off on 5xx/network errors, not just HTTP 429
+- 🐛 **Snapshot/Timeline Fixes** - Corrected field name and date-format mismatches that broke history comparisons and date-range queries
+- 🐛 **Unused Dependency Detection** - Fixed `knip` output parsing so unused packages are detected again
+- ✅ **100% Backward Compatible** - All existing features preserved
 
 ### v3.2.5 (2025-05-10) - Refinement & Usability
 - 🎯 **Top 3 Issues** default view for cleaner UX
@@ -867,7 +878,7 @@ If DevCompass helps your project, please consider giving it a star! ⭐
 
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
 
-*DevCompass v3.2.5 - Professional Dependency Intelligence Platform* 🧭✨
+*DevCompass v3.2.6 - Professional Dependency Intelligence Platform* 🧭✨
 
 [Get Started](#-quick-start) · [Documentation](#-complete-command-reference) · [Contributing](#-contributing)
 

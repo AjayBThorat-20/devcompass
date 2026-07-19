@@ -4,6 +4,7 @@ const chalk = require('chalk');
 const ora = require('ora');
 const { exec } = require('child_process');
 const { promisify } = require('util');
+const { sanitizePackageName, sanitizeVersion } = require('../../../shared/utils/package-sanitizer');
 
 const execAsync = promisify(exec);
 
@@ -154,8 +155,10 @@ class BatchExecutor {
           continue;
         }
 
+        const safePkg = sanitizePackageName(pkg);
+        const safeVersion = sanitizeVersion(version);
         const spinner = ora(`Updating ${pkg} to ${version}`).start();
-        await execAsync(`npm install ${pkg}@${version}`, { cwd: this.projectPath, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
+        await execAsync(`npm install ${safePkg}@${safeVersion}`, { cwd: this.projectPath, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
         spinner.succeed(`Updated ${pkg} to ${version}`);
         results.successful++;
         results.fixes.push({ type: 'ecosystem', package: pkg, version });
@@ -168,7 +171,7 @@ class BatchExecutor {
 
   async executeUnusedBatch(fixes, results) {
     if (!Array.isArray(fixes) || fixes.length === 0) return;
-    const packageNames = fixes.join(' ');
+    const packageNames = fixes.map(sanitizePackageName).join(' ');
     const spinner = ora(`Removing ${fixes.length} unused package(s)...`).start();
 
     try {
@@ -186,8 +189,10 @@ class BatchExecutor {
   async executeUpdatesBatch(fixes, results) {
     for (const fix of fixes) {
       try {
+        const safeName = sanitizePackageName(fix.name);
+        const safeLatest = sanitizeVersion(fix.latest);
         const spinner = ora(`Updating ${fix.name} to ${fix.latest}`).start();
-        await execAsync(`npm install ${fix.name}@${fix.latest}`, { cwd: this.projectPath, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
+        await execAsync(`npm install ${safeName}@${safeLatest}`, { cwd: this.projectPath, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
         spinner.succeed(`Updated ${fix.name} to ${fix.latest}`);
         results.successful++;
         results.fixes.push({ type: 'update', package: fix.name, from: fix.current, to: fix.latest });

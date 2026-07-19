@@ -49,7 +49,7 @@ function renderDeepOutput(issues, metadata) {
   }
 
   ConsoleFormatter.actions([
-    { icon: '✔', label: 'Fix safe issues', command: 'devcompass fix --safe' },
+    { icon: '✔', label: 'Fix safe issues', command: 'devcompass fix' },
     { icon: '⚠️', label: 'Fix all issues', command: 'devcompass fix --all' },
     { icon: '📊', label: 'Open dashboard', command: 'devcompass graph' },
     { icon: '💾', label: 'Export JSON', command: 'devcompass analyze --json' }

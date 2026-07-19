@@ -3,6 +3,7 @@
 const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const OutputManager = require('../../../shared/utils/output-manager');
 
 let knipConfigData = null;
 try {
@@ -22,32 +23,48 @@ async function analyzeUnusedDependencies(projectPath) {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
     const dependencies = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
 
-    const knipConfigPath = path.join(projectPath, 'knip.json');
-    if (!fs.existsSync(knipConfigPath)) {
-      try {
-        fs.writeFileSync(knipConfigPath, JSON.stringify(knipConfigData, null, 2));
-      } catch (error) {
-        if (process.env.DEBUG) console.error('Could not write knip.json, using fallback detector:', error.message);
-        return fallbackUnusedCheck(projectPath, dependencies);
-      }
+    // Written under .devcompass/temp instead of the project root — a bare
+    // "knip.json" there would leak into the scanned project's own repo/git status.
+    const outputManager = new OutputManager(projectPath);
+    const knipConfigPath = outputManager.getTempPath('knip.json');
+    try {
+      // skipPackages is not part of knip's config schema; it's applied separately
+      // below (JS-side) and must not be written into the knip.json file itself.
+      const { skipPackages, ...knipSchemaConfig } = knipConfigData;
+      fs.writeFileSync(knipConfigPath, JSON.stringify(knipSchemaConfig, null, 2));
+    } catch (error) {
+      if (process.env.DEBUG) console.error('Could not write knip.json, using fallback detector:', error.message);
+      return fallbackUnusedCheck(projectPath, dependencies);
     }
 
     try {
-      const knipOutput = execSync('npx knip --reporter json', {
-        cwd: projectPath,
-        encoding: 'utf-8',
-        timeout: 30000,
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
+      // knip exits non-zero whenever it finds issues (its normal/expected behavior,
+      // not an execution failure), so execSync's thrown error still carries valid
+      // JSON on stdout and must be read from there rather than treated as a failure.
+      let knipOutput;
+      try {
+        knipOutput = execSync(`npx knip --config ${JSON.stringify(knipConfigPath)} --reporter json`, {
+          cwd: projectPath,
+          encoding: 'utf-8',
+          timeout: 30000,
+          stdio: ['pipe', 'pipe', 'pipe']
+        });
+      } catch (execError) {
+        if (typeof execError.stdout !== 'string' || !execError.stdout.trim()) throw execError;
+        knipOutput = execError.stdout;
+      }
 
       const results = JSON.parse(knipOutput);
       let unused = [];
 
-      if (results.issues) {
-        unused = results.issues
-          .filter(issue => issue.type === 'unlisted' || issue.type === 'unresolved')
-          .map(issue => issue.symbol)
-          .filter(dep => dependencies[dep]);
+      if (Array.isArray(results.issues)) {
+        const names = new Set();
+        results.issues.forEach(fileIssue => {
+          [...(fileIssue.dependencies || []), ...(fileIssue.devDependencies || [])].forEach(dep => {
+            if (dep?.name) names.add(dep.name);
+          });
+        });
+        unused = Array.from(names).filter(dep => dependencies[dep]);
       }
 
       const skipPackages = knipConfigData.skipPackages || [];

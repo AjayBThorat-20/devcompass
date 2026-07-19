@@ -2,6 +2,7 @@
 
 const { execSync } = require('child_process');
 const dynamicSecurity = require('../../quality/dynamic-security.service');
+const { sanitizePackageName } = require('../../../shared/utils/package-sanitizer');
 
 class SupplyChainFixer {
   constructor() {
@@ -19,10 +20,10 @@ class SupplyChainFixer {
 
         if (check) {
           if (!dryRun) {
-            execSync(`npm uninstall ${packageName}`, { stdio: 'pipe', cwd: process.cwd() });
+            execSync(`npm uninstall ${sanitizePackageName(packageName)}`, { stdio: 'pipe', cwd: process.cwd() });
             if (warning.correctPackage) {
               try {
-                execSync(`npm install ${warning.correctPackage}`, { stdio: 'pipe', cwd: process.cwd() });
+                execSync(`npm install ${sanitizePackageName(warning.correctPackage)}`, { stdio: 'pipe', cwd: process.cwd() });
               } catch (error) { /* ignore — removal already succeeded */ }
             }
           }

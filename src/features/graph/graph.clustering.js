@@ -55,9 +55,9 @@ class DependencyClusterer {
 
   clusterByHealth() {
     const healthCategories = {
-      critical: { name: 'Critical Issues', icon: '🔴', color: '#ef4444', filter: node => node.hasVulnerability || node.isDeprecated },
-      warning: { name: 'Needs Attention', icon: '🟡', color: '#f59e0b', filter: node => node.isOutdated && !node.hasVulnerability && !node.isDeprecated },
-      healthy: { name: 'Healthy', icon: '🟢', color: '#10b981', filter: node => !node.isOutdated && !node.hasVulnerability && !node.isDeprecated }
+      critical: { name: 'Critical Issues', icon: '🔴', color: '#ef4444', filter: node => node.isVulnerable || node.isDeprecated },
+      warning: { name: 'Needs Attention', icon: '🟡', color: '#f59e0b', filter: node => node.isOutdated && !node.isVulnerable && !node.isDeprecated },
+      healthy: { name: 'Healthy', icon: '🟢', color: '#10b981', filter: node => !node.isOutdated && !node.isVulnerable && !node.isDeprecated }
     };
     const clusters = [];
     for (const [key, category] of Object.entries(healthCategories)) {

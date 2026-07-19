@@ -17,6 +17,8 @@ class FixExecutor {
 
       if (result.success) {
         this.results.successful.push(result);
+      } else if (result.skipped) {
+        this.results.skipped.push(result);
       } else {
         this.results.failed.push(result);
       }
@@ -42,7 +44,7 @@ class FixExecutor {
       if (action.action === 'update') return await this.executeUpdate(action);
       if (action.action === 'remove') return await this.executeRemove(action);
       if (action.action === 'replace') return await this.executeReplace(action);
-      return { success: false, action: action.action, package: action.package, error: 'Unsupported action type' };
+      return { success: false, skipped: true, action: action.action, package: action.package, error: 'Requires manual review' };
     } catch (error) {
       return { success: false, action: action.action, package: action.package, error: error.message };
     }

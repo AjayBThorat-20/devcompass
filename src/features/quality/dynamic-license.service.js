@@ -109,11 +109,12 @@ function isCommercialCompatible(license) {
 
 function normalizeLicense(license) {
   if (!license || typeof license !== 'string') return 'Unknown';
-  if (license.includes('OR') || license.includes('AND')) {
-    const licenses = license.split(/\s+(OR|AND)\s+/);
+  const trimmed = license.trim().replace(/^\(+|\)+$/g, '').trim();
+  if (trimmed.includes('OR') || trimmed.includes('AND')) {
+    const licenses = trimmed.split(/\s+(OR|AND)\s+/);
     return licenses[0].trim();
   }
-  return license.trim();
+  return trimmed;
 }
 
 module.exports = {

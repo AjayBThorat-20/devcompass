@@ -2,6 +2,12 @@
 
 const db = require('./history.database');
 
+// SQLite's CURRENT_TIMESTAMP stores UTC as "YYYY-MM-DD HH:MM:SS" (space-separated,
+// no 'T'/'Z'), which does not sort correctly against raw ISO strings in BETWEEN queries.
+function toSqliteDatetime(isoString) {
+  return new Date(isoString).toISOString().slice(0, 19).replace('T', ' ');
+}
+
 class SnapshotLoader {
   listSnapshots(projectName = null, limit = 30) {
     const database = db.connect();
@@ -16,7 +22,7 @@ class SnapshotLoader {
   getSnapshotsInRange(startDate, endDate, projectName = null) {
     const database = db.connect();
     let query = 'SELECT * FROM snapshots WHERE timestamp BETWEEN ? AND ?';
-    const params = [startDate, endDate];
+    const params = [toSqliteDatetime(startDate), toSqliteDatetime(endDate)];
     if (projectName) { query += ' AND project_name = ?'; params.push(projectName); }
     query += ' ORDER BY timestamp ASC';
     return database.prepare(query).all(...params);

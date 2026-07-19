@@ -15,14 +15,19 @@ class TimelineGenerator {
       return { data: [], summary: { totalSnapshots: 0, dateRange: { start: startDate, end: endDate }, message: 'No snapshots found in this date range' } };
     }
 
-    const timelineData = snapshots.map(s => ({
-      timestamp: new Date(s.timestamp),
-      date: s.timestamp.split('T')[0],
-      totalDependencies: s.total_dependencies,
-      healthScore: parseFloat((s.health_score || 0).toFixed(2)),
-      nodeCount: s.node_count,
-      snapshotId: s.id
-    }));
+    const timelineData = snapshots.map(s => {
+      const timestamp = new Date(s.timestamp);
+      return {
+        timestamp,
+        // Derived from the parsed Date rather than string-split on s.timestamp, since
+        // SQLite stores "YYYY-MM-DD HH:MM:SS" (space-separated, no 'T') not ISO format.
+        date: timestamp.toISOString().split('T')[0],
+        totalDependencies: s.total_dependencies,
+        healthScore: parseFloat((s.health_score || 0).toFixed(2)),
+        nodeCount: s.node_count,
+        snapshotId: s.id
+      };
+    });
 
     const trends = this.calculateTrends(timelineData);
     const summary = {
@@ -65,4 +70,4 @@ return numbers.reduce((a, b) => a + b, 0) / numbers.length;
     }   
 }
 
-module.exports = TimelineGenerator;
+module.exports = new TimelineGenerator();

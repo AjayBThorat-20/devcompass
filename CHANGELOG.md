@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.6] - 2026-07-19
+
+### 🔒 Security & Stability Release
+
+This release closes several command-injection and path-traversal gaps found during a security pass over the feature-based restructure, alongside a batch of correctness fixes in the graph, history, and AI subsystems. **Zero breaking changes** - fully backward compatible!
+
+### Security
+
+- **Command Injection** - `npm install`/`uninstall` calls in the batch, quality, license, and supply-chain fixers now validate package names and versions through a shared sanitizer (`src/shared/utils/package-sanitizer.js`) before they reach the shell
+- **Shell Injection in Process Spawning** - `AsyncExecutor` no longer spawns child processes with `shell: true`, so metacharacters in a caller-supplied argument (e.g. a package name) can't be interpreted by the shell
+- **Path Traversal** - `BackupManager`/`BackupRestorer` now resolve and validate backup names (`resolveBackupPath`) before reading, restoring, or deleting a backup directory, rejecting names that escape `.devcompass-backups/`
+- **Encryption Key Hardening** - API key encryption moved from an unsalted SHA-256 key to a salted, computationally-expensive `scrypt` key tied to a per-install salt (`~/.devcompass/.encryption-salt`); decryption transparently falls back to the legacy key so previously-stored tokens keep working
+- **AI Provider Key Handling** - Providers now fail loudly (`BaseProvider.getApiKey()`) if no decrypted-key resolver is configured, instead of silently falling back to `config.api_key`, which could be the still-encrypted ciphertext
+
+### Fixed
+
+- **Graph Diamond Dependencies** - Packages depended on by more than one parent were being treated as false cycles and dropped; the generator now tracks the ancestor path separately from previously-seen nodes so shared dependencies render with all their links
+- **Graph Issue Enrichment** - `enrichNodesWithAnalysisSinglePass` now reads from the actual `analysisResults.issues` shape instead of fields the analyzer never produced, so vulnerability/outdated/unused/license badges show up on the graph again
+- **Graph Clustering** - Fixed a property name mismatch (`hasVulnerability` → `isVulnerable`) that kept the "Critical Issues" cluster empty
+- **AI Cost Estimates** - Provider pricing tables were keyed per 1,000 tokens instead of per 1,000,000, overstating cost estimates by 1000×; `ai ask` also now uses a provider's actual reported token usage when available instead of always estimating
+- **AI Streaming Errors** - Node's dual-stack connection errors (e.g. a refused local Ollama connection) surface as an `AggregateError` with an empty top-level message; the error message is now recovered from `.code`/`.errors[0].message` so the "Is Ollama running?" hint still shows
+- **CVE Retry Logic** - NVD lookups now retry on 5xx responses and network failures (no response), not just HTTP 429, so a transient outage doesn't immediately fail the scan
+- **Unused Dependency Detection** - `knip` exits non-zero whenever it finds issues; that path was being treated as a hard failure and losing the JSON on stdout. Output parsing was also updated to match knip's actual per-file `dependencies`/`devDependencies` shape instead of a flat `symbol` field. `skipPackages` (a DevCompass-only setting) is no longer written into `knip.json`, which isn't part of knip's schema
+- **Snapshot Comparison** - Fixed a `healthScore`/`health_score` field mismatch that made added/removed packages always show a health score of 0
+- **Snapshot Date Range Queries** - `getSnapshotsInRange` now converts ISO timestamps to SQLite's `YYYY-MM-DD HH:MM:SS` format before querying, fixing comparisons that previously sorted incorrectly
+- **Timeline Dates** - Timeline entries now derive their date from the parsed `Date` object instead of splitting the raw SQLite timestamp string on `'T'`, which isn't present in SQLite's stored format
+- **License Normalization** - `normalizeLicense` now strips wrapping parentheses (e.g. `(MIT OR Apache-2.0)`) before splitting on `OR`/`AND`
+- **Registry Cache Path** - Fixed a stray `.depcompass` cache directory typo that should have been `.devcompass`
+- **Backup Path Resolution** - `devcompass backup restore`/`info` now consistently resolve backups relative to the project path
+- **Fix Executor** - Unsupported fix action types are now reported as skipped ("Requires manual review") rather than counted as failed
+- **Fix Confirmation Flow** - `devcompass fix --yes` no longer prompts for confirmation when the pre-fix backup fails
+- **Package Replacement Rollback** - `executeReplace` now restores the previously-installed version if installing the replacement package fails, instead of leaving the project with neither package
+- **Process Cleanup Race** - `ProcessManager.kill` and `AsyncExecutor` cleanup escalated to `SIGKILL` based on `.killed` (which only reflects that a signal was sent), so a slow-exiting process could be killed twice; escalation now waits on the actual `exit`/`close` event
+- **Stale CLI Hints** - Renderer "Quick Actions" no longer suggest `devcompass fix --safe`, a flag that no longer exists now that preview mode is the default
+
+### Changed
+
+- `TimelineGenerator` is now exported as a singleton instance instead of a class, matching the other feature modules
+
+---
+
 ## [3.2.5] - 2026-05-10
 
 ### 🎯 Refinement & Usability Release

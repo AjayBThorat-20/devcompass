@@ -1,5 +1,179 @@
 # Migration Guide
 
+## From v3.2.5 → v3.2.6
+
+### What's New
+- **🔒 Command Injection Fixes**: All `npm install`/`uninstall` calls in the batch, quality, license, and supply-chain fixers now validate package names/versions through a shared sanitizer before reaching the shell
+- **🔒 Shell Injection Fix**: Child-process spawning no longer uses `shell: true`, so metacharacters in a package name can't be interpreted by the shell
+- **🔒 Path Traversal Fix**: Backup restore/info/delete now validate backup names before touching the filesystem
+- **🔒 Salted Key Derivation**: API key encryption upgraded from unsalted SHA-256 to salted `scrypt`, with transparent decryption of tokens saved under the old scheme
+- **🐛 Graph Diamond Dependencies**: Packages depended on by more than one parent no longer get dropped as false cycles
+- **🐛 AI Cost Tracking**: Fixed a 1000× pricing bug in provider cost estimates (tables were keyed per 1,000 tokens instead of per 1,000,000)
+- **🐛 CVE Retry Logic**: NVD lookups now back off on 5xx/network errors, not just HTTP 429
+- **🐛 Unused Dependency Detection**: Fixed `knip` output parsing (its issue shape changed) and moved the auto-generated `knip.json` out of the scanned project's root into `.devcompass/temp/`, so it no longer leaks an untracked file into the project being analyzed
+- **✅ 100% Backward Compatible**: All existing features preserved, no config changes required
+
+### Migration Steps
+```bash
+npm install -g devcompass@3.2.6
+```
+
+### What Changed
+- **Added**: `src/shared/utils/package-sanitizer.js` - Shared package name/version validation reused by every fixer that shells out to npm
+- **Modified**: `src/shared/utils/async-executor.js` - Removed `shell: true`; SIGKILL escalation now waits on the actual exit event instead of checking `.killed`
+- **Modified**: `src/shared/utils/process-manager.js` - Same exit-event fix for `kill()`
+- **Modified**: `src/shared/utils/backup-manager.js`, `backup-restorer.js` - Added `resolveBackupPath()` to reject backup names that escape `.devcompass-backups/`
+- **Modified**: `src/shared/utils/encryption.js` - Salted `scrypt` key derivation with legacy-key fallback for existing encrypted tokens
+- **Modified**: `src/features/ai/providers/*.provider.js`, `base.provider.js` - `getApiKey()` now throws instead of silently falling back to a possibly-still-encrypted `config.api_key`; pricing tables fixed to per-million-token rates
+- **Modified**: `src/features/fix/services/*-fixer.service.js`, `batch-executor.service.js` - All shell-out calls now sanitize package names/versions first
+- **Modified**: `src/features/analyze/collectors/unused-deps.collector.js` - Fixed `knip` JSON parsing, writes `knip.json` via `OutputManager.getTempPath()` instead of the project root, and passes `--config` explicitly
+- **Modified**: `src/features/graph/graph.generator.js`, `graph.clustering.js` - Ancestor-path tracking (instead of a single visited set) so shared dependencies render instead of being treated as cycles; fixed `hasVulnerability` → `isVulnerable` property mismatch
+- **Modified**: `src/features/cve/nvd.client.js` - Retries on 5xx/network failures, not just 429
+- **Modified**: `src/features/history/snapshot-comparator.js`, `snapshot-loader.js`, `timeline-generator.js` - Fixed `health_score` field naming and SQLite datetime-format mismatches
+- **Modified**: `src/features/quality/dynamic-license.service.js` - `normalizeLicense` strips wrapping parentheses before splitting `OR`/`AND`
+- **Modified**: `src/shared/services/registry-client.js` - Fixed a stray `.depcompass` cache directory typo
+- **Modified**: `package.json` - Version 3.2.6
+- **No Changes**: All v3.2.5 UX features intact (Top 3 Issues view, fix preview, health score icons, silent/CI modes)
+- **No Changes**: All v3.2.4 CVE features intact (OSV + NVD integration, caching)
+- **No Changes**: All v3.2.3 features intact (graph, snapshot, compare, backup)
+- **No Changes**: All v3.2.2 AI features intact (LLM integration, encryption, chat)
+
+### Security Enhancements
+
+**Command Injection Protection (extended):**
+```javascript
+// src/shared/utils/package-sanitizer.js — shared by every fixer service
+sanitizePackageName(name)   // validates against npm's own name rules
+sanitizeVersion(version)    // 'latest' or strict semver, nothing else
+```
+Previously this validation lived only in the npm executor; the license, quality, supply-chain, and batch fixers built their `npm install`/`uninstall` commands directly from unsanitized package data. All of them now route through the same sanitizer before the string reaches `execSync`/`exec`.
+
+**Path Traversal Protection (new):**
+```javascript
+// Backup names are validated before being joined into a filesystem path
+resolveBackupPath(name) // rejects anything that isn't [a-zA-Z0-9._-]+
+                         // or that resolves outside .devcompass-backups/
+```
+
+**Encryption Key Hardening:**
+```
+Before: SHA-256(hostname + username)                — unsalted, fast to brute-force offline
+After:  scrypt(hostname + username, per-install salt) — salted, computationally expensive
+```
+Existing encrypted tokens keep working — decryption tries the new key first, then falls back to the legacy key.
+
+### Verification
+After upgrading, verify everything works:
+
+```bash
+# Check version
+devcompass --version
+# Expected: 3.2.6
+
+# Verify fix still sanitizes package operations
+devcompass fix --dry-run
+
+# Verify backup restore rejects a bad name safely
+devcompass backup restore --name "../etc"
+# Expected: error, not a crash or path traversal
+
+# Verify knip.json no longer appears in your project root
+devcompass analyze
+ls knip.json 2>/dev/null && echo "BUG: should not exist" || echo "OK"
+ls .devcompass/temp/knip.json
+# Expected: found under .devcompass/temp/, not the project root
+
+# Verify graph still renders shared (diamond) dependencies
+devcompass graph --open
+
+# Verify existing AI provider tokens still decrypt
+devcompass llm test <your-provider>
+
+# Verify old features still work
+devcompass cve cache --stats
+devcompass snapshot list
+devcompass history list
+```
+
+### Troubleshooting
+
+**Stray `knip.json` left over from before upgrading:**
+```bash
+# Safe to delete — DevCompass now writes it to .devcompass/temp/ instead
+rm knip.json
+```
+
+**AI provider suddenly fails after upgrading:**
+```bash
+# getApiKey() now throws instead of silently using a stale/plaintext key.
+# Re-add the provider to force a fresh encrypted key:
+devcompass llm remove <provider>
+devcompass llm add --provider <provider> --token <key> --model <model>
+devcompass llm test <provider>
+```
+
+**Backup restore now says "Invalid backup name":**
+```bash
+# This means the name contains characters outside [a-zA-Z0-9._-]
+# or resolves outside .devcompass-backups/. List valid names:
+devcompass backup list
+```
+
+### Upgrade Path
+
+**From v3.2.5:**
+```bash
+npm install -g devcompass@3.2.6
+
+# Immediately available - no setup needed, no config changes
+devcompass analyze
+devcompass fix
+```
+
+**From v3.2.4 or earlier:**
+```bash
+npm install -g devcompass@3.2.6
+
+# You get ALL features:
+# - v3.2.6: Security hardening (command injection, path traversal, encryption), graph/CVE/history bugfixes
+# - v3.2.5: Top 3 view, fix preview, modular architecture
+# - v3.2.4: CVE detection with OSV + NVD
+# - v3.2.3: graph, snapshot, compare, backup commands
+# - v3.2.2: AI integration, LLM management, encryption
+# - v3.2.1: history tracking, timeline, comparison
+# - v3.2.0: unified dashboard, themes
+```
+
+### Migration Checklist
+
+- [x] Upgrade to v3.2.6
+- [x] Verify version: `devcompass --version`
+- [x] Confirm no `knip.json` appears in project roots after `analyze`
+- [x] Re-test any configured AI providers: `devcompass llm test <provider>`
+- [x] Verify backup restore/list still work: `devcompass backup list`
+- [x] Verify graph still renders shared dependencies: `devcompass graph --open`
+- [x] Verify CVE detection still works: `devcompass analyze`
+
+### Rollback (if needed)
+```bash
+# Downgrade to v3.2.5
+npm install -g devcompass@3.2.5
+
+# You'll lose:
+# - Command injection / path traversal fixes
+# - Salted encryption key derivation
+# - Graph diamond-dependency rendering fix
+# - AI cost estimate fix
+# - knip.json now written outside the project root
+```
+
+### Known Limitations
+
+- The salted encryption key means tokens encrypted under 3.2.6 cannot be decrypted by 3.2.5 or earlier if you roll back — re-add providers after a rollback
+- Package name/version sanitization rejects anything outside npm's standard naming and semver patterns; unusual registry aliases or git/tarball specifiers are not supported by the fixers that shell out to npm
+
+---
+
 ## From v3.2.4 → v3.2.5
 
 ### What's New

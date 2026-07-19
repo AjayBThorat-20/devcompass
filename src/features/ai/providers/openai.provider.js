@@ -9,15 +9,14 @@ class OpenAIProvider extends BaseProvider {
     this.baseURL = config.baseURL || 'https://api.openai.com/v1';
     this.model = config.model || 'gpt-4o-mini';
     this.pricing = {
-      'gpt-4o-mini': { input: 0.15 / 1000, output: 0.60 / 1000 },
-      'gpt-4o': { input: 2.50 / 1000, output: 10.00 / 1000 },
-      'gpt-4-turbo': { input: 10.00 / 1000, output: 30.00 / 1000 }
+      'gpt-4o-mini': { input: 0.15 / 1000000, output: 0.60 / 1000000 },
+      'gpt-4o': { input: 2.50 / 1000000, output: 10.00 / 1000000 },
+      'gpt-4-turbo': { input: 10.00 / 1000000, output: 30.00 / 1000000 }
     };
   }
 
   _getHeaders() {
-    const apiKey = this._getDecryptedKey ? this._getDecryptedKey() : this.config.api_key;
-    return { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
+    return { 'Authorization': `Bearer ${this.getApiKey()}`, 'Content-Type': 'application/json' };
   }
 
   async sendPrompt(messages, options = {}) {

@@ -38,7 +38,7 @@ function renderDefaultOutput(issues, metadata) {
 
   if (issues.length > 0) {
     ConsoleFormatter.actions([
-      { icon: '✔', label: 'Fix safe issues', command: 'devcompass fix --safe' },
+      { icon: '✔', label: 'Fix safe issues', command: 'devcompass fix' },
       { icon: '🔍', label: 'See full report', command: 'devcompass analyze --deep' },
       { icon: '📊', label: 'Open dashboard', command: 'devcompass graph' }
     ]);

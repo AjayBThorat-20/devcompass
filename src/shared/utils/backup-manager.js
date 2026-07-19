@@ -9,6 +9,14 @@ class BackupManager {
     this.backupDir = path.join(projectPath, '.devcompass-backups');
   }
 
+  resolveBackupPath(backupName) {
+    if (typeof backupName !== 'string' || !/^[a-zA-Z0-9._-]+$/.test(backupName)) return null;
+    const resolved = path.join(this.backupDir, backupName);
+    const relative = path.relative(this.backupDir, resolved);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) return null;
+    return resolved;
+  }
+
   async createBackup(reason = 'Manual backup', metadata = {}) {
     try {
       const packageJsonPath = path.join(this.projectPath, 'package.json');
@@ -80,8 +88,8 @@ class BackupManager {
 
   async getBackupInfo(backupName) {
     try {
-      const backupPath = path.join(this.backupDir, backupName);
-      if (!fs.existsSync(backupPath)) return null;
+      const backupPath = this.resolveBackupPath(backupName);
+      if (!backupPath || !fs.existsSync(backupPath)) return null;
       const metadataPath = path.join(backupPath, 'metadata.json');
       let metadata = {};
       if (fs.existsSync(metadataPath)) { try { metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8')); } catch (e) { /* skip */ } }
@@ -93,7 +101,8 @@ class BackupManager {
 
   async deleteBackup(backupName) {
     try {
-      const backupPath = path.join(this.backupDir, backupName);
+      const backupPath = this.resolveBackupPath(backupName);
+      if (!backupPath) throw new Error('Invalid backup name');
       if (fs.existsSync(backupPath)) fs.rmSync(backupPath, { recursive: true, force: true });
       return true;
     } catch (error) { throw new Error(`Failed to delete backup: ${error.message}`); }

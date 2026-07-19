@@ -76,8 +76,10 @@ const beforeScore = analysisResult.healthScore;
       console.log(`✔ Backup saved: ${backupResult.path}\n`);
     } else {
       console.error('⚠️  Backup failed:', backupResult.error);
-      const cont = await confirmFix();
-      if (!cont) { console.log('\n❌ Fix cancelled\n'); return; }
+      if (!skipConfirm) {
+        const cont = await confirmFix();
+        if (!cont) { console.log('\n❌ Fix cancelled\n'); return; }
+      }
     }
 
     const executor = new FixExecutor(projectPath);

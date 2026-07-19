@@ -1,6 +1,8 @@
 // src/features/fix/executors/npm.executor.js
 
 const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 class NPMExecutor {
   constructor(projectPath) {
@@ -30,12 +32,36 @@ class NPMExecutor {
 
   executeReplace(oldPackage, newPackage, version = 'latest') {
     try {
+      const oldVersion = this.getInstalledVersion(oldPackage);
       const removeResult = this.executeRemove(oldPackage);
       if (!removeResult.success) return removeResult;
-      return this.executeUpdate(newPackage, version);
+
+      const installResult = this.executeUpdate(newPackage, version);
+      if (!installResult.success) {
+        const rollback = oldVersion ? this.executeUpdate(oldPackage, oldVersion) : { success: false };
+        return {
+          ...installResult,
+          rolledBack: rollback.success,
+          error: rollback.success
+            ? `${installResult.error} (rolled back to ${oldPackage}@${oldVersion})`
+            : `${installResult.error} (rollback failed: project now has neither ${oldPackage} nor ${newPackage})`
+        };
+      }
+      return installResult;
     } catch (error) {
       return { success: false, package: oldPackage, replacement: newPackage, error: error.message };
     }
+  }
+
+  getInstalledVersion(packageName) {
+    try {
+      const installedPkgPath = path.join(this.projectPath, 'node_modules', packageName, 'package.json');
+      if (fs.existsSync(installedPkgPath)) {
+        const installed = JSON.parse(fs.readFileSync(installedPkgPath, 'utf8'));
+        if (installed.version) return installed.version;
+      }
+    } catch (error) { /* fall through */ }
+    return null;
   }
 
   sanitizePackageName(name) {

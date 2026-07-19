@@ -22,9 +22,24 @@ class ProcessManager {
   async kill(childProcess, signal = 'SIGTERM') {
     return new Promise(resolve => {
       if (!childProcess || childProcess.killed) { resolve(); return; }
-      childProcess.once('exit', () => { this.activeProcesses.delete(childProcess); resolve(); });
+      let exited = false;
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        this.activeProcesses.delete(childProcess);
+        resolve();
+      };
+      childProcess.once('exit', () => { exited = true; finish(); });
       childProcess.kill(signal);
-      setTimeout(() => { if (!childProcess.killed) childProcess.kill('SIGKILL'); resolve(); }, 5000);
+      setTimeout(() => {
+        // `.killed` only reflects that a signal was sent, not that the process exited,
+        // so escalation must check the actual 'exit' event instead.
+        if (!exited) {
+          childProcess.kill('SIGKILL');
+          setTimeout(finish, 2000);
+        }
+      }, 5000);
     });
   }
 
@@ -37,4 +52,3 @@ class ProcessManager {
 }
 
 module.exports = new ProcessManager();
-

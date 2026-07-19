@@ -2,6 +2,7 @@
 
 const { execSync } = require('child_process');
 const dynamicQuality = require('../../quality/dynamic-quality.service');
+const { sanitizePackageName } = require('../../../shared/utils/package-sanitizer');
 
 class QualityFixer {
   constructor() {
@@ -31,11 +32,14 @@ class QualityFixer {
 
       if (alternative) {
         if (!dryRun) {
+          const safePackageName = sanitizePackageName(packageName);
+          const safeAlternative = sanitizePackageName(alternative.recommended);
+
           try {
-            execSync(`npm uninstall ${packageName}`, { stdio: 'pipe', cwd: process.cwd() });
+            execSync(`npm uninstall ${safePackageName}`, { stdio: 'pipe', cwd: process.cwd() });
           } catch (error) { /* ignore uninstall errors */ }
 
-          execSync(`npm install ${alternative.recommended}`, { stdio: 'pipe', cwd: process.cwd() });
+          execSync(`npm install ${safeAlternative}`, { stdio: 'pipe', cwd: process.cwd() });
         }
 
         this.fixes.push({ package: packageName, action: 'replaced', replacement: alternative.recommended, reason: alternative.reason, status: pkg.status });

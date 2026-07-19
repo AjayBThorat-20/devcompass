@@ -6,19 +6,18 @@ const axios = require('axios');
 class GoogleProvider extends BaseProvider {
   constructor(config = {}) {
     super(config);
-    this.apiKey = config.api_key;
     this.baseURL = config.baseURL || 'https://generativelanguage.googleapis.com/v1beta';
     this.model = config.model || 'gemini-2.0-flash-exp';
     this.pricing = {
       'gemini-2.0-flash-exp': { input: 0, output: 0 },
-      'gemini-1.5-pro': { input: 1.25 / 1000, output: 5.00 / 1000 },
-      'gemini-1.5-flash': { input: 0.075 / 1000, output: 0.30 / 1000 }
+      'gemini-1.5-pro': { input: 1.25 / 1000000, output: 5.00 / 1000000 },
+      'gemini-1.5-flash': { input: 0.075 / 1000000, output: 0.30 / 1000000 }
     };
   }
 
   async sendPrompt(messages, options = {}) {
     const controller = this.createAbortController();
-    const apiKey = this._getDecryptedKey ? this._getDecryptedKey() : this.apiKey;
+    const apiKey = this.getApiKey();
     try {
       const contents = messages.map(msg => ({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] }));
       const response = await axios.post(`${this.baseURL}/models/${this.model}:generateContent?key=${apiKey}`, {
@@ -38,7 +37,7 @@ class GoogleProvider extends BaseProvider {
 
   async streamPrompt(messages, onChunk, options = {}) {
     const controller = this.createAbortController();
-    const apiKey = this._getDecryptedKey ? this._getDecryptedKey() : this.apiKey;
+    const apiKey = this.getApiKey();
     try {
       const contents = messages.map(msg => ({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] }));
       const response = await axios.post(`${this.baseURL}/models/${this.model}:streamGenerateContent?key=${apiKey}&alt=sse`, {

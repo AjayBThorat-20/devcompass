@@ -17,14 +17,13 @@ async function backup(action, options = {}) {
   }
 
   const outputManager = new OutputManager(projectPath);
-  const backupDir = outputManager.getBackupPath();
-  const backupManager = new BackupManager(backupDir);
-  const backupRestorer = new BackupRestorer(backupDir);
+  const backupManager = new BackupManager(projectPath);
+  const backupRestorer = new BackupRestorer(projectPath);
 
   try {
     switch (action) {
       case 'list': await listBackups(backupManager, outputManager); break;
-      case 'restore': await restoreBackup(backupRestorer, outputManager, options); break;
+      case 'restore': await restoreBackup(backupRestorer, projectPath, options); break;
       case 'clean': await cleanBackups(backupManager, options); break;
       case 'info': await showBackupInfo(backupManager, outputManager, options); break;
       default: showHelp(); break;
@@ -65,7 +64,7 @@ async function listBackups(backupManager, outputManager) {
   console.log(chalk.gray('   Clean:'), chalk.cyan('devcompass backup clean\n'));
 }
 
-async function restoreBackup(backupRestorer, outputManager, options) {
+async function restoreBackup(backupRestorer, projectPath, options) {
   const backupName = options.name;
   if (!backupName) {
     console.error(chalk.red('\n❌ Please specify a backup name'));
@@ -97,7 +96,7 @@ async function restoreBackup(backupRestorer, outputManager, options) {
   }
 
   console.log(chalk.bold('\nStep 1: Creating backup of current state...\n'));
-  const backupManager = new BackupManager(outputManager.getBackupPath());
+  const backupManager = new BackupManager(projectPath);
   const currentBackupPath = await backupManager.createBackup('Before restore');
   if (currentBackupPath) console.log(chalk.green(`✓ Current state backed up: ${path.basename(currentBackupPath)}\n`));
 
@@ -220,4 +219,3 @@ function getTimeAgo(date) {
 
 module.exports = backup;
 module.exports.showHelp = showHelp;
-

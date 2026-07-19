@@ -13,7 +13,10 @@ class AsyncExecutor {
 
       let child;
       try {
-        child = spawn(command, args, { cwd, env, shell: true, windowsHide: true });
+        // shell:false (the default) so args are passed as literal argv instead of
+        // being concatenated into a shell command line, where metacharacters in a
+        // caller-supplied arg (e.g. a package name) could be interpreted by the shell.
+        child = spawn(command, args, { cwd, env, windowsHide: true });
       } catch (error) {
         reject(error);
         return;
@@ -25,11 +28,14 @@ class AsyncExecutor {
       let stderr = '';
       let killed = false;
       let settled = false;
+      let exited = false;
 
       const timer = setTimeout(() => {
         killed = true;
         child.kill('SIGTERM');
-        setTimeout(() => { if (!child.killed) child.kill('SIGKILL'); }, 5000);
+        // `.killed` reflects that a signal was sent, not that the process exited,
+        // so escalation must check the actual exit state instead.
+        setTimeout(() => { if (!exited) child.kill('SIGKILL'); }, 5000);
       }, timeout);
 
       const settle = (fn, value) => {
@@ -63,6 +69,7 @@ class AsyncExecutor {
       });
 
       child.on('close', (code) => {
+        exited = true;
         this.activeProcesses.delete(child);
 
         if (killed) {
@@ -86,9 +93,17 @@ class AsyncExecutor {
   async cleanup() {
     const killPromises = Array.from(this.activeProcesses).map(child => new Promise((resolve) => {
       if (child.killed) { resolve(); return; }
-      child.once('close', resolve);
+      let exited = false;
+      let settled = false;
+      const finish = () => { if (!settled) { settled = true; resolve(); } };
+      child.once('close', () => { exited = true; finish(); });
       child.kill('SIGTERM');
-      setTimeout(() => { if (!child.killed) child.kill('SIGKILL'); resolve(); }, 5000);
+      setTimeout(() => {
+        if (!exited) {
+          child.kill('SIGKILL');
+          setTimeout(finish, 2000);
+        }
+      }, 5000);
     }));
 
     await Promise.all(killPromises);

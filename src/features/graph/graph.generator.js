@@ -32,6 +32,7 @@ class GraphGenerator {
     const { maxDepth = Infinity, includeDevDeps = false, filter = 'all', enrichWithIssues = false } = options;
 
     if (!this.loadPackageFiles()) return null;
+    this.nodesById = new Map();
 
     const rootNode = {
       id: this.packageJson.name || 'root',
@@ -51,9 +52,10 @@ class GraphGenerator {
     const deps = { ...this.packageJson.dependencies, ...(includeDevDeps ? this.packageJson.devDependencies : {}) };
     const nodes = [rootNode];
     const links = [];
-    const visited = new Set();
+    const ancestorPath = new Set([rootNode.id]);
+    this.nodesById.set(rootNode.id, rootNode);
 
-    this.buildTree(rootNode, deps, nodes, links, visited, 0, maxDepth, 0);
+    this.buildTree(rootNode, deps, nodes, links, ancestorPath, 0, maxDepth, 0);
 
     if (this.analysisResults) this.enrichNodesWithAnalysisSinglePass(nodes);
 
@@ -82,17 +84,22 @@ class GraphGenerator {
     };
   }
 
-  buildTree(parent, deps, nodes, links, visited, currentDepth, maxDepth, stackDepth) {
+  buildTree(parent, deps, nodes, links, ancestorPath, currentDepth, maxDepth, stackDepth) {
     if (currentDepth >= maxDepth || stackDepth >= MAX_STACK_DEPTH) return;
     if (!deps || typeof deps !== 'object') return;
 
     for (const [name, versionRange] of Object.entries(deps)) {
       const nodeId = `${name}@${versionRange}`;
-      if (visited.has(nodeId)) {
+
+      if (ancestorPath.has(nodeId)) {
         links.push({ source: parent.id, target: nodeId, type: 'circular', depth: currentDepth + 1 });
         continue;
       }
-      visited.add(nodeId);
+
+      if (this.nodesById.has(nodeId)) {
+        links.push({ source: parent.id, target: nodeId, type: 'normal', depth: currentDepth + 1 });
+        continue;
+      }
 
       const node = {
         id: nodeId,
@@ -111,12 +118,15 @@ class GraphGenerator {
       };
 
       nodes.push(node);
+      this.nodesById.set(nodeId, node);
       links.push({ source: parent.id, target: nodeId, type: 'normal', depth: currentDepth + 1 });
 
       if (this.packageLock?.packages) {
         const lockEntry = this.packageLock.packages[`node_modules/${name}`];
         if (lockEntry?.dependencies) {
-          this.buildTree(node, lockEntry.dependencies, nodes, links, visited, currentDepth + 1, maxDepth, stackDepth + 1);
+          ancestorPath.add(nodeId);
+          this.buildTree(node, lockEntry.dependencies, nodes, links, ancestorPath, currentDepth + 1, maxDepth, stackDepth + 1);
+          ancestorPath.delete(nodeId);
         }
       }
     }
@@ -124,59 +134,42 @@ class GraphGenerator {
 
   enrichNodesWithAnalysisSinglePass(nodes) {
     if (!this.analysisResults) return;
-    const results = this.analysisResults;
-    const security = results.security || {};
+    const issues = this.analysisResults.issues;
+    if (!Array.isArray(issues) || issues.length === 0) return;
 
-    const lookupMaps = { vulnerable: new Map(), outdated: new Map(), unused: new Set(), alerts: new Map() };
-
-    const vulnerabilities = Array.isArray(security.vulnerabilities)
-      ? security.vulnerabilities
-      : Object.entries(security.vulnerabilities || {}).map(([name, data]) => ({ package: name, name, ...data }));
-
-    vulnerabilities.forEach(v => {
-      const pkgName = v.package || v.name || v.module_name;
-      if (pkgName) lookupMaps.vulnerable.set(pkgName, v);
-      if (Array.isArray(v.via)) {
-        v.via.forEach(dep => {
-          if (typeof dep === 'string') lookupMaps.vulnerable.set(dep, { package: dep, severity: v.severity });
-          else if (dep.name) lookupMaps.vulnerable.set(dep.name, dep);
-        });
-      }
+    const issuesByName = new Map();
+    issues.forEach(issue => {
+      if (!issue?.name) return;
+      if (!issuesByName.has(issue.name)) issuesByName.set(issue.name, []);
+      issuesByName.get(issue.name).push(issue);
     });
-
-    const outdatedPackages = results.outdatedPackages || results.outdated || [];
-    if (Array.isArray(outdatedPackages)) outdatedPackages.forEach(p => { const name = p.name || p.package; if (name) lookupMaps.outdated.set(name, p); });
-    else if (typeof outdatedPackages === 'object') Object.entries(outdatedPackages).forEach(([name, info]) => lookupMaps.outdated.set(name, typeof info === 'object' ? info : { latest: info }));
-
-    const unusedDeps = results.unusedDependencies || results.unused || [];
-    if (Array.isArray(unusedDeps)) unusedDeps.forEach(u => { if (typeof u === 'string') lookupMaps.unused.add(u); else if (u?.name) lookupMaps.unused.add(u.name); });
-
-    const ecosystemAlerts = results.ecosystemAlerts || results.alerts || [];
-    if (Array.isArray(ecosystemAlerts)) ecosystemAlerts.forEach(a => { const name = a.package || a.name; if (name) lookupMaps.alerts.set(name, a); });
 
     nodes.forEach(node => {
       if (node.type === 'root') return;
-      const nodeName = node.name;
+      const nodeIssues = issuesByName.get(node.name);
+      if (!nodeIssues) return;
 
-      if (lookupMaps.vulnerable.has(nodeName)) {
-        node.isVulnerable = true;
-        const v = lookupMaps.vulnerable.get(nodeName);
-        node.issues.push({ type: 'security', severity: v.severity || 'high', message: v.title || `Security vulnerability in ${nodeName}`, fixAvailable: v.fixAvailable, via: v.via });
-      }
-      if (lookupMaps.outdated.has(nodeName)) {
-        node.isOutdated = true;
-        const info = lookupMaps.outdated.get(nodeName);
-        node.issues.push({ type: 'outdated', severity: 'medium', message: `Outdated: ${info.current || node.version} → ${info.latest || 'newer'}`, current: info.current || node.version, latest: info.latest });
-      }
-      if (lookupMaps.unused.has(nodeName)) {
-        node.isUnused = true;
-        node.issues.push({ type: 'unused', severity: 'low', message: 'Package appears to be unused' });
-      }
-      if (lookupMaps.alerts.has(nodeName)) {
-        const alert = lookupMaps.alerts.get(nodeName);
-        if ((alert.title || alert.message || '').toLowerCase().includes('deprecated')) node.isDeprecated = true;
-        node.issues.push({ type: 'deprecated', severity: alert.severity || 'medium', message: alert.title || alert.message || 'Known issue', fix: alert.fix, source: alert.source });
-      }
+      nodeIssues.forEach(issue => {
+        const severity = (issue.severity || 'medium').toLowerCase();
+        if (issue.type === 'security') {
+          node.isVulnerable = true;
+          node.issues.push({ type: 'security', severity, message: issue.message || `Security vulnerability in ${node.name}`, fixAvailable: !!issue.safeFix, via: issue.source });
+        } else if (issue.type === 'outdated') {
+          node.isOutdated = true;
+          const meta = issue.metadata || {};
+          node.issues.push({ type: 'outdated', severity, message: issue.message || `Outdated: ${meta.current || node.version} → ${meta.latest || 'newer'}`, current: meta.current || node.version, latest: meta.latest });
+        } else if (issue.type === 'unused') {
+          node.isUnused = true;
+          node.issues.push({ type: 'unused', severity, message: issue.message || 'Package appears to be unused' });
+        } else if (issue.type === 'quality') {
+          const status = issue.metadata?.status;
+          const isDeprecatedLike = status === 'deprecated' || status === 'abandoned' || (issue.message || '').toLowerCase().includes('deprecated');
+          if (isDeprecatedLike) node.isDeprecated = true;
+          node.issues.push({ type: isDeprecatedLike ? 'deprecated' : 'quality', severity, message: issue.message || 'Known issue', fix: issue.fix, source: issue.source });
+        } else if (issue.type === 'license') {
+          node.issues.push({ type: 'license', severity, message: issue.message || 'License risk', fix: issue.fix });
+        }
+      });
 
       if (node.issues.length > 0) node.healthScore = this.calculateHealthScore(node.issues);
     });

@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const CACHE_DIR = path.join(os.homedir(), '.depcompass', 'cache');
+const CACHE_DIR = path.join(os.homedir(), '.devcompass', 'cache');
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_CONCURRENCY = 5;
 const REQUEST_TIMEOUT = 10000;

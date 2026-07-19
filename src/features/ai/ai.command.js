@@ -71,7 +71,7 @@ async function askQuestion(question, projectPath = process.cwd(), options = {}) 
 
     const conversationId = options.conversationId || uuidv4();
     if (typeof conversationManager.addMessage === 'function') {
-      conversationManager.addMessage(conversationId, 'user', question);
+      await conversationManager.addMessage(conversationId, 'user', question);
     }
 
     const messages = [
@@ -85,15 +85,19 @@ async function askQuestion(question, projectPath = process.cwd(), options = {}) 
 
     let fullResponse = '';
     let hasOutput = false;
+    let actualUsage = null;
     process.stdout.write(chalk.cyan('\n🤖 '));
 
     try {
-      await provider.streamPrompt(messages, (chunk) => {
+      actualUsage = await provider.streamPrompt(messages, (chunk) => {
         if (chunk?.trim()) { process.stdout.write(chunk); fullResponse += chunk; hasOutput = true; }
       }, options);
     } catch (streamError) {
-      console.error(chalk.red('\n\n❌ Streaming Error:'), streamError.message);
-      if (streamError.message.includes('ECONNREFUSED')) {
+      // Node's dual-stack connection errors (e.g. a refused localhost connection to
+      // Ollama) surface as an AggregateError with an empty top-level `.message`.
+      const errorMessage = streamError.message || streamError.code || streamError.errors?.[0]?.message || 'Unknown error';
+      console.error(chalk.red('\n\n❌ Streaming Error:'), errorMessage);
+      if (streamError.code === 'ECONNREFUSED' || errorMessage.includes('ECONNREFUSED')) {
         console.log(chalk.yellow('\n💡 Is Ollama running? Start with: ollama serve\n'));
       }
       currentProvider = null;
@@ -110,15 +114,16 @@ async function askQuestion(question, projectPath = process.cwd(), options = {}) 
     }
 
     if (typeof conversationManager.addMessage === 'function') {
-      conversationManager.addMessage(conversationId, 'assistant', fullResponse);
+      await conversationManager.addMessage(conversationId, 'assistant', fullResponse);
     }
 
-    const estimatedOutput = Math.ceil(fullResponse.length / 4);
-    const finalCost = provider.estimateCost ? provider.estimateCost(estimatedInputTokens, estimatedOutput) : 0;
+    const finalInputTokens = actualUsage?.inputTokens || estimatedInputTokens;
+    const finalOutputTokens = actualUsage?.outputTokens || Math.ceil(fullResponse.length / 4);
+    const finalCost = provider.estimateCost ? provider.estimateCost(finalInputTokens, finalOutputTokens) : 0;
     costLimiter.currentSpend += finalCost;
 
     const providerId = provider?.config?.id || provider?.id;
-    if (providerId) costTracker.trackUsage(providerId, estimatedInputTokens + estimatedOutput, finalCost);
+    if (providerId) costTracker.trackUsage(providerId, finalInputTokens + finalOutputTokens, finalCost);
 
     console.log(chalk.gray(`💰 Cost: $${finalCost.toFixed(4)} | Daily: $${costLimiter.currentSpend.toFixed(2)}/$${costLimiter.dailyLimit}`));
     currentProvider = null;
