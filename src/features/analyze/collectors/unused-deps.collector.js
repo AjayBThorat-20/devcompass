@@ -1,6 +1,6 @@
 // src/features/analyze/collectors/unused-deps.collector.js
 
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const OutputManager = require('../../../shared/utils/output-manager');
@@ -91,16 +91,19 @@ function fallbackUnusedCheck(projectPath, dependencies) {
     try {
       const srcDir = path.join(projectPath, 'src');
       const candidatePaths = [srcDir, path.join(projectPath, 'index.js'), path.join(projectPath, 'main.js')]
-        .filter(p => fs.existsSync(p))
-        .map(p => `"${p}"`)
-        .join(' ');
+        .filter(p => fs.existsSync(p));
 
-      if (!candidatePaths) continue;
+      if (candidatePaths.length === 0) continue;
 
-      const grepCmd = `grep -r "${dep}" ${candidatePaths} 2>/dev/null || true`;
-      const result = execSync(grepCmd, { encoding: 'utf-8', timeout: 5000 });
-
-      if (!result || result.trim().length === 0) unused.push(dep);
+      // execFile (no shell) so a crafted dependency name in the scanned project's
+      // own package.json can't break out of the command and run arbitrary shell code.
+      try {
+        execFileSync('grep', ['-r', '-l', '--', dep, ...candidatePaths], { encoding: 'utf-8', timeout: 5000, stdio: ['ignore', 'pipe', 'ignore'] });
+        // exit 0: at least one match found, so the dependency is used
+      } catch (grepError) {
+        if (grepError.status === 1) unused.push(dep); // exit 1: no match anywhere
+        // any other exit code/signal is inconclusive — don't flag it as unused
+      }
     } catch (error) {
       continue;
     }
@@ -109,4 +112,4 @@ function fallbackUnusedCheck(projectPath, dependencies) {
   return unused;
 }
 
-module.exports = { analyzeUnusedDependencies };
+module.exports = { analyzeUnusedDependencies, fallbackUnusedCheck };
