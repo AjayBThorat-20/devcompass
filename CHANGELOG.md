@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.8] - 2026-08-08
+
+### Fixed
+
+- **Stale Version Strings** - Several user-facing and persisted-data version strings were hardcoded to `'3.2.6'` and had drifted from the actual running version: `analyze --json` output, saved snapshot metadata (`devcompass_version` in the history database), the `analyze`/`fix`/`--help` headers, and the analysis cache. These now read `package.json`'s version at runtime instead of a literal. The two browser-context dashboard scripts (which can't `require()` package.json) are bumped to match for now.
+
+### Docs
+
+- Added a CI status badge and real terminal-recorded demo GIFs/screenshot to the README
+
 ## [3.2.7] - 2026-08-08
 
 ### 🔒 Dependency Security Update
