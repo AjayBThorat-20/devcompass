@@ -31,4 +31,7 @@ devcompass-v310-test/
 .devcompass/
 knip.json
 
-test/
+# Local scratch fixture projects (manual testing only) — keep ignored, but
+# track the hand-written automated test suite under test/unit/ so CI can run it
+test/*
+!test/unit/
