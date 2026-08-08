@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.2.6] - 2026-07-19
+## [3.2.6] - 2026-08-08
 
 ### 🔒 Security & Stability Release
 
@@ -18,6 +18,7 @@ This release closes several command-injection and path-traversal gaps found duri
 - **Path Traversal** - `BackupManager`/`BackupRestorer` now resolve and validate backup names (`resolveBackupPath`) before reading, restoring, or deleting a backup directory, rejecting names that escape `.devcompass-backups/`
 - **Encryption Key Hardening** - API key encryption moved from an unsalted SHA-256 key to a salted, computationally-expensive `scrypt` key tied to a per-install salt (`~/.devcompass/.encryption-salt`); decryption transparently falls back to the legacy key so previously-stored tokens keep working
 - **AI Provider Key Handling** - Providers now fail loudly (`BaseProvider.getApiKey()`) if no decrypted-key resolver is configured, instead of silently falling back to `config.api_key`, which could be the still-encrypted ciphertext
+- **Shell Injection in Unused-Dependency Fallback** - The fallback detector used when `knip` is unavailable built a `grep` shell command by interpolating each dependency name directly from the scanned project's `package.json`; a crafted dependency name could break out of the command and run arbitrary shell code. It now runs `grep` via `execFileSync` (no shell), so the name is always passed as a literal argument
 
 ### Fixed
 
