@@ -2,12 +2,17 @@
 
 > **Professional dependency health checker with AI-powered insights, real-time CVE detection, and comprehensive project analysis**
 
+[![CI](https://github.com/AjayBThorat-20/devcompass/actions/workflows/ci.yml/badge.svg)](https://github.com/AjayBThorat-20/devcompass/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/node/v/devcompass.svg)](https://nodejs.org)
 
 **DevCompass** is a comprehensive dependency analysis platform that combines security scanning, health monitoring, and AI-powered recommendations into a single powerful CLI tool. Built for modern JavaScript projects, it provides enterprise-grade insights with developer-friendly workflows.
+
+<p align="center">
+  <img src="docs/assets/demo-overview.gif" alt="devcompass --help output" width="720">
+</p>
 
 ---
 
@@ -105,6 +110,12 @@ devcompass analyze --ai
 # Generate interactive dependency graph
 devcompass graph --open
 ```
+
+<p align="center">
+  <img src="docs/assets/demo-analyze.gif" alt="devcompass analyze finding real CVEs in a sample project" width="760">
+  <br>
+  <sub><code>devcompass analyze</code> against a project pinned to axios@0.21.1, lodash@4.17.15, and minimist@1.2.5 — all three carry real, disclosed CVEs</sub>
+</p>
 
 ### Configure Security Scanning
 
@@ -227,6 +238,12 @@ devcompass fix --dry-run
 - Health score tracking (before → after)
 - Rollback support
 
+<p align="center">
+  <img src="docs/assets/demo-fix.gif" alt="devcompass fix previewing, backing up, and applying safe fixes" width="760">
+  <br>
+  <sub>Same project as above — preview, confirm, automatic backup, then a real health score jump from 4.0 to 10.0</sub>
+</p>
+
 ---
 
 ### Visualization
@@ -265,6 +282,10 @@ devcompass graph --open
 - Search functionality
 - Zoom and pan
 - Export as PNG/JSON
+
+<p align="center">
+  <img src="docs/assets/dashboard-graph.png" alt="DevCompass interactive dependency graph dashboard" width="800">
+</p>
 
 ---
 
@@ -683,7 +704,7 @@ npx devcompass analyze
 **Old version installed**
 ```bash
 npm update -g devcompass
-devcompass --version  # Should show 3.2.6
+devcompass --version  # Should show 3.2.7
 ```
 
 **No analysis cache found**
@@ -742,10 +763,17 @@ devcompass llm test local
 
 ## 📈 Version History
 
+### v3.2.7 (2026-08-08) - Dependency Security Update
+- 🔒 **axios** upgraded 1.15.2 → 1.19.0 — resolves HIGH-severity ReDoS, unbounded resource allocation, Proxy-Authorization credential leak, and prototype-pollution MITM advisories
+- 🔒 **form-data** (transitive) upgraded 4.0.5 → 4.0.6 — resolves a CRLF injection via unescaped multipart field names/filenames
+- ✅ `npm audit` reports 0 vulnerabilities
+- ✅ **100% Backward Compatible** - No code changes required (fixed within the existing `^1.6.0` range)
+
 ### v3.2.6 (2026-07-19) - Security & Stability
 - 🔒 **Command Injection Fixes** - Sanitized package names/versions before all `npm install`/`uninstall` shell calls
 - 🔒 **Path Traversal Fix** - Backup restore/info/delete now validate backup names before touching the filesystem
 - 🔒 **Salted Key Derivation** - API key encryption upgraded to salted `scrypt`, with transparent decryption of tokens saved under the old scheme
+- 🔒 **Shell Injection in Unused-Dependency Fallback** - The `knip`-unavailable fallback now runs `grep` via `execFileSync` instead of a shell string, so a crafted dependency name in a scanned project's `package.json` can't run arbitrary commands
 - 🐛 **Graph Fixes** - Diamond dependencies (shared by multiple packages) now render correctly instead of being dropped as false cycles
 - 🐛 **AI Cost Tracking** - Fixed a 1000× pricing bug in provider cost estimates and switched to real token usage when providers report it
 - 🐛 **CVE Retry Logic** - NVD lookups now back off on 5xx/network errors, not just HTTP 429
@@ -878,7 +906,7 @@ If DevCompass helps your project, please consider giving it a star! ⭐
 
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
 
-*DevCompass v3.2.6 - Professional Dependency Intelligence Platform* 🧭✨
+*DevCompass v3.2.7 - Professional Dependency Intelligence Platform* 🧭✨
 
 [Get Started](#-quick-start) · [Documentation](#-complete-command-reference) · [Contributing](#-contributing)
 

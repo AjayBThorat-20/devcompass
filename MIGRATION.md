@@ -1,5 +1,24 @@
 # Migration Guide
 
+## From v3.2.6 → v3.2.7
+
+### What's New
+- **🔒 axios upgraded 1.15.2 → 1.19.0**: Resolves HIGH-severity ReDoS, unbounded resource allocation, Proxy-Authorization credential leak, and prototype-pollution MITM advisories
+- **🔒 form-data upgraded 4.0.5 → 4.0.6** (transitive, via axios): Resolves a CRLF injection via unescaped multipart field names/filenames
+- **✅ `npm audit` reports 0 vulnerabilities**
+
+### Migration Steps
+```bash
+npm install -g devcompass@3.2.7
+```
+
+### What Changed
+- **Modified**: `package.json`, `package-lock.json` - `axios` and its transitive `form-data` dependency bumped to patched versions, within the existing `^1.6.0` range (no code changes)
+
+No breaking changes. No config or usage changes required.
+
+---
+
 ## From v3.2.5 → v3.2.6
 
 ### What's New
