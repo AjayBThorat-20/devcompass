@@ -704,7 +704,7 @@ npx devcompass analyze
 **Old version installed**
 ```bash
 npm update -g devcompass
-devcompass --version  # Should show 3.2.7
+devcompass --version  # Should show 3.2.8
 ```
 
 **No analysis cache found**
@@ -762,6 +762,10 @@ devcompass llm test local
 ---
 
 ## 📈 Version History
+
+### v3.2.8 (2026-08-08) - Version String Fixes
+- 🐛 **Stale Version Strings** - `analyze --json` output, saved snapshot metadata, and the `analyze`/`fix`/`--help` headers were hardcoded to `3.2.6` and had drifted from the actual running version; all now read `package.json` at runtime
+- 📖 **README Polish** - Added a CI status badge and real terminal-recorded demo GIFs/screenshot
 
 ### v3.2.7 (2026-08-08) - Dependency Security Update
 - 🔒 **axios** upgraded 1.15.2 → 1.19.0 — resolves HIGH-severity ReDoS, unbounded resource allocation, Proxy-Authorization credential leak, and prototype-pollution MITM advisories
@@ -906,7 +910,7 @@ If DevCompass helps your project, please consider giving it a star! ⭐
 
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
 
-*DevCompass v3.2.7 - Professional Dependency Intelligence Platform* 🧭✨
+*DevCompass v3.2.8 - Professional Dependency Intelligence Platform* 🧭✨
 
 [Get Started](#-quick-start) · [Documentation](#-complete-command-reference) · [Contributing](#-contributing)
 
