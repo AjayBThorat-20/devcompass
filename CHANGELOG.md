@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.7] - 2026-08-08
+
+### 🔒 Dependency Security Update
+
+### Security
+
+- **axios** upgraded 1.15.2 → 1.19.0, resolving several HIGH-severity advisories (ReDoS via cookie name injection, unbounded resource allocation, Proxy-Authorization credential leaks across redirects, and prototype-pollution gadgets enabling MITM), fixed within the existing `^1.6.0` range — no code changes required
+- **form-data** (transitive, via axios) upgraded 4.0.5 → 4.0.6, fixing a CRLF injection via unescaped multipart field names/filenames (GHSA-hmw2-7cc7-3qxx)
+
+`npm audit` now reports 0 vulnerabilities.
+
 ## [3.2.6] - 2026-08-08
 
 ### 🔒 Security & Stability Release
