@@ -2,9 +2,10 @@
 
 const chalk = require('chalk');
 const { ConsoleFormatter } = require('../../../core/formatters/console-formatter');
+const { version } = require('../../../../package.json');
 
 function renderFixPreview(plan, mode = 'safe') {
-  ConsoleFormatter.header('DevCompass Fix v3.2.6');
+  ConsoleFormatter.header(`DevCompass Fix v${version}`);
 
   const actions = getActionsForMode(plan, mode);
   const skipped = getSkippedActions(plan, mode);

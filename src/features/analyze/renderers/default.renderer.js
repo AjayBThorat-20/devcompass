@@ -2,11 +2,12 @@
 
 const { ConsoleFormatter } = require('../../../core/formatters/console-formatter');
 const { getTopIssues } = require('../../../core/services/issue-ranker');
+const { version } = require('../../../../package.json');
 
 function renderDefaultOutput(issues, metadata) {
   const topIssues = getTopIssues(issues, 3);
 
-  ConsoleFormatter.header('DevCompass v3.2.6', metadata.projectInfo);
+  ConsoleFormatter.header(`DevCompass v${version}`, metadata.projectInfo);
 
   if (metadata.healthScore !== undefined) ConsoleFormatter.healthScore(metadata.healthScore);
 

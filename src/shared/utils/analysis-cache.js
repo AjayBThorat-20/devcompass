@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const OutputManager = require('./output-manager');
+const { version } = require('../../../package.json');
 
 function getCachePath(projectPath = process.cwd()) {
   return new OutputManager(projectPath).getCachePath('analysis-cache.json');
@@ -16,7 +17,7 @@ function saveAnalysisCache(data, projectPath = process.cwd()) {
   try {
     const cacheFile = getCachePath(projectPath);
     const cacheTempFile = getTempCachePath(projectPath);
-    const cacheData = { ...data, version: '3.2.6', savedAt: new Date().toISOString() };
+    const cacheData = { ...data, version, savedAt: new Date().toISOString() };
 
     fs.writeFileSync(cacheTempFile, JSON.stringify(cacheData, null, 2), 'utf8');
     if (fs.existsSync(cacheFile)) fs.unlinkSync(cacheFile);

@@ -19,7 +19,7 @@ program
   .addHelpText('after', `
 ${chalk.gray('Author:')} Ajay Thorat
 ${chalk.gray('GitHub:')} ${chalk.cyan('https://github.com/AjayBThorat-20/devcompass')}
-${chalk.gray('New in v3.2.6:')} 🚀 Architecture improvements & performance optimizations
+${chalk.gray(`New in v${packageJson.version}:`)} 🔒 Dependency security update (axios, form-data)
   `);
 
 require('../src/cli/commands/analyze.cmd')(program);

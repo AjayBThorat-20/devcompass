@@ -2,13 +2,14 @@
 
 const { ConsoleFormatter } = require('../../../core/formatters/console-formatter');
 const { getTopIssues, createRanker } = require('../../../core/services/issue-ranker');
+const { version } = require('../../../../package.json');
 
 function renderDeepOutput(issues, metadata) {
   const topIssues = getTopIssues(issues, 3);
   const ranker = createRanker(issues);
   const grouped = ranker.groupByType();
 
-  ConsoleFormatter.header('DevCompass Deep Analysis v3.2.6', metadata.projectInfo);
+  ConsoleFormatter.header(`DevCompass Deep Analysis v${version}`, metadata.projectInfo);
 
   if (metadata.healthScore !== undefined) ConsoleFormatter.healthScore(metadata.healthScore);
 

@@ -26,7 +26,7 @@ async function runFix(options = {}) {
   if (preview && !dryRun) options.dryRun = true;
 
   if (batch || batchMode || only || skip) {
-    console.log('\n⚠️  Batch mode features are not yet available in v3.2.6');
+    console.log('\n⚠️  Batch mode features are not yet available');
     console.log('Use standard fix mode:\n  devcompass fix\n  devcompass fix --all\n  devcompass fix --yes\n');
     return;
   }

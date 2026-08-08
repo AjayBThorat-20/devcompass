@@ -196,7 +196,7 @@ function exportJSON() {
   }
 
   const exportData = {
-    version: '3.2.6',
+    version: '3.2.7',
     timestamp: new Date().toISOString(),
     nodes: window.graphData.nodes,
     links: window.graphData.links,

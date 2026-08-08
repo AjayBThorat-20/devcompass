@@ -1,8 +1,10 @@
 // src/features/analyze/renderers/json.renderer.js
 
+const { version } = require('../../../../package.json');
+
 function renderJSONOutput(issues, metadata) {
   const output = {
-    version: '3.2.6',
+    version,
     timestamp: new Date().toISOString(),
     project: {
       name: metadata.projectName,

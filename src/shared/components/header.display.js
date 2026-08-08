@@ -1,9 +1,10 @@
 // src/shared/components/header.display.js
 
 const chalk = require('chalk');
+const { version: packageVersion } = require('../../../package.json');
 
 class HeaderDisplay {
-  static render(title, subtitle = '', version = '3.2.6') {
+  static render(title, subtitle = '', version = packageVersion) {
     console.log('');
     console.log(chalk.bold.cyan(`📊 ${title}`));
 

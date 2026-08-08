@@ -1,7 +1,7 @@
 // src/shared/utils/constants.js
 
 module.exports = {
-  VERSION: '3.2.6',
+  VERSION: require('../../../package.json').version,
 
   SEVERITY_LEVELS: { CRITICAL: 'CRITICAL', HIGH: 'HIGH', MEDIUM: 'MEDIUM', LOW: 'LOW', INFO: 'INFO' },
   ISSUE_TYPES: { CVE: 'cve', LICENSE: 'license', QUALITY: 'quality', SECURITY: 'security', OUTDATED: 'outdated', UNUSED: 'unused', DEPRECATED: 'deprecated' },
