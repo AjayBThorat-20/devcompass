@@ -8,12 +8,13 @@ const tokenManager = require('./token.manager');
 const conversationManager = require('./conversation.manager');
 const contextBuilder = require('./context.builder');
 const costTracker = require('./cost.tracker');
+const aiDatabase = require('./ai.database');
 const promptTemplates = require('./prompt.templates');
 const RateLimiter = require('../../shared/utils/rate-limiter');
 
 let currentProvider = null;
 const rateLimiter = new RateLimiter(10, 60000);
-const costLimiter = { dailyLimit: 10.0, currentSpend: 0, lastReset: Date.now() };
+const DAILY_COST_LIMIT = 10.0;
 
 function setupCancellation() {
   process.removeAllListeners('SIGINT');
@@ -25,12 +26,23 @@ function setupCancellation() {
   });
 }
 
+// Backed by ai_conversations (persisted per-request, with a real timestamp) rather
+// than an in-memory counter — each `devcompass ai ask` is a fresh CLI process, so an
+// in-memory-only counter reset to 0 on every single invocation and never actually
+// stopped anyone from blowing past the daily limit across separate commands.
+function getTodaySpend() {
+  try {
+    return aiDatabase.getTodaySpend();
+  } catch (error) {
+    if (process.env.DEBUG) console.error('Could not read today\'s AI spend:', error.message);
+    return 0;
+  }
+}
+
 function checkDailyCostLimit(estimatedCost) {
-  const now = Date.now();
-  const dayMs = 24 * 60 * 60 * 1000;
-  if (now - costLimiter.lastReset > dayMs) { costLimiter.currentSpend = 0; costLimiter.lastReset = now; }
-  if (costLimiter.currentSpend + estimatedCost > costLimiter.dailyLimit) {
-    throw new Error(`Daily cost limit reached ($${costLimiter.dailyLimit}).`);
+  const todaySpend = getTodaySpend();
+  if (todaySpend + estimatedCost > DAILY_COST_LIMIT) {
+    throw new Error(`Daily cost limit reached ($${DAILY_COST_LIMIT}). Spent $${todaySpend.toFixed(2)} today.`);
   }
 }
 
@@ -120,12 +132,19 @@ async function askQuestion(question, projectPath = process.cwd(), options = {}) 
     const finalInputTokens = actualUsage?.inputTokens || estimatedInputTokens;
     const finalOutputTokens = actualUsage?.outputTokens || Math.ceil(fullResponse.length / 4);
     const finalCost = provider.estimateCost ? provider.estimateCost(finalInputTokens, finalOutputTokens) : 0;
-    costLimiter.currentSpend += finalCost;
 
     const providerId = provider?.config?.id || provider?.id;
-    if (providerId) costTracker.trackUsage(providerId, finalInputTokens + finalOutputTokens, finalCost);
+    if (providerId) {
+      costTracker.trackUsage(providerId, finalInputTokens + finalOutputTokens, finalCost);
+      try {
+        await conversationManager.saveConversation(providerId, 'ask', null, question, fullResponse, finalInputTokens + finalOutputTokens, finalCost);
+      } catch (error) {
+        if (process.env.DEBUG) console.error('Could not persist conversation:', error.message);
+      }
+    }
 
-    console.log(chalk.gray(`💰 Cost: $${finalCost.toFixed(4)} | Daily: $${costLimiter.currentSpend.toFixed(2)}/$${costLimiter.dailyLimit}`));
+    const todaySpend = getTodaySpend();
+    console.log(chalk.gray(`💰 Cost: $${finalCost.toFixed(4)} | Daily: $${todaySpend.toFixed(2)}/$${DAILY_COST_LIMIT}`));
     currentProvider = null;
   } catch (error) {
     currentProvider = null;

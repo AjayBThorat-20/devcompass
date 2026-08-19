@@ -8,6 +8,8 @@ async function resolveInstalledVersions(projectPath, dependencies) {
   if (!dependencies || typeof dependencies !== 'object') return installedVersions;
 
   for (const [packageName, declaredVersion] of Object.entries(dependencies)) {
+    const cleanVersion = typeof declaredVersion === 'string' ? declaredVersion.replace(/^[\^~>=<]/, '') : declaredVersion;
+
     try {
       const packageJsonPath = path.join(projectPath, 'node_modules', packageName, 'package.json');
 
@@ -19,11 +21,13 @@ async function resolveInstalledVersions(projectPath, dependencies) {
           declaredVersion
         };
       } else {
-        const cleanVersion = typeof declaredVersion === 'string' ? declaredVersion.replace(/^[\^~>=<]/, '') : declaredVersion;
         installedVersions[packageName] = { name: packageName, version: cleanVersion, declaredVersion };
       }
     } catch (error) {
-      continue;
+      // Installed package.json exists but couldn't be read/parsed (corrupt
+      // install, permission error) — fall back to the declared version
+      // instead of silently dropping the package from every downstream check.
+      installedVersions[packageName] = { name: packageName, version: cleanVersion, declaredVersion };
     }
   }
 

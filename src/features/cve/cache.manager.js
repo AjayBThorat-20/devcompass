@@ -36,6 +36,15 @@ class CacheManager {
     }
   }
 
+  delete(packageName, version, ecosystem = 'npm') {
+    try {
+      return db.prepare('DELETE FROM vulnerability_cache WHERE package_name = ? AND package_version = ? AND ecosystem = ?')
+        .run(packageName, version, ecosystem).changes;
+    } catch (error) {
+      return 0;
+    }
+  }
+
   clearExpired() {
     try {
       return db.prepare('DELETE FROM vulnerability_cache WHERE datetime(expires_at) <= datetime(\'now\')').run().changes;

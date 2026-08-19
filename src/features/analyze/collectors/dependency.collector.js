@@ -48,9 +48,9 @@ async function collectOutdatedData(projectPath, packageJson = null) {
   }
 }
 
-async function collectUnusedData(projectPath) {
+async function collectUnusedData(projectPath, packageJson = null) {
   try {
-    return await analyzeUnusedDependencies(projectPath);
+    return await analyzeUnusedDependencies(projectPath, packageJson);
   } catch (error) {
     if (process.env.DEBUG) console.error('Unused collection failed:', error.message);
     return [];

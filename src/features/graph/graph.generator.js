@@ -60,7 +60,8 @@ class GraphGenerator {
     if (this.analysisResults) this.enrichNodesWithAnalysisSinglePass(nodes);
 
     const filteredData = this.applyFilter(nodes, links, filter);
-    if (filteredData.nodes.length > MAX_GRAPH_NODES) {
+    const wasTruncated = filteredData.nodes.length > MAX_GRAPH_NODES;
+    if (wasTruncated) {
       if (!process.env.SILENT) console.log(`\n⚠️  Graph truncated: Showing ${MAX_GRAPH_NODES} of ${filteredData.nodes.length} nodes`);
     }
 
@@ -79,7 +80,7 @@ class GraphGenerator {
         generatedAt: new Date().toISOString(),
         maxDepth: this.calculateMaxDepth(nodes),
         filter,
-        truncated: nodes.length > MAX_GRAPH_NODES
+        truncated: wasTruncated
       }
     };
   }

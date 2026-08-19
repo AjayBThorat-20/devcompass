@@ -35,3 +35,6 @@ knip.json
 # track the hand-written automated test suite under test/unit/ so CI can run it
 test/*
 !test/unit/
+
+# Internal growth/roadmap notes — not for the public repo
+plan/

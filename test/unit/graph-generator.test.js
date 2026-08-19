@@ -83,3 +83,26 @@ test('analysis issues enrich nodes via isVulnerable (not the old hasVulnerabilit
 
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('metadata.truncated reflects the filtered node count, not the unfiltered total', async () => {
+  // 501 flat direct deps (502 nodes incl. root) blows past MAX_GRAPH_NODES (500)
+  // in the *unfiltered* graph, but a 'vulnerable' filter with zero vulnerable
+  // packages collapses that down to just the root node.
+  const dependencies = {};
+  const packages = {};
+  for (let i = 0; i < 501; i++) {
+    dependencies[`pkg${i}`] = '1.0.0';
+    packages[`node_modules/pkg${i}`] = {};
+  }
+  const dir = makeFixture(
+    { name: 'root', version: '1.0.0', dependencies },
+    { packages }
+  );
+
+  const graph = await new GraphGenerator(dir).generate({ filter: 'vulnerable' });
+
+  assert.equal(graph.nodes.length, 1, 'only the root node survives the vulnerable-only filter');
+  assert.equal(graph.metadata.truncated, false, 'a small filtered view must not be reported as truncated');
+
+  fs.rmSync(dir, { recursive: true, force: true });
+});

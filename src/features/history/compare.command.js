@@ -25,9 +25,10 @@ async function compareCommand(options) {
     process.exit(1);
   }
 
+  let snap1, snap2;
   try {
-    const snap1 = loader.getSnapshot(parsedId1);
-    const snap2 = loader.getSnapshot(parsedId2);
+    snap1 = loader.getSnapshot(parsedId1);
+    snap2 = loader.getSnapshot(parsedId2);
     if (!snap1) { console.error(chalk.red(`❌ Snapshot #${parsedId1} not found\n`)); process.exit(1); }
     if (!snap2) { console.error(chalk.red(`❌ Snapshot #${parsedId2} not found\n`)); process.exit(1); }
   } catch (error) {
@@ -38,7 +39,7 @@ async function compareCommand(options) {
   const spinner = ora('Comparing snapshots...').start();
 
   try {
-    const result = comparator.compare(parsedId1, parsedId2);
+    const result = comparator.compare(parsedId1, parsedId2, snap1, snap2);
     if (!result) { spinner.fail('Comparison failed'); process.exit(1); }
 
     spinner.succeed(`Comparison complete (${result.duration}ms)`);

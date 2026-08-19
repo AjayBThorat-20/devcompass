@@ -13,14 +13,14 @@ async function checkEcosystemAlerts(projectPath, dependencies) {
   try {
     const installedVersions = await resolveInstalledVersions(projectPath, dependencies);
     if (!issuesAnalyzer) return [];
-    return await fetchDynamicAlerts(installedVersions);
+    return await fetchDynamicAlerts(installedVersions, projectPath);
   } catch (error) {
     if (process.env.DEBUG) console.error('Error in checkEcosystemAlerts:', error.message);
     return [];
   }
 }
 
-async function fetchDynamicAlerts(installedVersions) {
+async function fetchDynamicAlerts(installedVersions, projectPath = process.cwd()) {
   const alerts = [];
   if (!issuesAnalyzer) return alerts;
 
@@ -34,7 +34,7 @@ async function fetchDynamicAlerts(installedVersions) {
   }
 
   try {
-    const issuesMap = await issuesAnalyzer.getBatchIssues(packages);
+    const issuesMap = await issuesAnalyzer.getBatchIssues(packages, projectPath);
 
     issuesMap.forEach((issues, packageName) => {
       issues.forEach(issue => {

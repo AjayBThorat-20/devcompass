@@ -1,9 +1,13 @@
 // src/features/analyze/collectors/unused-deps.collector.js
 
-const { execSync, execFileSync } = require('child_process');
+const { exec, execFile } = require('child_process');
+const { promisify } = require('util');
 const path = require('path');
 const fs = require('fs');
 const OutputManager = require('../../../shared/utils/output-manager');
+
+const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 let knipConfigData = null;
 try {
@@ -15,12 +19,20 @@ try {
   knipConfigData = { skipPackages: [] };
 }
 
-async function analyzeUnusedDependencies(projectPath) {
-  try {
-    const packageJsonPath = path.join(projectPath, 'package.json');
-    if (!fs.existsSync(packageJsonPath)) return [];
+// Exact-match against the skip list (or its scoped subpaths), not substring —
+// "eslint" must not also swallow "eslint-plugin-unicorn", nor "next" swallow "next-auth".
+function shouldSkipPackage(pkg, skipPackages) {
+  return skipPackages.some(skip => pkg === skip || pkg.startsWith(`${skip}/`));
+}
 
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+async function analyzeUnusedDependencies(projectPath, packageJson = null) {
+  try {
+    if (!packageJson) {
+      const packageJsonPath = path.join(projectPath, 'package.json');
+      if (!fs.existsSync(packageJsonPath)) return [];
+      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+    }
+
     const dependencies = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
 
     // Written under .devcompass/temp instead of the project root — a bare
@@ -39,16 +51,14 @@ async function analyzeUnusedDependencies(projectPath) {
 
     try {
       // knip exits non-zero whenever it finds issues (its normal/expected behavior,
-      // not an execution failure), so execSync's thrown error still carries valid
+      // not an execution failure), so the rejected promise still carries valid
       // JSON on stdout and must be read from there rather than treated as a failure.
       let knipOutput;
       try {
-        knipOutput = execSync(`npx knip --config ${JSON.stringify(knipConfigPath)} --reporter json`, {
-          cwd: projectPath,
-          encoding: 'utf-8',
-          timeout: 30000,
-          stdio: ['pipe', 'pipe', 'pipe']
-        });
+        ({ stdout: knipOutput } = await execAsync(
+          `npx knip --config ${JSON.stringify(knipConfigPath)} --reporter json`,
+          { cwd: projectPath, encoding: 'utf-8', timeout: 30000 }
+        ));
       } catch (execError) {
         if (typeof execError.stdout !== 'string' || !execError.stdout.trim()) throw execError;
         knipOutput = execError.stdout;
@@ -68,7 +78,7 @@ async function analyzeUnusedDependencies(projectPath) {
       }
 
       const skipPackages = knipConfigData.skipPackages || [];
-      unused = unused.filter(pkg => !skipPackages.some(skip => pkg.includes(skip)));
+      unused = unused.filter(pkg => !shouldSkipPackage(pkg, skipPackages));
 
       return unused;
     } catch (knipError) {
@@ -81,35 +91,53 @@ async function analyzeUnusedDependencies(projectPath) {
   }
 }
 
-function fallbackUnusedCheck(projectPath, dependencies) {
-  const unused = [];
+async function checkDependencyUsage(dep, candidatePaths) {
+  try {
+    // execFile (no shell) so a crafted dependency name in the scanned project's
+    // own package.json can't break out of the command and run arbitrary shell code.
+    await execFileAsync('grep', ['-r', '-l', '--', dep, ...candidatePaths], { encoding: 'utf-8', timeout: 5000 });
+    return { dep, used: true }; // exit 0: at least one match found, so the dependency is used
+  } catch (grepError) {
+    if (grepError.code === 1) return { dep, used: false }; // exit 1: no match anywhere
+    return { dep, used: true }; // any other exit code/signal is inconclusive — don't flag it as unused
+  }
+}
+
+async function fallbackUnusedCheck(projectPath, dependencies) {
   const skipPackages = knipConfigData.skipPackages || [];
 
-  for (const dep of Object.keys(dependencies)) {
-    if (skipPackages.some(skip => dep.includes(skip))) continue;
+  const srcDir = path.join(projectPath, 'src');
+  const candidatePaths = [
+    srcDir,
+    path.join(projectPath, 'index.js'),
+    path.join(projectPath, 'main.js'),
+    path.join(projectPath, 'scripts'),
+  ].filter(p => fs.existsSync(p));
 
-    try {
-      const srcDir = path.join(projectPath, 'src');
-      const candidatePaths = [srcDir, path.join(projectPath, 'index.js'), path.join(projectPath, 'main.js')]
-        .filter(p => fs.existsSync(p));
+  // Config files commonly reference a dependency (e.g. postcss.config.js,
+  // webpack.config.js) without it ever appearing under src/ — check those too.
+  const configGlobPatterns = fs.readdirSync(projectPath, { withFileTypes: true })
+    .filter(entry => entry.isFile() && /\.(config|rc)\.(js|cjs|mjs|json)$|^\.[a-z]+rc$/i.test(entry.name))
+    .map(entry => path.join(projectPath, entry.name));
+  candidatePaths.push(...configGlobPatterns);
 
-      if (candidatePaths.length === 0) continue;
+  if (candidatePaths.length === 0) return [];
 
-      // execFile (no shell) so a crafted dependency name in the scanned project's
-      // own package.json can't break out of the command and run arbitrary shell code.
-      try {
-        execFileSync('grep', ['-r', '-l', '--', dep, ...candidatePaths], { encoding: 'utf-8', timeout: 5000, stdio: ['ignore', 'pipe', 'ignore'] });
-        // exit 0: at least one match found, so the dependency is used
-      } catch (grepError) {
-        if (grepError.status === 1) unused.push(dep); // exit 1: no match anywhere
-        // any other exit code/signal is inconclusive — don't flag it as unused
-      }
-    } catch (error) {
-      continue;
-    }
+  const depsToCheck = Object.keys(dependencies).filter(dep => !shouldSkipPackage(dep, skipPackages));
+
+  // Run checks concurrently (bounded) instead of serially — a serial per-dependency
+  // execFileSync loop previously blocked the event loop for up to 5s * depCount,
+  // stalling the other "concurrent" collectors (CVE/license network calls) in the
+  // same Promise.allSettled batch.
+  const CONCURRENCY = 8;
+  const results = [];
+  for (let i = 0; i < depsToCheck.length; i += CONCURRENCY) {
+    const batch = depsToCheck.slice(i, i + CONCURRENCY);
+    const batchResults = await Promise.all(batch.map(dep => checkDependencyUsage(dep, candidatePaths)));
+    results.push(...batchResults);
   }
 
-  return unused;
+  return results.filter(r => !r.used).map(r => r.dep);
 }
 
 module.exports = { analyzeUnusedDependencies, fallbackUnusedCheck };

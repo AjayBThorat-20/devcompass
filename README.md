@@ -16,6 +16,22 @@
 
 ---
 
+## 🆚 Why DevCompass?
+
+`npm audit` and Dependabot are free, zero-install, and already in your workflow —
+DevCompass isn't trying to replace them. It covers what they structurally don't:
+
+| | npm audit | Dependabot | DevCompass |
+|---|---|---|---|
+| CVE scanning | ✅ | ✅ | ✅ (OSV + NVD) |
+| License conflicts | ❌ | ❌ | ✅ |
+| Unused dependency detection | ❌ | ❌ | ✅ |
+| Historical health trends | ❌ | ❌ | ✅ |
+| AI-suggested alternatives | ❌ | ❌ | ✅ |
+| Safe auto-fix w/ rollback | partial | PR-based | ✅ w/ automatic backup |
+
+---
+
 ## 🎯 What is DevCompass?
 
 DevCompass analyzes your project dependencies to provide actionable insights about:
@@ -704,7 +720,7 @@ npx devcompass analyze
 **Old version installed**
 ```bash
 npm update -g devcompass
-devcompass --version  # Should show 3.2.8
+devcompass --version  # Should show 4.0.0
 ```
 
 **No analysis cache found**
@@ -762,6 +778,17 @@ devcompass llm test local
 ---
 
 ## 📈 Version History
+
+### v4.0.0 (2026-08-19) - Correctness & Performance
+- ⚡ **`analyze` no longer hangs on real projects** - `npm audit` was being run once *per dependency* instead of once per project (17x redundant on a 12-dep project); a project that used to take 2+ minutes now completes in ~25s
+- ⚡ **CVE scans reuse the 24h cache** - the vulnerability cache existed but was never actually consulted by `analyze`; repeat scans of an unchanged project now skip redundant OSV/NVD calls
+- 🎯 **CVE checks use the installed version, not the declared range** - `"^4.17.0"` was queried as `4.17.0` regardless of what actually resolved in `node_modules`, causing both false positives and false negatives
+- 🐛 **CVE scan failures no longer look like a clean scan** - a failed OSV/network call used to silently report "0 vulnerabilities"; now flagged as an incomplete scan instead
+- 🐛 **Duplicate issues no longer double-count** - a package flagged by more than one quality/ecosystem collector was penalizing the health score twice
+- 🐛 **Custom AI provider base URLs (OpenAI/Anthropic/Google) now actually work** - a naming mismatch meant a configured proxy/gateway URL was silently ignored
+- 🐛 **AI daily cost limit now persists across commands** - it lived in memory only and reset on every CLI invocation
+- 🐛 Fixed a `mysql2` false-positive typosquatting flag, an `unused-deps` skip-list false negative, incorrect graph truncation metadata, and a couple of silent-failure/redundant-query bugs in snapshot comparison and version resolution
+- 📖 Added a README comparison table (vs. `npm audit`/Dependabot) and a `CONTRIBUTING.md`
 
 ### v3.2.8 (2026-08-08) - Version String Fixes
 - 🐛 **Stale Version Strings** - `analyze --json` output, saved snapshot metadata, and the `analyze`/`fix`/`--help` headers were hardcoded to `3.2.6` and had drifted from the actual running version; all now read `package.json` at runtime
@@ -832,9 +859,12 @@ Contributions are welcome! Here's how you can help:
 ### Quick Contributions
 
 1. **Package Alternatives** - Add to `data/quality-alternatives.json`
-2. **AI Prompts** - Improve `src/ai/prompt-templates.js`
+2. **AI Prompts** - Improve `src/features/ai/prompt.templates.js`
 3. **Graph Layouts** - Enhance `src/dashboard/scripts/layouts.js`
 4. **Documentation** - Fix typos, add examples
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide, including "good
+first issue" areas and the PR checklist.
 
 ### Code Contributions
 
@@ -910,7 +940,7 @@ If DevCompass helps your project, please consider giving it a star! ⭐
 
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
 
-*DevCompass v3.2.8 - Professional Dependency Intelligence Platform* 🧭✨
+*DevCompass v4.0.0 - Professional Dependency Intelligence Platform* 🧭✨
 
 [Get Started](#-quick-start) · [Documentation](#-complete-command-reference) · [Contributing](#-contributing)
 

@@ -9,12 +9,24 @@ async function collectCVEData(projectPath, packageJson = null) {
     const result = await vulnerabilityChecker.checkProject(projectPath, packageJson);
     const rawVulns = result.vulnerabilities || [];
 
-    if (rawVulns.length === 0) return [];
+    const issues = rawVulns.length === 0 ? [] : collapsePerPackage(rawVulns);
 
-    return collapsePerPackage(rawVulns);
+    // Attached as extra properties on the array (not a shape change) so the
+    // Promise.allSettled destructuring in analyze/index.js keeps treating this
+    // as a plain issues array — index.js reads .incomplete to warn the user
+    // and note it in the JSON metadata instead of reporting a false clean scan.
+    if (result.incomplete) {
+      issues.incomplete = true;
+      issues.incompleteReason = result.error || 'CVE scan could not complete';
+    }
+
+    return issues;
   } catch (error) {
     if (process.env.DEBUG) console.error('CVE collection failed:', error.message);
-    return [];
+    const issues = [];
+    issues.incomplete = true;
+    issues.incompleteReason = error.message;
+    return issues;
   }
 }
 

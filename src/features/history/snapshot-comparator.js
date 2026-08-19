@@ -3,10 +3,13 @@
 const loader = require('./snapshot-loader');
 
 class SnapshotComparator {
-  compare(snapshotId1, snapshotId2) {
+  // Accepts already-loaded snapshots (preloadedSnapshot1/2) to avoid re-fetching
+  // from the DB when the caller already validated their existence — falls back
+  // to loading by ID for any caller that doesn't have them on hand.
+  compare(snapshotId1, snapshotId2, preloadedSnapshot1 = null, preloadedSnapshot2 = null) {
     const startTime = Date.now();
-    const snapshot1 = loader.getSnapshot(snapshotId1);
-    const snapshot2 = loader.getSnapshot(snapshotId2);
+    const snapshot1 = preloadedSnapshot1 || loader.getSnapshot(snapshotId1);
+    const snapshot2 = preloadedSnapshot2 || loader.getSnapshot(snapshotId2);
 
     const packages1 = new Map(snapshot1.packages.map(p => [p.name, p]));
     const packages2 = new Map(snapshot2.packages.map(p => [p.name, p]));

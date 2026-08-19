@@ -11,7 +11,7 @@
   };
 
   function init() {
-    console.log('🚀 DevCompass Dashboard v3.2.7 initializing...');
+    console.log('🚀 DevCompass Dashboard v4.0.0 initializing...');
 
     if (typeof window.graphData === 'undefined' || !window.graphData) {
       console.error('No graph data available');
@@ -204,7 +204,7 @@
   }
 
   window.DevCompass = {
-    version: '3.2.7',
+    version: '4.0.0',
     get graphData() { return window.graphData; },
     get clusters() { return window.clusters; },
     get currentLayout() { return window.currentLayout; },

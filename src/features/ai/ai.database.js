@@ -123,6 +123,13 @@ class AIDatabase {
     `).run(providerId, year, month, tokens, cost, tokens, cost);
   }
 
+  getTodaySpend() {
+    const result = this.db.prepare(
+      `SELECT COALESCE(SUM(cost), 0) as total FROM ai_conversations WHERE date(timestamp) = date('now')`
+    ).get();
+    return result.total;
+  }
+
   getUsageStats(year, month) {
     const query = month ? 'SELECT * FROM ai_usage WHERE year = ? AND month = ?' : 'SELECT * FROM ai_usage WHERE year = ?';
     const params = month ? [year, month] : [year];

@@ -242,18 +242,23 @@ class IssueCollector {
   mergeGroup(name, group) {
     const resolvedVersion = this.resolveVersion(group);
 
-    const securityEntries = group.filter(e => e.type === 'security');
-    const otherEntries = group.filter(e => e.type !== 'security');
+    const byType = new Map();
+    for (const entry of group) {
+      if (!byType.has(entry.type)) byType.set(entry.type, []);
+      byType.get(entry.type).push(entry);
+    }
 
     const results = [];
 
-    if (securityEntries.length > 0) {
-      results.push(this.mergeSecurityEntries(name, resolvedVersion, securityEntries));
+    for (const [type, entries] of byType.entries()) {
+      if (entries.length === 1) {
+        results.push(this.finalizeEntry({ ...entries[0], version: entries[0].version || resolvedVersion }));
+      } else if (type === 'security') {
+        results.push(this.mergeSecurityEntries(name, resolvedVersion, entries));
+      } else {
+        results.push(this.mergeDuplicateEntries(name, resolvedVersion, entries));
+      }
     }
-
-    otherEntries.forEach(entry => {
-      results.push(this.finalizeEntry({ ...entry, version: entry.version || resolvedVersion }));
-    });
 
     return results;
   }
@@ -303,6 +308,27 @@ class IssueCollector {
     });
   }
 
+  mergeDuplicateEntries(name, version, entries) {
+    let best = entries[0];
+    let bestRank = SEVERITY_RANK[best.severity] || 0;
+    const sources = new Set();
+
+    for (const entry of entries) {
+      if (entry.source) sources.add(entry.source);
+      const rank = SEVERITY_RANK[entry.severity] || 0;
+      if (rank > bestRank) {
+        best = entry;
+        bestRank = rank;
+      }
+    }
+
+    return this.finalizeEntry({
+      ...best,
+      name,
+      version,
+      source: Array.from(sources).join('+') || best.source
+    });
+  }
 
   resolveVersion(group) {
     for (const entry of group) {

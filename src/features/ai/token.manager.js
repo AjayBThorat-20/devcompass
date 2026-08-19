@@ -34,7 +34,7 @@ class TokenManager {
     }
     if (!config.is_active) throw new Error(`Provider "${config.provider}" is disabled`);
 
-    const providerConfig = { ...config, id: config.id, provider: config.provider };
+    const providerConfig = { ...config, id: config.id, provider: config.provider, baseURL: config.baseURL || config.base_url };
     let instance;
 
     switch (config.provider) {

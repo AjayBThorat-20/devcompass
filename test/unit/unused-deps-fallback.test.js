@@ -19,7 +19,7 @@ function makeProject(indexSource) {
   return dir;
 }
 
-test('a crafted dependency name cannot execute injected shell commands', () => {
+test('a crafted dependency name cannot execute injected shell commands', async () => {
   const dir = makeProject("require('express');\n");
   // deliberately avoids the substring "devcompass" — it's in this project's own
   // skipPackages list and would make the malicious dep name get filtered out
@@ -30,7 +30,7 @@ test('a crafted dependency name cannot execute injected shell commands', () => {
   const maliciousName = `lodash" ; touch ${canaryFile} ; echo "`;
   const dependencies = { [maliciousName]: '1.0.0', express: '1.0.0' };
 
-  const unused = fallbackUnusedCheck(dir, dependencies);
+  const unused = await fallbackUnusedCheck(dir, dependencies);
 
   assert.equal(fs.existsSync(canaryFile), false, 'the injected command must not have run');
   assert.ok(unused.includes(maliciousName), 'the malicious string is just an unmatched grep pattern -> unused');
@@ -40,9 +40,9 @@ test('a crafted dependency name cannot execute injected shell commands', () => {
   fs.rmSync(canaryFile, { force: true });
 });
 
-test('correctly classifies used vs. unused dependencies', () => {
+test('correctly classifies used vs. unused dependencies', async () => {
   const dir = makeProject("const lodash = require('lodash');\nlodash.noop();\n");
-  const unused = fallbackUnusedCheck(dir, { lodash: '1.0.0', chalk: '1.0.0' });
+  const unused = await fallbackUnusedCheck(dir, { lodash: '1.0.0', chalk: '1.0.0' });
 
   assert.ok(!unused.includes('lodash'));
   assert.ok(unused.includes('chalk'));

@@ -96,11 +96,16 @@ async function runAnalyze(options = {}) {
       ...(packageJson.devDependencies || {})
     }).length;
 
+    if (cveData?.incomplete && !silent && mode !== 'silent') {
+      console.error(`\n⚠️  CVE scan incomplete: ${cveData.incompleteReason}. Vulnerability results below may be missing entries — this is not a confirmed clean scan.\n`);
+    }
+
     const metadata = {
       projectName: packageJson.name || 'unknown',
       projectVersion: packageJson.version || '1.0.0',
       projectPath,
       projectInfo: `${packageJson.name || 'unknown'}@${packageJson.version || '1.0.0'}`,
+      cveScanIncomplete: !!cveData?.incomplete,
       healthScore,
       totalDependencies,
       aiInsight: aiEnabled ? await generateAIInsight(allIssues) : null

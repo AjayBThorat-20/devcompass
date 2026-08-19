@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-08-19
+
+### Fixed
+
+- **`analyze` hanging on real projects** - `npm audit` was being executed once *per dependency* instead of once per project (17x redundant on a 12-dependency project), each call synchronous and blocking; combined with a registry-metadata request that could outlive its own declared timeout without ever aborting the socket. A 19-dependency project went from hanging past 120s to completing in ~25s.
+- **CVE cache never actually used** - the 24h-TTL vulnerability cache existed with a full get/set API but was only ever touched by the `cve cache` subcommands; `analyze` queried OSV fresh on every run regardless of what was cached.
+- **CVE checks used the declared version range, not the installed version** - `"^4.17.0"` was coerced to `4.17.0` and queried as-is, causing both false positives (installed version already patched) and false negatives (installed version newer and vulnerable). Now resolves the actual installed version from `node_modules` first.
+- **CVE scan failures silently reported as "0 vulnerabilities"** - a failed OSV/network call is now flagged as an incomplete scan instead of looking identical to a clean one.
+- **Duplicate issues double-counting the health score** - a package flagged by more than one quality/ecosystem collector produced two separate issues instead of being merged, penalizing the score twice.
+- **Custom AI provider base URLs silently ignored** - a `base_url`/`baseURL` naming mismatch meant a configured proxy/gateway URL never reached the OpenAI/Anthropic/Google providers.
+- **AI daily cost limit not persisting** - it lived in an in-memory counter that reset on every CLI invocation; now backed by persisted conversation records.
+- **`mysql2` false-flagged as typosquatting `mysql`**, an `unused-deps` skip-list substring match that could false-negative real unused packages (e.g. `eslint-plugin-unicorn`), incorrect graph `truncated` metadata under a filtered view, a corrupt installed `package.json` silently dropping a package from ecosystem checks, and redundant duplicate DB/network reads in snapshot comparison and dependency resolution.
+
+### Removed
+
+- `scoring.service.js` - a completely dead, unreferenced health-score formula that diverged from the one actually in use.
+
+### Docs
+
+- Added a README comparison table against `npm audit`/Dependabot and a `CONTRIBUTING.md` guide.
+
 ## [3.2.8] - 2026-08-08
 
 ### Fixed
