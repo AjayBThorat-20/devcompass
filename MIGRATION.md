@@ -1,5 +1,64 @@
 # Migration Guide
 
+## From v4.0.0 → v4.1.0
+
+### What's New
+- **🎯 CVE severity/CVSS score/fix version are now real**: The OSV `/querybatch` endpoint — the only path `analyze` uses — intentionally returns just `{id, modified}` per finding, with no severity, CVSS, summary, or fix-version data. Every vulnerability was silently parsed from that empty stub, so every scan reported severity `MEDIUM`, CVSS `0`, "No summary available", and `fix: "Update to latest"` regardless of the real advisory. Each unique advisory is now hydrated via OSV's per-vulnerability endpoint before parsing (capped at 300 ids per batch, 10 concurrent, cached same as before)
+- **🎯 CVSS v3.1 vector strings are scored correctly**: A regex fallback used to grab the CVSS spec version ("3.1") out of `"CVSS:3.1/AV:N/..."` and report it as the score. Replaced with an actual CVSS v3.1 base-score calculation, verified against 4 published NVD reference vectors
+- **🎯 `fix` offers real target versions**: The patched version is now resolved from advisory data and threaded through to `fix`'s message and its safe/moderate/risky classification, instead of every security issue reading "Update to latest"
+- **🔒 `fix` can't silently skip the backup**: A failed backup used to be swallowed internally and reported as `success: true` with `path: null`, so a fix could proceed to mutate `package.json`/`node_modules` with no actual recovery point
+- **🐛 CLI numeric flags fixed**: `--limit`, `--width`, `--height`, `--keep`, `--days` (across `graph`, `history`, `snapshot`, `backup`, `timeline`) were silently corrupted — `parseInt` was passed directly as commander's option parser, so commander's default-value argument became `parseInt`'s radix (`--limit 45` parsed as `125`, base 30)
+- **🐛 `analyze --ci --threshold 0` respected**: a falsy-zero bug silently reverted an explicit `0` threshold back to the default 7.0
+- **🐛 `llm test <provider>` actually tests the connection** instead of always reporting success for a revoked/invalid key
+- **🐛 AI chat has real multi-turn memory**: every turn used to generate a fresh conversation id, so follow-up questions never saw prior context
+- **🔒 Batch-fix mode (not yet enabled by default) backs up before running**, and its fixer services now operate on the target `--path` instead of `process.cwd()`
+- **🐛 NVD circuit breaker recovers instead of staying tripped**: replaced a hand-rolled state machine with the shared `CircuitBreaker` (verified the OPEN → HALF_OPEN recovery transition directly)
+- **🐛 Outdated-dependency check no longer reports "clean" for yarn/pnpm projects**: it required `package-lock.json` to exist even though the underlying check (`npm-check-updates`) never reads it
+- **🐛 Dependency graph no longer drops transitive dependencies** for npm lockfileVersion 1 (`package-lock.json` files from older npm versions)
+- Smaller fixes: unguarded array-index crashes on edge-case OpenAI/Anthropic/Gemini responses, a UTC-vs-local day boundary bug in the AI daily spend cap, a legitimate `0`-token count from local/Ollama models being overwritten by a rough estimate, a CVE cache stats query double-subtracting overlapping rows, a `"."` backup name bypassing the path-traversal guard, and a leading-range-operator regex that mishandled multi-character operators like `>=`
+- **✅ Test coverage added** for `health-calculator.js`/`risk-classifier.js` (previously untested despite deciding every health score and every automated fix)
+- **✅ CI now runs an integration-smoke job** against the existing `test-*.sh` suites and real fixture projects (informational, not a merge gate, since it depends on third-party services)
+
+### Migration Steps
+```bash
+npm install -g devcompass@4.1.0
+```
+
+No config or usage changes required. If you've been comparing DevCompass's CVE output against `npm audit`/GitHub's advisory pages and seeing lower severities or missing fix versions, that's this release's main fix — re-run `devcompass cve cache --clear && devcompass analyze` to see corrected results (previous scans may still be served from the 24h cache).
+
+### What Changed
+- **Modified**: `src/features/cve/osv.client.js` - Added per-advisory hydration (`hydrateVulnDetails`) after `/querybatch`; replaced the CVSS-vector regex fallback with a real CVSS v3.1 base-score calculator; added `extractFixedVersions()`
+- **Modified**: `src/features/cve/vulnerability-checker.js` - No longer silently truncates the returned vulnerability list when capping NVD enrichment; only the enrichment step is capped now
+- **Modified**: `src/features/cve/nvd.client.js` - Replaced hand-rolled circuit-breaker state with the shared `CircuitBreaker`; retry backoff now reads from the shared `RETRY` constants
+- **Modified**: `src/features/cve/cache.manager.js` - `getStats()` no longer double-subtracts rows that are both expired and version-outdated
+- **Modified**: `src/features/analyze/collectors/cve.collector.js` - Resolves and propagates `fixVersion` per package; equal-severity vulnerabilities now keep the worst (highest-CVSS) one instead of the first-seen
+- **Modified**: `src/features/analyze/collectors/dependency.collector.js` - No longer requires `package-lock.json` to exist; uses the shared `SemverValidator.getUpdateType`
+- **Modified**: `src/core/services/issue-collector.js` - `metadata.cvss` field-name mismatch fixed; merged security entries now surface the CVE-sourced score/metadata even when a same-severity npm-audit entry would otherwise win the tie-break; uses the shared severity-weight helper
+- **Modified**: `src/cli/commands/{analyze,backup,graph,history,snapshot,timeline}.cmd.js` - Fixed the `parseInt`-as-option-parser radix bug; fixed the `--ci --threshold 0` falsy-zero bug
+- **Modified**: `src/features/fix/executors/backup.executor.js` - A failed backup now reports `success: false` instead of `true` with a `null` path
+- **Modified**: `src/features/fix/executors/npm.executor.js` - `getInstalledVersion()` now uses Node's own module resolution instead of only the flat `node_modules/<pkg>` path; sanitizer methods consolidated onto the shared `package-sanitizer.js`
+- **Modified**: `src/features/fix/index.js` - Removed a dead `options.dryRun` assignment
+- **Modified**: `src/features/fix/renderers/{preview,progress}.renderer.js` - Fixed "Replace with undefined" when an alternative is a plain string rather than `{replacement}`
+- **Modified**: `src/features/fix/services/batch-executor.service.js` - Creates a backup before executing any batch; passes `projectPath` through to its fixer services; factored the near-duplicate ecosystem/updates install bodies into one helper
+- **Modified**: `src/features/fix/services/{license-conflict,quality,supply-chain}-fixer.service.js` - Accept and use `projectPath` instead of `process.cwd()`
+- **Modified**: `src/features/ai/token.manager.js`, `src/features/ai/providers/base.provider.js` - Added a real `test()` connectivity check, shared by all providers
+- **Modified**: `src/features/ai/providers/{openai,anthropic,google}.provider.js` - Guarded unguarded array-index dereferences on API responses; abort-error handling and SSE-line-splitting consolidated onto `base.provider.js`
+- **Modified**: `src/features/ai/ai.command.js` - Chat now reuses a stable conversation id and includes prior turns as context; a real `0`-token usage value is no longer overwritten by an estimate; pre-flight cost estimate uses the actual `maxTokens` ceiling instead of a flat guess
+- **Modified**: `src/features/ai/ai.database.js` - `getTodaySpend()` compares against the local day boundary instead of UTC
+- **Modified**: `src/features/graph/graph.generator.js` - Handles npm lockfileVersion 1 (`dependencies`-keyed) lockfiles, not just v2/v3 (`packages`-keyed)
+- **Modified**: `src/shared/utils/{backup-manager,backup-restorer}.js` - `resolveBackupPath()` rejects a `"."` backup name instead of resolving to the backups directory itself
+- **Modified**: `src/shared/utils/analysis-cache.js` - Cache write no longer has a window where neither the old nor new cache file exists
+- **Modified**: `src/shared/utils/encryption.js` - A transient failure reading an *existing* salt file no longer silently falls back to a different (wrong) key
+- **Modified**: `src/shared/utils/semver-validator.js` - `clean()` strips the full leading operator run (not just one character) and returns the actually-coerced version
+- **Modified**: `src/features/alerts/version-resolver.service.js`, `src/features/alerts/github-tracker.service.js` - Same leading-operator regex fix; added the hard-deadline connection-timeout fix (previously only in `issues-analyzer.service.js`) to the GitHub client
+- **Modified**: `src/shared/services/registry-client.js` - Added the hard-deadline connection-timeout fix; retry constants now read from the shared `RETRY` config
+- **Removed**: `src/core/utils/validators.js` - Completely dead, unreferenced module
+- **Added**: `test/unit/health-calculator.test.js`, `test/unit/risk-classifier.test.js`
+- **Added**: `.github/workflows/ci.yml` `integration-smoke` job; `package.json` `test:integration` script
+- **No Changes**: All v4.0.0 features intact (CVE caching, installed-version resolution, dedup, AI base-URL fix, daily cost persistence)
+
+---
+
 ## From v3.2.6 → v3.2.7
 
 ### What's New
