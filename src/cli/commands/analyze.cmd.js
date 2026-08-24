@@ -33,7 +33,7 @@ module.exports = function registerAnalyzeCommand(program) {
           aiEnabled: options.ai,
           saveHistory: options.history !== false,
           ci: options.ci,
-          ciThreshold: options.ciThreshold || 7.0,
+          ciThreshold: options.ciThreshold !== undefined ? options.ciThreshold : 7.0,
           silent: options.silent
         });
       } catch (error) {

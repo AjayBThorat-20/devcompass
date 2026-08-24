@@ -24,3 +24,37 @@ jobs:
 
       - name: Audit for known vulnerabilities
         run: npm audit --audit-level=high
+
+  integration-smoke:
+    runs-on: ubuntu-latest
+    # The unit-test job above is fast and fully deterministic; this one drives
+    # the real CLI (linked globally, same as an end user) against the 5 test
+    # fixture projects in test/, hitting live OSV/npm-registry/GitHub APIs the
+    # same way `devcompass analyze`/`fix`/`graph` do in production. That's
+    # exactly the kind of integration bug unit tests can't catch (e.g. an OSV
+    # response-shape assumption that's only wrong against the real API), but
+    # it also means this job can fail for reasons that have nothing to do with
+    # this repo's code — a transient GitHub/OSV rate limit or outage. It's
+    # informational rather than a merge gate for that reason.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Link devcompass onto PATH (matches a real global install)
+        run: npm link
+
+      - name: Install fixture project dependencies
+        run: |
+          for dir in test/project1-simple test/project2-vulnerable test/project3-outdated test/project4-complex test/project5-deprecated; do
+            (cd "$dir" && npm install --no-audit --no-fund)
+          done
+
+      - name: Run integration smoke suite
+        run: npm run test:integration

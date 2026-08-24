@@ -720,7 +720,7 @@ npx devcompass analyze
 **Old version installed**
 ```bash
 npm update -g devcompass
-devcompass --version  # Should show 4.0.0
+devcompass --version  # Should show 4.1.0
 ```
 
 **No analysis cache found**
@@ -778,6 +778,18 @@ devcompass llm test local
 ---
 
 ## 📈 Version History
+
+### v4.1.0 (2026-08-25) - CVE Accuracy & Safety
+- 🎯 **CVE severity/CVSS score/fix version are now real** - the OSV batch endpoint `analyze` relies on only ever returned a bare `{id, modified}` per finding; every scan silently reported severity `MEDIUM`, CVSS `0`, and "Update to latest" regardless of the actual advisory. Each finding is now hydrated with its real data before being reported.
+- 🐛 **CVSS scores no longer misread the spec version as the score** - `"CVSS:3.1/..."` vector strings are now scored with a real CVSS v3.1 calculation instead of a regex that grabbed "3.1" itself
+- 🎯 **`fix` now offers real target versions instead of "Update to latest"** - the patched version is resolved from the advisory data and threaded through to the safe/moderate/risky classification
+- 🔒 **`fix` can no longer silently run with no backup** - a failed backup used to be swallowed and reported as success
+- 🐛 **CLI numeric flags (`--limit`, `--width`, `--height`, `--keep`, `--days`) no longer silently corrupted** - `parseInt` was being used as commander's option parser, turning the default value into `parseInt`'s radix
+- 🐛 **`analyze --ci --threshold 0` respected** - previously silently reverted to the default 7.0
+- 🐛 **`llm test` actually tests the connection** instead of always reporting success
+- 🐛 **AI chat now has real multi-turn memory**
+- ✅ Added test coverage for the health-score and fix-risk-classification algorithms, and a CI job that runs the existing test suites against real fixture projects
+- See [CHANGELOG.md](CHANGELOG.md) for the complete list
 
 ### v4.0.0 (2026-08-19) - Correctness & Performance
 - ⚡ **`analyze` no longer hangs on real projects** - `npm audit` was being run once *per dependency* instead of once per project (17x redundant on a 12-dep project); a project that used to take 2+ minutes now completes in ~25s
@@ -940,7 +952,7 @@ If DevCompass helps your project, please consider giving it a star! ⭐
 
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
 
-*DevCompass v4.0.0 - Professional Dependency Intelligence Platform* 🧭✨
+*DevCompass v4.1.0 - Professional Dependency Intelligence Platform* 🧭✨
 
 [Get Started](#-quick-start) · [Documentation](#-complete-command-reference) · [Contributing](#-contributing)
 

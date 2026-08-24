@@ -8,7 +8,11 @@ async function resolveInstalledVersions(projectPath, dependencies) {
   if (!dependencies || typeof dependencies !== 'object') return installedVersions;
 
   for (const [packageName, declaredVersion] of Object.entries(dependencies)) {
-    const cleanVersion = typeof declaredVersion === 'string' ? declaredVersion.replace(/^[\^~>=<]/, '') : declaredVersion;
+    // Multi-character range operators like ">=" need a `+` quantifier here, or
+    // only the first character gets stripped (">=1.2.3" -> "=1.2.3", still an
+    // invalid version) when node_modules doesn't have this package installed
+    // and this fallback value is used as-is downstream.
+    const cleanVersion = typeof declaredVersion === 'string' ? declaredVersion.replace(/^[\^~>=<\s]+/, '') : declaredVersion;
 
     try {
       const packageJsonPath = path.join(projectPath, 'node_modules', packageName, 'package.json');

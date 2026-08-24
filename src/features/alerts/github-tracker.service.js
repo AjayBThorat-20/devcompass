@@ -42,6 +42,7 @@ function makeGitHubRequest(requestPath, params = {}) {
     if (token) options.headers['Authorization'] = `Bearer ${token}`;
 
     const req = https.request(options, (res) => {
+      clearTimeout(hardDeadline);
       let data = '';
       res.on('data', chunk => { data += chunk; });
       res.on('end', () => {
@@ -61,8 +62,14 @@ function makeGitHubRequest(requestPath, params = {}) {
       });
     });
 
-    req.on('error', (error) => reject(new Error(`Network error: ${error.message}`)));
-    req.setTimeout(10000, () => { req.destroy(); reject(new Error('GitHub API request timeout')); });
+    // req.setTimeout only aborts on socket *idle* time; a connection that
+    // never establishes (dropped SYN, filtered network) can hang well past it
+    // with no timeout/error event ever firing. Force a hard deadline on top —
+    // same fix already applied to the npm registry / package-metadata clients.
+    const hardDeadline = setTimeout(() => req.destroy(new Error('hard timeout')), 10000);
+
+    req.on('error', (error) => { clearTimeout(hardDeadline); reject(new Error(`Network error: ${error.message}`)); });
+    req.setTimeout(10000, () => { clearTimeout(hardDeadline); req.destroy(); reject(new Error('GitHub API request timeout')); });
     req.end();
   });
 }

@@ -4,13 +4,16 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { RETRY } = require('../utils/constants');
 
 const CACHE_DIR = path.join(os.homedir(), '.devcompass', 'cache');
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_CONCURRENCY = 5;
 const REQUEST_TIMEOUT = 10000;
-const MAX_RETRIES = 3;
-const INITIAL_RETRY_DELAY = 1000;
+// Same exponential-backoff policy as nvd.client.js, read from the one shared
+// constant so tuning retry behavior doesn't mean hunting down every client.
+const MAX_RETRIES = RETRY.MAX_ATTEMPTS;
+const INITIAL_RETRY_DELAY = RETRY.INITIAL_DELAY_MS;
 const MAX_MEMORY_CACHE_SIZE = 1000;
 
 class LRUCache {
@@ -62,8 +65,9 @@ function writeToDiskCache(packageName, data) {
 function httpsGet(url, retryCount = 0) {
   return new Promise((resolve, reject) => {
     const request = https.get(url, { timeout: REQUEST_TIMEOUT, headers: { 'Accept': 'application/json', 'User-Agent': 'devcompass-cli' } }, (response) => {
+      clearTimeout(hardDeadline);
       if (response.statusCode === 429 || (response.statusCode >= 500 && response.statusCode < 600)) {
-        if (retryCount < MAX_RETRIES) { setTimeout(() => httpsGet(url, retryCount + 1).then(resolve).catch(reject), INITIAL_RETRY_DELAY * Math.pow(2, retryCount)); return; }
+        if (retryCount < MAX_RETRIES) { setTimeout(() => httpsGet(url, retryCount + 1).then(resolve).catch(reject), INITIAL_RETRY_DELAY * Math.pow(RETRY.BACKOFF_MULTIPLIER, retryCount)); return; }
         reject(new Error(`HTTP ${response.statusCode}`)); return;
       }
       if (response.statusCode === 404) { resolve(null); return; }
@@ -72,8 +76,16 @@ function httpsGet(url, retryCount = 0) {
       response.on('data', chunk => data += chunk);
       response.on('end', () => { try { resolve(JSON.parse(data)); } catch (e) { reject(new Error('Invalid JSON response')); } });
     });
-    request.on('error', (error) => { if (retryCount < MAX_RETRIES) { setTimeout(() => httpsGet(url, retryCount + 1).then(resolve).catch(reject), INITIAL_RETRY_DELAY * Math.pow(2, retryCount)); return; } reject(error); });
-    request.on('timeout', () => { request.destroy(); if (retryCount < MAX_RETRIES) { setTimeout(() => httpsGet(url, retryCount + 1).then(resolve).catch(reject), INITIAL_RETRY_DELAY * Math.pow(2, retryCount)); return; } reject(new Error('Request timeout')); });
+
+    // Node's `timeout` request option only aborts on socket *idle* time; a
+    // connection that never establishes (dropped SYN, filtered network) can
+    // hang well past it with no timeout/error event ever firing — the same
+    // class of hang that made `analyze` hang before. This is the one HTTP
+    // client that didn't get the hard-deadline fix applied elsewhere.
+    const hardDeadline = setTimeout(() => request.destroy(new Error('hard timeout')), REQUEST_TIMEOUT);
+
+    request.on('error', (error) => { clearTimeout(hardDeadline); if (retryCount < MAX_RETRIES) { setTimeout(() => httpsGet(url, retryCount + 1).then(resolve).catch(reject), INITIAL_RETRY_DELAY * Math.pow(RETRY.BACKOFF_MULTIPLIER, retryCount)); return; } reject(error); });
+    request.on('timeout', () => { clearTimeout(hardDeadline); request.destroy(); if (retryCount < MAX_RETRIES) { setTimeout(() => httpsGet(url, retryCount + 1).then(resolve).catch(reject), INITIAL_RETRY_DELAY * Math.pow(RETRY.BACKOFF_MULTIPLIER, retryCount)); return; } reject(new Error('Request timeout')); });
   });
 }
 

@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-08-25
+
+### Fixed
+
+- **CVE severity/CVSS score/fix-version were never real for any `analyze` scan** - the OSV batch-query endpoint (the only path `analyze` uses) intentionally returns just `{id, modified}` per finding, with no severity, CVSS, summary, or fix data. Every vulnerability was silently parsed from that empty stub, so every finding showed severity `MEDIUM`, CVSS `0`, "No summary available", and `fix: "Update to latest"` regardless of the real advisory. Each unique advisory is now hydrated via OSV's per-vulnerability endpoint (capped and concurrency-limited) before parsing. Verified against live GHSA-xvch-5gv4-984h (minimist): now correctly reports `CRITICAL` / CVSS `9.8` / `Update to 1.2.6`, matching the published advisory exactly.
+- **CVSS base score misread as the CVSS spec version** - for OSV's standard vector-string format (`"CVSS:3.1/AV:N/..."`), a regex fallback grabbed `"3.1"` (the spec version) as if it were the score. Replaced with an actual CVSS v3.1 base-score calculation, verified against 4 published NVD reference vectors.
+- **CVSS-derived severity could never reach CRITICAL** - the vector-string severity heuristic returned early on `HIGH`, so real 9.0+ vulnerabilities were always under-ranked as `HIGH`.
+- **"Safe fix" always reported `false`, so `fix` never offered a real target version** - the patched version was never extracted from OSV data, so every security issue told the user "Update to latest" instead of the actual fix (e.g. `4.17.21`), and the safe/moderate/risky classification for security fixes was meaningless.
+- **`devcompass fix` could silently run without a backup** - a failed backup was swallowed internally and reported as `success: true` with `path: null`; the fix proceeded to mutate `package.json`/`node_modules` with no actual recovery point.
+- **CLI numeric flags silently corrupted** (`--limit`, `--width`, `--height`, `--keep`, `--days` across `graph`, `history`, `snapshot`, `backup`, `timeline`) - `parseInt` was passed directly as commander's option parser, so commander's default-value argument was used as `parseInt`'s radix (e.g. `--limit 45` parsed as `125`, base 30).
+- **`analyze --ci --threshold 0` silently reverted to the default 7.0** - a falsy-zero bug meant an explicit strict threshold of 0 was ignored.
+- **`llm test <provider>` always reported success**, even for a revoked/invalid API key - none of the providers implemented an actual connectivity check.
+- **AI chat had no real multi-turn memory** - every turn generated a fresh conversation id, so follow-up questions never saw prior context.
+- **Batch-fix mode (`fix --batch`, not yet enabled by default) ran with no backup** and its per-fixer services mutated `process.cwd()` instead of the target `--path`.
+- Outdated-dependency check silently returned "no issues" for any project without `package-lock.json` (yarn/pnpm projects, or a freshly-cloned npm project) instead of flagging the check as skipped.
+- Dependency graph silently dropped all transitive dependencies for npm lockfileVersion 1 (`package-lock.json`s from older npm versions).
+- A hand-rolled NVD circuit breaker that could stay permanently tripped instead of recovering; replaced with the shared `CircuitBreaker` (verified the OPEN → HALF_OPEN recovery transition directly).
+- A handful of smaller correctness issues: unguarded array-index crashes on edge-case OpenAI/Anthropic/Gemini responses, a UTC-vs-local day boundary bug in the AI daily spend cap, a legitimate `0`-token count from local/Ollama models being overwritten by a rough estimate, a CVE cache stats query double-subtracting overlapping rows, a `"."` backup name bypassing the path-traversal guard, and a leading-range-operator regex that mishandled multi-character operators like `>=`.
+
+### Added
+
+- Test coverage for `health-calculator.js` and `risk-classifier.js` - the two most decision-critical algorithms in the codebase (health score, fix-risk classification) had none.
+- An `integration-smoke` CI job that runs the existing `test-*.sh` suites against real fixture projects and live OSV/npm-registry/GitHub APIs (informational, not a merge gate, since it depends on third-party services this repo doesn't control).
+
+### Changed
+
+- Consolidated several duplicated implementations onto their shared counterparts (package name/version sanitization, severity ranking, AI provider abort/SSE-parsing boilerplate, retry/backoff constants) to reduce the number of places a future fix has to be applied.
+- Removed `core/utils/validators.js`, a completely dead, unreferenced module.
+
 ## [4.0.0] - 2026-08-19
 
 ### Fixed

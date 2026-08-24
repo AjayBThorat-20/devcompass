@@ -5,6 +5,7 @@ const ora = require('ora');
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const { sanitizePackageName, sanitizeVersion } = require('../../../shared/utils/package-sanitizer');
+const { BackupExecutor } = require('../executors/backup.executor');
 
 const execAsync = promisify(exec);
 
@@ -28,6 +29,18 @@ class BatchExecutor {
 
     console.log('\n' + chalk.bold(`${batch.icon} ${batch.name.toUpperCase()}`));
     console.log(chalk.gray('─'.repeat(70)));
+
+    // The standard (non-batch) fix path always backs up package.json/lock
+    // before mutating anything; this batch path ran npm install/uninstall
+    // directly with no backup at all, so a bad batch (major version bump,
+    // lockfile corruption) had no recovery path.
+    const backupExecutor = new BackupExecutor(this.projectPath);
+    const backupResult = await backupExecutor.createBackup({ mode: 'batch', batch: batch.id, issueCount: results.totalFixes });
+    if (!backupResult.success) {
+      console.error(chalk.yellow(`⚠️  Backup failed: ${backupResult.error} — proceeding without a backup`));
+    } else {
+      console.log(chalk.gray(`💾 Backup saved: ${backupResult.path}`));
+    }
 
     try {
       switch (batch.id) {
@@ -55,7 +68,7 @@ class BatchExecutor {
 
   async executeSupplyChainBatch(fixes, results) {
     const SupplyChainFixer = require('./supply-chain-fixer.service');
-    const fixer = new SupplyChainFixer();
+    const fixer = new SupplyChainFixer(this.projectPath);
 
     for (const fix of fixes) {
       try {
@@ -80,7 +93,7 @@ class BatchExecutor {
 
   async executeLicenseBatch(fixes, results) {
     const LicenseConflictFixer = require('./license-conflict-fixer.service');
-    const fixer = new LicenseConflictFixer();
+    const fixer = new LicenseConflictFixer(this.projectPath);
 
     for (const fix of fixes) {
       try {
@@ -105,7 +118,7 @@ class BatchExecutor {
 
   async executeQualityBatch(fixes, results) {
     const QualityFixer = require('./quality-fixer.service');
-    const fixer = new QualityFixer();
+    const fixer = new QualityFixer(this.projectPath);
 
     for (const fix of fixes) {
       try {
@@ -143,29 +156,45 @@ class BatchExecutor {
     }
   }
 
+  // executeEcosystemBatch and executeUpdatesBatch both boil down to "sanitize
+  // + spinner + npm install <name>@<version> + record success/failure" for one
+  // package, differing only in where the name/version/result-shape come from.
+  // Pulled out the shared install step; the differing bits (skip logic, error
+  // severity, result shape) stay in each caller.
+  async _installPackageUpdate({ name, version, results, errorSeverity, errorPackage, buildFixEntry }) {
+    try {
+      const safeName = sanitizePackageName(name);
+      const safeVersion = sanitizeVersion(version);
+      const spinner = ora(`Updating ${name} to ${version}`).start();
+      await execAsync(`npm install ${safeName}@${safeVersion}`, { cwd: this.projectPath, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
+      spinner.succeed(`Updated ${name} to ${version}`);
+      results.successful++;
+      results.fixes.push(buildFixEntry());
+    } catch (error) {
+      results.failed++;
+      results.errors.push({ package: errorPackage, error: error.message, severity: errorSeverity });
+    }
+  }
+
   async executeEcosystemBatch(fixes, results) {
     for (const fix of fixes) {
-      try {
-        const pkg = (fix.package || '').split('@')[0];
-        const version = fix.fix;
+      const pkg = (fix.package || '').split('@')[0];
+      const version = fix.fix;
 
-        if (!pkg || !version || version.includes('Migrate') || version.includes('Use')) {
-          results.skipped++;
-          results.errors.push({ package: pkg || fix.package, error: 'Migration required - manual intervention needed', severity: 'low' });
-          continue;
-        }
-
-        const safePkg = sanitizePackageName(pkg);
-        const safeVersion = sanitizeVersion(version);
-        const spinner = ora(`Updating ${pkg} to ${version}`).start();
-        await execAsync(`npm install ${safePkg}@${safeVersion}`, { cwd: this.projectPath, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
-        spinner.succeed(`Updated ${pkg} to ${version}`);
-        results.successful++;
-        results.fixes.push({ type: 'ecosystem', package: pkg, version });
-      } catch (error) {
-        results.failed++;
-        results.errors.push({ package: fix.package, error: error.message, severity: 'medium' });
+      if (!pkg || !version || version.includes('Migrate') || version.includes('Use')) {
+        results.skipped++;
+        results.errors.push({ package: pkg || fix.package, error: 'Migration required - manual intervention needed', severity: 'low' });
+        continue;
       }
+
+      await this._installPackageUpdate({
+        name: pkg,
+        version,
+        results,
+        errorSeverity: 'medium',
+        errorPackage: fix.package,
+        buildFixEntry: () => ({ type: 'ecosystem', package: pkg, version })
+      });
     }
   }
 
@@ -188,18 +217,14 @@ class BatchExecutor {
 
   async executeUpdatesBatch(fixes, results) {
     for (const fix of fixes) {
-      try {
-        const safeName = sanitizePackageName(fix.name);
-        const safeLatest = sanitizeVersion(fix.latest);
-        const spinner = ora(`Updating ${fix.name} to ${fix.latest}`).start();
-        await execAsync(`npm install ${safeName}@${safeLatest}`, { cwd: this.projectPath, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
-        spinner.succeed(`Updated ${fix.name} to ${fix.latest}`);
-        results.successful++;
-        results.fixes.push({ type: 'update', package: fix.name, from: fix.current, to: fix.latest });
-      } catch (error) {
-        results.failed++;
-        results.errors.push({ package: fix.name, error: error.message, severity: 'low' });
-      }
+      await this._installPackageUpdate({
+        name: fix.name,
+        version: fix.latest,
+        results,
+        errorSeverity: 'low',
+        errorPackage: fix.name,
+        buildFixEntry: () => ({ type: 'update', package: fix.name, from: fix.current, to: fix.latest })
+      });
     }
   }
 

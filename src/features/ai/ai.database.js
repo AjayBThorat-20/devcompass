@@ -124,9 +124,18 @@ class AIDatabase {
   }
 
   getTodaySpend() {
+    // `timestamp` is stored via SQLite's CURRENT_TIMESTAMP, which is UTC, but
+    // date('now') is also UTC — so "today" here meant the UTC calendar day,
+    // not the user's local day. For anyone west of UTC, the daily cap could
+    // stay tripped for hours after their local midnight because the UTC day
+    // hadn't rolled over yet. Compute the local day's start and compare
+    // against that instead.
+    const now = new Date();
+    const startOfLocalDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfLocalDayUTC = startOfLocalDay.toISOString().slice(0, 19).replace('T', ' ');
     const result = this.db.prepare(
-      `SELECT COALESCE(SUM(cost), 0) as total FROM ai_conversations WHERE date(timestamp) = date('now')`
-    ).get();
+      `SELECT COALESCE(SUM(cost), 0) as total FROM ai_conversations WHERE timestamp >= ?`
+    ).get(startOfLocalDayUTC);
     return result.total;
   }
 

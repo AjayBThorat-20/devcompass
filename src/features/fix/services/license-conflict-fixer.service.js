@@ -6,7 +6,8 @@ const dynamicLicense = require('../../quality/dynamic-license.service');
 const { sanitizePackageName } = require('../../../shared/utils/package-sanitizer');
 
 class LicenseConflictFixer {
-  constructor() {
+  constructor(projectPath = process.cwd()) {
+    this.projectPath = projectPath;
     this.fixes = [];
     this.skipped = [];
     this.errors = [];
@@ -25,10 +26,10 @@ class LicenseConflictFixer {
           const safeAlternative = sanitizePackageName(alternative);
 
           try {
-            execSync(`npm uninstall ${safePackageName}`, { stdio: 'pipe', cwd: process.cwd() });
+            execSync(`npm uninstall ${safePackageName}`, { stdio: 'pipe', cwd: this.projectPath });
           } catch (error) { /* ignore uninstall errors */ }
 
-          execSync(`npm install ${safeAlternative}`, { stdio: 'pipe', cwd: process.cwd() });
+          execSync(`npm install ${safeAlternative}`, { stdio: 'pipe', cwd: this.projectPath });
         }
 
         this.fixes.push({

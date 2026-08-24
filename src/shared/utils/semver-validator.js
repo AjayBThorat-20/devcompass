@@ -15,8 +15,14 @@ class SemverValidator {
 
   static clean(version) {
     if (!version || typeof version !== 'string') return null;
-    const cleaned = version.replace(/^[\^~>=<]/, '').trim();
-    return this.isValid(cleaned) ? cleaned : null;
+    // Strip the *whole* leading range-operator run (">=" is two characters,
+    // not one) and return the actually-valid coerced version rather than the
+    // merely coerce()-tolerated input string — e.g. ">=1.2.3" used to come back
+    // as the still-invalid "=1.2.3", which passed isValid() only because
+    // isValid() itself re-coerces leniently.
+    const stripped = version.replace(/^[\^~>=<\s]+/, '').trim();
+    const coerced = semver.coerce(stripped);
+    return coerced ? coerced.version : null;
   }
 
   static compare(version1, version2) {

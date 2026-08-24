@@ -1,8 +1,7 @@
 // src/core/services/issue-collector.js
 
 const { createIssue } = require('../models/issue.model');
-
-const SEVERITY_RANK = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+const { getSeverityWeight } = require('../utils/severity');
 
 class IssueCollector {
   constructor() {
@@ -23,7 +22,7 @@ class IssueCollector {
         fix: vuln.fixVersion ? `Update to ${vuln.fixVersion}` : 'Update to latest',
         safeFix: this.isSafeUpdate(vuln),
         source: vuln.source || 'CVE',
-        metadata: { cve: vuln.id || vuln.cve, cvss: vuln.cvss, references: vuln.references }
+        metadata: { cve: vuln.id || vuln.cve, cvss: vuln.cvss || vuln.score, references: vuln.references }
       });
     });
   }
@@ -265,7 +264,7 @@ class IssueCollector {
 
   mergeSecurityEntries(name, version, entries) {
     let best = entries[0];
-    let bestRank = SEVERITY_RANK[best.severity] || 0;
+    let bestRank = getSeverityWeight(best.severity);
     const sources = new Set();
     const fixes = new Set();
     let advisoryCount = 0;
@@ -275,7 +274,7 @@ class IssueCollector {
       if (entry.fix) fixes.add(entry.fix);
       if (entry.metadata && entry.metadata.cve) advisoryCount++;
 
-      const rank = SEVERITY_RANK[entry.severity] || 0;
+      const rank = getSeverityWeight(entry.severity);
       if (rank > bestRank) {
         best = entry;
         bestRank = rank;
@@ -293,29 +292,37 @@ class IssueCollector {
       ? `Security vulnerability detected (confirmed by ${sourceList.join(' + ')})`
       : (best.message || 'Security vulnerability detected');
 
+    // `best` picks which entry decides severity, but when a CVE-sourced entry
+    // ties (or loses) on severity rank against e.g. an npm-audit entry, `best`
+    // could end up being the npm-audit one — which carries a flat placeholder
+    // score (7) and no CVSS metadata, silently discarding the real computed
+    // CVSS score/advisory data. Surface the CVE entry's score/metadata
+    // whenever one exists in the group, independent of which entry "won".
+    const cveEntry = entries.find(e => e.metadata && e.metadata.cve && typeof e.score === 'number' && e.score > 0);
+
     return this.finalizeEntry({
       name,
       version,
       type: 'security',
       severity: best.severity,
-      score: best.score,
+      score: cveEntry ? cveEntry.score : best.score,
       message,
       risk: best.risk || `${best.severity} security vulnerability`,
       fix: preferredFix,
       safeFix: entries.some(e => e.safeFix),
       source: sourceList.join('+') || 'Security',
-      metadata: best.metadata || {}
+      metadata: cveEntry ? cveEntry.metadata : (best.metadata || {})
     });
   }
 
   mergeDuplicateEntries(name, version, entries) {
     let best = entries[0];
-    let bestRank = SEVERITY_RANK[best.severity] || 0;
+    let bestRank = getSeverityWeight(best.severity);
     const sources = new Set();
 
     for (const entry of entries) {
       if (entry.source) sources.add(entry.source);
-      const rank = SEVERITY_RANK[entry.severity] || 0;
+      const rank = getSeverityWeight(entry.severity);
       if (rank > bestRank) {
         best = entry;
         bestRank = rank;

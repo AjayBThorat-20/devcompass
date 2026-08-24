@@ -2,6 +2,7 @@
 
 const chalk = require('chalk');
 const GitHubTokenManager = require('./github-token.manager');
+const { maskToken } = require('../../shared/utils/encryption');
 
 async function config(options) {
   const tokenManager = new GitHubTokenManager();
@@ -9,7 +10,7 @@ async function config(options) {
   if (options.show) {
     const token = tokenManager.getToken();
     if (token) {
-      const masked = token.substring(0, 7) + '***' + token.substring(token.length - 4);
+      const masked = maskToken(token);
       console.log(chalk.green('✓'), 'GitHub token configured:', chalk.dim(masked));
       console.log(chalk.dim('  Stored encrypted in: ~/.devcompass/config.db'));
     } else {

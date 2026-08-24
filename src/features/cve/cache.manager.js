@@ -66,7 +66,11 @@ class CacheManager {
       const total = db.prepare('SELECT COUNT(*) as count FROM vulnerability_cache').get();
       const expired = db.prepare('SELECT COUNT(*) as count FROM vulnerability_cache WHERE datetime(expires_at) <= datetime(\'now\')').get();
       const outdated = db.prepare('SELECT COUNT(*) as count FROM vulnerability_cache WHERE cache_version < ?').get(CACHE_VERSION);
-      return { total: total.count, expired: expired.count, outdated: outdated.count, active: total.count - expired.count - outdated.count };
+      // A row can be both expired AND outdated at once, so subtracting both
+      // counts from total double-counts the overlap. Count "active" directly
+      // (neither expired nor outdated) instead of by subtraction.
+      const active = db.prepare('SELECT COUNT(*) as count FROM vulnerability_cache WHERE datetime(expires_at) > datetime(\'now\') AND cache_version >= ?').get(CACHE_VERSION);
+      return { total: total.count, expired: expired.count, outdated: outdated.count, active: active.count };
     } catch (error) {
       return { total: 0, expired: 0, outdated: 0, active: 0 };
     }

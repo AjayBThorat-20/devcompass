@@ -82,17 +82,31 @@ async function askQuestion(question, projectPath = process.cwd(), options = {}) 
     const context = options.context || await contextBuilder.buildContext(resolvedPath);
 
     const conversationId = options.conversationId || uuidv4();
+    // Prior turns for this conversationId, read *before* the current question is
+    // appended below — this is what actually gives multi-turn chat memory. It
+    // only has anything in it when the caller (startChat) reuses the same
+    // conversationId across turns instead of leaving it to default to a fresh
+    // uuid every call.
+    const priorMessages = typeof conversationManager.getMessages === 'function'
+      ? conversationManager.getMessages(conversationId).slice(-10).map(m => ({ role: m.role, content: m.content }))
+      : [];
+
     if (typeof conversationManager.addMessage === 'function') {
       await conversationManager.addMessage(conversationId, 'user', question);
     }
 
     const messages = [
       { role: 'system', content: promptTemplates.getSystemPrompt('qa') },
+      ...priorMessages,
       { role: 'user', content: promptTemplates.buildAnalysisContext(context, question) }
     ];
 
     const estimatedInputTokens = Math.ceil(JSON.stringify(messages).length / 4);
-    const estimatedCost = provider.estimateCost ? provider.estimateCost(estimatedInputTokens, 500) : 0;
+    // Bounded by the actual max output the request can produce (rather than a
+    // flat guess of 500) so the pre-flight daily-cost check is a real upper
+    // bound instead of routinely underestimating long streamed responses.
+    const assumedMaxOutputTokens = options.maxTokens || 2000;
+    const estimatedCost = provider.estimateCost ? provider.estimateCost(estimatedInputTokens, assumedMaxOutputTokens) : 0;
     checkDailyCostLimit(estimatedCost);
 
     let fullResponse = '';
@@ -129,8 +143,12 @@ async function askQuestion(question, projectPath = process.cwd(), options = {}) 
       await conversationManager.addMessage(conversationId, 'assistant', fullResponse);
     }
 
-    const finalInputTokens = actualUsage?.inputTokens || estimatedInputTokens;
-    const finalOutputTokens = actualUsage?.outputTokens || Math.ceil(fullResponse.length / 4);
+    // A provider legitimately reporting 0 tokens (e.g. local/Ollama, which
+    // doesn't return usage at all) is real data, not a missing value — `||`
+    // would treat that 0 as falsy and silently substitute the rough estimate,
+    // permanently skewing persisted token totals for that provider.
+    const finalInputTokens = typeof actualUsage?.inputTokens === 'number' ? actualUsage.inputTokens : estimatedInputTokens;
+    const finalOutputTokens = typeof actualUsage?.outputTokens === 'number' ? actualUsage.outputTokens : Math.ceil(fullResponse.length / 4);
     const finalCost = provider.estimateCost ? provider.estimateCost(finalInputTokens, finalOutputTokens) : 0;
 
     const providerId = provider?.config?.id || provider?.id;
@@ -175,10 +193,15 @@ async function startChat(projectPath = process.cwd(), options = {}) {
     console.log(chalk.cyan('\n💬 DevCompass AI Chat\n'));
     console.log(chalk.gray('Type your questions. Ctrl+C to exit.\n'));
 
+    // A single stable conversationId for the whole chat session — askQuestion
+    // defaults to a fresh uuid per call when none is given, which made every
+    // "chat" turn a brand-new conversation with no memory of previous ones.
+    const chatOptions = { ...options, conversationId: options.conversationId || uuidv4() };
+
     const askLoop = () => {
       rl.question(chalk.green('You: '), async (input) => {
         if (!input.trim()) return askLoop();
-        await askQuestion(input, projectPath, options);
+        await askQuestion(input, projectPath, chatOptions);
         askLoop();
       });
     };

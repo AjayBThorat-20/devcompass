@@ -4,16 +4,18 @@ const { exec } = require('child_process');
 const { promisify } = require('util');
 const path = require('path');
 const fs = require('fs');
-const semver = require('semver');
+const SemverValidator = require('../../../shared/utils/semver-validator');
 const { analyzeUnusedDependencies } = require('./unused-deps.collector');
 
 const execAsync = promisify(exec);
 
 async function collectOutdatedData(projectPath, packageJson = null) {
   try {
-    const packageLockPath = path.join(projectPath, 'package-lock.json');
-    if (!fs.existsSync(packageLockPath)) return [];
-
+    // npm-check-updates compares package.json's declared ranges against the npm
+    // registry — it doesn't read package-lock.json at all. Gating on the
+    // lockfile's existence meant any yarn/pnpm project (no package-lock.json)
+    // or a freshly-cloned npm project (not yet `npm install`ed) silently got
+    // zero "outdated" findings, indistinguishable from being fully up to date.
     const { stdout } = await execAsync('npx npm-check-updates --jsonUpgraded', {
       cwd: projectPath,
       encoding: 'utf8',
@@ -40,7 +42,7 @@ async function collectOutdatedData(projectPath, packageJson = null) {
     return Object.entries(outdated).map(([name, latest]) => {
       const current = packageJson.dependencies?.[name] || packageJson.devDependencies?.[name];
       const cleanCurrent = typeof current === 'string' ? current.replace(/^[\^~]/, '') : current;
-      return { name, current: cleanCurrent, latest, wanted: latest, updateType: getUpdateType(cleanCurrent, latest) };
+      return { name, current: cleanCurrent, latest, wanted: latest, updateType: SemverValidator.getUpdateType(cleanCurrent, latest) };
     });
   } catch (error) {
     if (process.env.DEBUG) console.error('Outdated collection failed:', error.message);
@@ -55,17 +57,6 @@ async function collectUnusedData(projectPath, packageJson = null) {
     if (process.env.DEBUG) console.error('Unused collection failed:', error.message);
     return [];
   }
-}
-
-function getUpdateType(current, latest) {
-  if (!current || !latest) return 'unknown';
-  const cv = semver.coerce(current);
-  const lv = semver.coerce(latest);
-  if (!cv || !lv) return 'unknown';
-  if (semver.major(lv) > semver.major(cv)) return 'major';
-  if (semver.minor(lv) > semver.minor(cv)) return 'minor';
-  if (semver.patch(lv) > semver.patch(cv)) return 'patch';
-  return 'latest';
 }
 
 module.exports = { collectOutdatedData, collectUnusedData };

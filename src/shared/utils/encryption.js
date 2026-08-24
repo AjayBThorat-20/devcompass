@@ -16,8 +16,16 @@ function getSaltPath() {
 
 function getOrCreateSalt() {
   const saltPath = getSaltPath();
+
+  // The salt file's content is load-bearing for every previously-encrypted
+  // token. A *transient* failure to read an already-existing salt file (e.g. a
+  // permissions change, a disk hiccup, an AV lock on Windows) must not be
+  // swallowed into the same fallback path as "no salt file yet" below — doing
+  // so would derive a different key than the one existing data was encrypted
+  // with, so decrypt() silently fails against real data instead of a clear error.
+  if (fs.existsSync(saltPath)) return fs.readFileSync(saltPath);
+
   try {
-    if (fs.existsSync(saltPath)) return fs.readFileSync(saltPath);
     const dir = path.dirname(saltPath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     const salt = crypto.randomBytes(SALT_LENGTH);

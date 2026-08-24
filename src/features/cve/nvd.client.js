@@ -4,19 +4,27 @@ const axios = require('axios');
 const chalk = require('chalk');
 const { db } = require('./database');
 const { decrypt } = require('../../shared/utils/encryption');
+const CircuitBreaker = require('../../shared/utils/circuit-breaker');
+const { RETRY } = require('../../shared/utils/constants');
 
 const NVD_API = 'https://services.nvd.nist.gov/rest/json/cves/2.0';
+const CIRCUIT_MAX_FAILURES = 5;
+// NVD's public rate limits are stricter than the npm registry's, so this
+// stays a longer, NVD-specific cool-down rather than the shared class's
+// 60s default — passed in explicitly rather than silently inherited.
+const CIRCUIT_RESET_MS = 300000;
 
 class NVDClient {
   constructor() {
     this._cachedKey = null;
     this._keyFetchTime = 0;
     this._keyTTL = 60000;
-    this.consecutiveFailures = 0;
-    this.maxConsecutiveFailures = 5;
-    this.circuitOpen = false;
-    this.lastFailureTime = 0;
-    this.circuitResetTime = 300000;
+    // Was a hand-rolled { consecutiveFailures, circuitOpen, lastFailureTime }
+    // state machine with no half-open recovery step — once tripped, it only
+    // ever cleared on the *next* isCircuitOpen() call after the reset window,
+    // and had no test coverage. The shared CircuitBreaker gets both a
+    // documented HALF_OPEN transition and dedicated tests for free.
+    this.circuitBreaker = new CircuitBreaker(CIRCUIT_MAX_FAILURES, CIRCUIT_RESET_MS);
   }
 
   getAPIKey() {
@@ -38,49 +46,36 @@ class NVDClient {
 
   clearKeyCache() { this._cachedKey = null; this._keyFetchTime = 0; }
 
-  isCircuitOpen() {
-    if (!this.circuitOpen) return false;
-    if (Date.now() - this.lastFailureTime > this.circuitResetTime) {
-      this.circuitOpen = false;
-      this.consecutiveFailures = 0;
-      return false;
-    }
-    return true;
-  }
-
-  recordFailure() {
-    this.consecutiveFailures++;
-    this.lastFailureTime = Date.now();
-    if (this.consecutiveFailures >= this.maxConsecutiveFailures) this.circuitOpen = true;
-  }
-
-  recordSuccess() { this.consecutiveFailures = 0; }
-
-  async queryCVE(cveId, retries = 2) {
-    if (this.isCircuitOpen()) return null;
+  // retries defaults to (shared MAX_ATTEMPTS - 1) since `retries` here means
+  // "additional attempts after the first", not total attempts.
+  async queryCVE(cveId, retries = RETRY.MAX_ATTEMPTS - 1) {
+    if (this.circuitBreaker.isOpen()) return null;
     const apiKey = this.getAPIKey();
     if (!apiKey) return null;
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         const response = await axios.get(NVD_API, { params: { cveId }, headers: { apiKey }, timeout: 15000 });
-        this.recordSuccess();
+        this.circuitBreaker.recordSuccess();
         if (response.data.vulnerabilities?.length > 0) {
           return this.parseCVE(response.data.vulnerabilities[0]);
         }
         return null;
       } catch (error) {
         const status = error.response?.status;
-        if (status === 403) { this.clearKeyCache(); this.recordFailure(); return null; }
+        if (status === 403) { this.clearKeyCache(); this.circuitBreaker.recordFailure(); return null; }
 
         // Back off for rate limiting, server errors, and network failures (no response) —
         // not just 429 — otherwise transient 5xx/timeouts get hammered with no delay.
+        // Same exponential-backoff policy (RETRY.INITIAL_DELAY_MS * BACKOFF_MULTIPLIER^attempt)
+        // as registry-client.js, read from the one shared constant instead of a
+        // locally hand-tuned formula, so a policy change only has to happen once.
         const isRetryable = status === 429 || !status || status >= 500;
         if (isRetryable && attempt < retries) {
-          await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
+          await new Promise(resolve => setTimeout(resolve, RETRY.INITIAL_DELAY_MS * Math.pow(RETRY.BACKOFF_MULTIPLIER, attempt)));
           continue;
         }
-        this.recordFailure();
+        this.circuitBreaker.recordFailure();
         return null;
       }
     }
@@ -111,7 +106,7 @@ class NVDClient {
 
   async enrichWithNVD(osvVulnerabilities) {
     if (!Array.isArray(osvVulnerabilities) || osvVulnerabilities.length === 0) return [];
-    if (this.isCircuitOpen()) return osvVulnerabilities;
+    if (this.circuitBreaker.isOpen()) return osvVulnerabilities;
 
     return Promise.all(osvVulnerabilities.map(async (vuln) => {
       try {

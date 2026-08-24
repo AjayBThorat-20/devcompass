@@ -25,13 +25,14 @@ class GoogleProvider extends BaseProvider {
         generationConfig: { temperature: options.temperature || 0.7, maxOutputTokens: options.maxTokens || 2048 }
       }, { headers: { 'Content-Type': 'application/json' }, signal: controller.signal });
       this.clearAbortController();
-      const candidate = response.data.candidates[0];
+      const candidate = response.data.candidates?.[0];
+      if (!candidate) throw new Error('Gemini response contained no candidates (likely blocked by safety filters)');
+      const text = candidate.content?.parts?.[0]?.text;
+      if (typeof text !== 'string') throw new Error('Gemini response contained no text content');
       const usage = response.data.usageMetadata || {};
-      return { content: candidate.content.parts[0].text, usage: { inputTokens: usage.promptTokenCount || 0, outputTokens: usage.candidatesTokenCount || 0, totalTokens: usage.totalTokenCount || 0 } };
+      return { content: text, usage: { inputTokens: usage.promptTokenCount || 0, outputTokens: usage.candidatesTokenCount || 0, totalTokens: usage.totalTokenCount || 0 } };
     } catch (error) {
-      this.clearAbortController();
-      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') throw new Error('Request cancelled by user');
-      throw error;
+      this.handleRequestError(error);
     }
   }
 
@@ -46,27 +47,21 @@ class GoogleProvider extends BaseProvider {
       }, { headers: { 'Content-Type': 'application/json' }, responseType: 'stream', signal: controller.signal });
 
       let usage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
-      for await (const chunk of response.data) {
-        const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const parsed = JSON.parse(line.slice(6));
-              const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (text) onChunk(text);
-              if (parsed.usageMetadata) {
-                usage = { inputTokens: parsed.usageMetadata.promptTokenCount || 0, outputTokens: parsed.usageMetadata.candidatesTokenCount || 0, totalTokens: parsed.usageMetadata.totalTokenCount || 0 };
-              }
-            } catch (e) { /* skip */ }
+      for await (const line of this.streamLines(response.data)) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const parsed = JSON.parse(line.slice(6));
+          const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) onChunk(text);
+          if (parsed.usageMetadata) {
+            usage = { inputTokens: parsed.usageMetadata.promptTokenCount || 0, outputTokens: parsed.usageMetadata.candidatesTokenCount || 0, totalTokens: parsed.usageMetadata.totalTokenCount || 0 };
           }
-        }
+        } catch (e) { /* skip */ }
       }
       this.clearAbortController();
       return usage;
     } catch (error) {
-      this.clearAbortController();
-      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') throw new Error('Request cancelled by user');
-      throw error;
+      this.handleRequestError(error);
     }
   }
 

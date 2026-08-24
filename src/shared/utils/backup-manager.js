@@ -13,7 +13,11 @@ class BackupManager {
     if (typeof backupName !== 'string' || !/^[a-zA-Z0-9._-]+$/.test(backupName)) return null;
     const resolved = path.join(this.backupDir, backupName);
     const relative = path.relative(this.backupDir, resolved);
-    if (relative.startsWith('..') || path.isAbsolute(relative)) return null;
+    // A name of just "." normalizes to the backups directory itself, which
+    // produces an empty relative path — not caught by the ".." check below —
+    // and would let callers operate (restore/delete) on the whole backups
+    // directory instead of getting a clean "not found".
+    if (relative === '' || relative.startsWith('..') || path.isAbsolute(relative)) return null;
     return resolved;
   }
 

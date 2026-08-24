@@ -13,7 +13,8 @@ class BackupRestorer {
     if (typeof backupName !== 'string' || !/^[a-zA-Z0-9._-]+$/.test(backupName)) return null;
     const resolved = path.join(this.backupDir, backupName);
     const relative = path.relative(this.backupDir, resolved);
-    if (relative.startsWith('..') || path.isAbsolute(relative)) return null;
+    // See backup-manager.js's resolveBackupPath for why "." must be rejected too.
+    if (relative === '' || relative.startsWith('..') || path.isAbsolute(relative)) return null;
     return resolved;
   }
 

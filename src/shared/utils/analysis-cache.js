@@ -20,8 +20,17 @@ function saveAnalysisCache(data, projectPath = process.cwd()) {
     const cacheData = { ...data, version, savedAt: new Date().toISOString() };
 
     fs.writeFileSync(cacheTempFile, JSON.stringify(cacheData, null, 2), 'utf8');
-    if (fs.existsSync(cacheFile)) fs.unlinkSync(cacheFile);
-    fs.renameSync(cacheTempFile, cacheFile);
+    // fs.renameSync already atomically replaces an existing destination on
+    // POSIX, so unlinking first (the old behavior) just opened a window where
+    // neither the old nor new cache file existed — a crash there silently
+    // loses the cache. Only fall back to unlink+rename for Windows, where
+    // rename-over-existing-file fails.
+    try {
+      fs.renameSync(cacheTempFile, cacheFile);
+    } catch (renameError) {
+      if (fs.existsSync(cacheFile)) fs.unlinkSync(cacheFile);
+      fs.renameSync(cacheTempFile, cacheFile);
+    }
   } catch (error) {
     if (process.env.DEBUG) console.error('Failed to save analysis cache:', error.message);
     const tempFile = getTempCachePath(projectPath);

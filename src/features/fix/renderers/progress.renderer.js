@@ -29,7 +29,7 @@ class ProgressRenderer {
   formatActionMessage(action) {
     if (action.action === 'update') return `${action.package} updated → ${action.targetVersion}`;
     if (action.action === 'remove') return `${action.package} removed`;
-    if (action.action === 'replace') return `${action.package} replaced with ${action.metadata?.alternative?.replacement}`;
+    if (action.action === 'replace') return `${action.package} replaced with ${action.metadata?.alternative?.replacement || action.metadata?.alternative}`;
     return action.package;
   }
 

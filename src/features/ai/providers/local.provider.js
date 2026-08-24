@@ -23,9 +23,7 @@ class LocalProvider extends BaseProvider {
       this.clearAbortController();
       return { content: response.data.response, usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } };
     } catch (error) {
-      this.clearAbortController();
-      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') throw new Error('Request cancelled by user');
-      throw error;
+      this.handleRequestError(error);
     }
   }
 
@@ -40,18 +38,13 @@ class LocalProvider extends BaseProvider {
         options: { temperature: options.temperature || 0.7, num_predict: options.maxTokens || 2000 }
       }, { headers: { 'Content-Type': 'application/json' }, responseType: 'stream', signal: controller.signal });
 
-      for await (const chunk of response.data) {
-        const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
-        for (const line of lines) {
-          try { const parsed = JSON.parse(line); if (parsed.response) onChunk(parsed.response); } catch (e) { /* skip */ }
-        }
+      for await (const line of this.streamLines(response.data)) {
+        try { const parsed = JSON.parse(line); if (parsed.response) onChunk(parsed.response); } catch (e) { /* skip */ }
       }
       this.clearAbortController();
       return { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
     } catch (error) {
-      this.clearAbortController();
-      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') throw new Error('Request cancelled by user');
-      throw error;
+      this.handleRequestError(error);
     }
   }
 

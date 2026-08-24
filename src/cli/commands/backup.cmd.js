@@ -1,5 +1,8 @@
 // src/cli/commands/backup.cmd.js
 
+// See graph.cmd.js for why parseInt can't be passed to commander bare.
+const parseIntOption = (value) => parseInt(value, 10);
+
 module.exports = function registerBackupCommand(program) {
   program
     .command('backup <action>')
@@ -7,7 +10,7 @@ module.exports = function registerBackupCommand(program) {
     .option('-p, --path <path>', 'Project path', process.cwd())
     .option('-n, --name <name>', 'Backup name (for restore/info commands)')
     .option('-f, --force', 'Skip confirmation prompts', false)
-    .option('--keep <number>', 'Number of backups to keep (for clean command)', parseInt, 5)
+    .option('--keep <number>', 'Number of backups to keep (for clean command)', parseIntOption, 5)
     .action((action, options) => {
       const backup = require('../../features/backup');
       backup(action, options);

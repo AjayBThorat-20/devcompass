@@ -29,7 +29,7 @@ function renderFixPreview(plan, mode = 'safe') {
     console.log(chalk.cyan(`${index + 1}. ${action.package}`));
     if (action.action === 'update') console.log(chalk.gray(`   ${action.currentVersion} → ${action.targetVersion}`));
     else if (action.action === 'remove') console.log(chalk.gray('   Remove unused dependency'));
-    else if (action.action === 'replace') console.log(chalk.gray(`   Replace with ${action.metadata?.alternative?.replacement}`));
+    else if (action.action === 'replace') console.log(chalk.gray(`   Replace with ${action.metadata?.alternative?.replacement || action.metadata?.alternative}`));
     console.log(chalk.gray(`   Reason: ${action.message}`));
     console.log(chalk.gray(`   Risk: ${getRiskLabel(action.riskLevel)}`));
     console.log('');

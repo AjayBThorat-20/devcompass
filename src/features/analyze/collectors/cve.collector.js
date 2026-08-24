@@ -1,8 +1,23 @@
 // src/features/analyze/collectors/cve.collector.js
 
 const vulnerabilityChecker = require('../../cve/vulnerability-checker');
+const semver = require('semver');
+const { normalizeSeverity, getSeverityWeight } = require('../../../core/utils/severity');
 
-const SEVERITY_RANK = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+// Picks the version a package needs to move to in order to resolve a
+// vulnerability: the nearest "fixed" version above what's installed, or (if
+// every known fix is already below the installed version, which shouldn't
+// normally happen but guards against bad data) the lowest known fix.
+function resolveNearestFix(fixedVersions, installedVersion) {
+  if (!Array.isArray(fixedVersions) || fixedVersions.length === 0) return null;
+  const candidates = fixedVersions.map(v => semver.coerce(v)).filter(Boolean);
+  if (candidates.length === 0) return null;
+  const installed = semver.coerce(installedVersion);
+  const above = installed ? candidates.filter(c => semver.gt(c, installed)) : candidates;
+  const pool = above.length > 0 ? above : candidates;
+  pool.sort(semver.compare);
+  return pool[0].version;
+}
 
 async function collectCVEData(projectPath, packageJson = null) {
   try {
@@ -38,18 +53,22 @@ function collapsePerPackage(vulns) {
     if (!pkgName) continue;
 
     const severity = normalizeSeverity(vuln.severity);
-    const rank = SEVERITY_RANK[severity] || 0;
+    const rank = getSeverityWeight(severity);
+    const installedVersion = vuln.packageVersion || vuln.version;
+    const cvss = vuln.cvssScore || vuln.cvss || 0;
+    const vulnFixVersion = resolveNearestFix(vuln.fixedVersions, installedVersion);
 
     if (!byPackage.has(pkgName)) {
       byPackage.set(pkgName, {
         package: pkgName,
-        version: vuln.packageVersion || vuln.version,
+        version: installedVersion,
         severity,
         rank,
-        cvss: vuln.cvssScore || vuln.cvss || 0,
+        cvss,
         summary: vuln.summary || vuln.title || 'Security vulnerability',
         ids: [vuln.id].filter(Boolean),
-        source: vuln.source || 'OSV'
+        source: vuln.source || 'OSV',
+        fixVersion: vulnFixVersion
       });
       continue;
     }
@@ -57,10 +76,21 @@ function collapsePerPackage(vulns) {
     const existing = byPackage.get(pkgName);
     if (vuln.id) existing.ids.push(vuln.id);
 
+    // A package needs to move to the highest fix version across all of its
+    // vulnerabilities to actually resolve every one of them.
+    if (vulnFixVersion && (!existing.fixVersion || semver.gt(semver.coerce(vulnFixVersion), semver.coerce(existing.fixVersion)))) {
+      existing.fixVersion = vulnFixVersion;
+    }
+
     if (rank > existing.rank) {
       existing.severity = severity;
       existing.rank = rank;
-      existing.cvss = vuln.cvssScore || vuln.cvss || existing.cvss;
+      existing.cvss = cvss || existing.cvss;
+      existing.summary = vuln.summary || vuln.title || existing.summary;
+    } else if (rank === existing.rank && cvss > existing.cvss) {
+      // Among equal-severity vulnerabilities for the same package, surface the
+      // worst (highest-CVSS) one rather than whichever was encountered first.
+      existing.cvss = cvss;
       existing.summary = vuln.summary || vuln.title || existing.summary;
     }
   }
@@ -74,16 +104,9 @@ function collapsePerPackage(vulns) {
     risk: entry.ids.slice(0, 5).join(', ') + (entry.ids.length > 5 ? `, +${entry.ids.length - 5} more` : ''),
     source: entry.source,
     id: entry.ids[0],
-    advisoryCount: entry.ids.length
+    advisoryCount: entry.ids.length,
+    fixVersion: entry.fixVersion
   }));
-}
-
-function normalizeSeverity(severity) {
-  if (!severity) return 'MEDIUM';
-  const s = String(severity).toUpperCase();
-  if (s === 'MODERATE') return 'MEDIUM';
-  if (['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(s)) return s;
-  return 'MEDIUM';
 }
 
 module.exports = { collectCVEData };

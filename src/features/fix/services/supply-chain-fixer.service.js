@@ -5,7 +5,8 @@ const dynamicSecurity = require('../../quality/dynamic-security.service');
 const { sanitizePackageName } = require('../../../shared/utils/package-sanitizer');
 
 class SupplyChainFixer {
-  constructor() {
+  constructor(projectPath = process.cwd()) {
+    this.projectPath = projectPath;
     this.fixes = [];
     this.skipped = [];
     this.errors = [];
@@ -20,10 +21,10 @@ class SupplyChainFixer {
 
         if (check) {
           if (!dryRun) {
-            execSync(`npm uninstall ${sanitizePackageName(packageName)}`, { stdio: 'pipe', cwd: process.cwd() });
+            execSync(`npm uninstall ${sanitizePackageName(packageName)}`, { stdio: 'pipe', cwd: this.projectPath });
             if (warning.correctPackage) {
               try {
-                execSync(`npm install ${sanitizePackageName(warning.correctPackage)}`, { stdio: 'pipe', cwd: process.cwd() });
+                execSync(`npm install ${sanitizePackageName(warning.correctPackage)}`, { stdio: 'pipe', cwd: this.projectPath });
               } catch (error) { /* ignore — removal already succeeded */ }
             }
           }
@@ -37,7 +38,7 @@ class SupplyChainFixer {
       }
 
       if (warning.type === 'vulnerability') {
-        if (!dryRun) execSync('npm audit fix', { stdio: 'pipe', cwd: process.cwd() });
+        if (!dryRun) execSync('npm audit fix', { stdio: 'pipe', cwd: this.projectPath });
 
         this.fixes.push({ package: packageName, action: 'updated', reason: 'Security vulnerability fixed', severity: warning.severity });
         return { success: true, action: 'updated', metadata: { package: packageName, severity: warning.severity } };

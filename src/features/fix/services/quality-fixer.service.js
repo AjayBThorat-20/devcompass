@@ -5,7 +5,8 @@ const dynamicQuality = require('../../quality/dynamic-quality.service');
 const { sanitizePackageName } = require('../../../shared/utils/package-sanitizer');
 
 class QualityFixer {
-  constructor() {
+  constructor(projectPath = process.cwd()) {
+    this.projectPath = projectPath;
     this.fixes = [];
     this.skipped = [];
     this.errors = [];
@@ -36,10 +37,10 @@ class QualityFixer {
           const safeAlternative = sanitizePackageName(alternative.recommended);
 
           try {
-            execSync(`npm uninstall ${safePackageName}`, { stdio: 'pipe', cwd: process.cwd() });
+            execSync(`npm uninstall ${safePackageName}`, { stdio: 'pipe', cwd: this.projectPath });
           } catch (error) { /* ignore uninstall errors */ }
 
-          execSync(`npm install ${safeAlternative}`, { stdio: 'pipe', cwd: process.cwd() });
+          execSync(`npm install ${safeAlternative}`, { stdio: 'pipe', cwd: this.projectPath });
         }
 
         this.fixes.push({ package: packageName, action: 'replaced', replacement: alternative.recommended, reason: alternative.reason, status: pkg.status });

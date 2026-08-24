@@ -122,13 +122,12 @@ class GraphGenerator {
       this.nodesById.set(nodeId, node);
       links.push({ source: parent.id, target: nodeId, type: 'normal', depth: currentDepth + 1 });
 
-      if (this.packageLock?.packages) {
-        const lockEntry = this.packageLock.packages[`node_modules/${name}`];
-        if (lockEntry?.dependencies) {
-          ancestorPath.add(nodeId);
-          this.buildTree(node, lockEntry.dependencies, nodes, links, ancestorPath, currentDepth + 1, maxDepth, stackDepth + 1);
-          ancestorPath.delete(nodeId);
-        }
+      const lockEntry = this.getLockEntry(name);
+      const declaredDeps = this.getLockEntryDeclaredDeps(lockEntry);
+      if (declaredDeps) {
+        ancestorPath.add(nodeId);
+        this.buildTree(node, declaredDeps, nodes, links, ancestorPath, currentDepth + 1, maxDepth, stackDepth + 1);
+        ancestorPath.delete(nodeId);
       }
     }
   }
@@ -203,9 +202,30 @@ class GraphGenerator {
   }
 
   getInstalledVersion(packageName) {
-    if (!this.packageLock?.packages) return null;
-    const lockEntry = this.packageLock.packages[`node_modules/${packageName}`];
+    const lockEntry = this.getLockEntry(packageName);
     return lockEntry ? lockEntry.version : null;
+  }
+
+  // npm lockfileVersion 2/3 keys resolved packages by path under `packages`;
+  // lockfileVersion 1 (still common in older projects) instead keys them by
+  // name under a top-level `dependencies` map. Only handling the first format
+  // meant any v1-lockfile project silently got a graph with no transitive
+  // dependencies at all — depth beyond 1 looked "empty" rather than unsupported.
+  getLockEntry(name) {
+    if (!this.packageLock) return null;
+    if (this.packageLock.packages) return this.packageLock.packages[`node_modules/${name}`] || null;
+    if (this.packageLock.dependencies) return this.packageLock.dependencies[name] || null;
+    return null;
+  }
+
+  // v2/v3's packages[...].dependencies mirrors the package's own declared
+  // dependency ranges (what buildTree recurses into). v1's equivalent field is
+  // .requires — v1 entries also have their own .dependencies, but that means
+  // something different there (locally-nested versions for conflict
+  // resolution), not "what this package declares".
+  getLockEntryDeclaredDeps(entry) {
+    if (!entry) return null;
+    return this.packageLock.packages ? entry.dependencies : entry.requires;
   }
 
   calculateMaxDepth(nodes) {
