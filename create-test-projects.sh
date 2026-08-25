@@ -21,8 +21,12 @@ NC='\033[0m' # No Color
 
 # Create test directory
 TEST_DIR="./test"
-rm -rf "$TEST_DIR"
 mkdir -p "$TEST_DIR"
+
+# Only clear the scratch fixture dirs this script owns (project*, debug-missing,
+# etc.) — the old `rm -rf "$TEST_DIR"` wiped the entire test/ tree, including
+# test/unit/, the checked-in automated test suite CI actually runs.
+find "$TEST_DIR" -mindepth 1 -maxdepth 1 ! -name 'unit' -exec rm -rf {} +
 
 echo -e "${CYAN}📁 Created test directory: $TEST_DIR${NC}"
 echo ""

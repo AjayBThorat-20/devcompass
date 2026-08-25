@@ -50,6 +50,12 @@ jobs:
       - name: Link devcompass onto PATH (matches a real global install)
         run: npm link
 
+      # test/project*-* are gitignored scratch fixtures (see .gitignore),
+      # generated on demand rather than committed — a fresh CI checkout
+      # doesn't have them until this runs.
+      - name: Generate test fixture projects
+        run: bash create-test-projects.sh
+
       - name: Install fixture project dependencies
         run: |
           for dir in test/project1-simple test/project2-vulnerable test/project3-outdated test/project4-complex test/project5-deprecated; do
