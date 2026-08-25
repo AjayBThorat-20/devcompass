@@ -45,6 +45,37 @@ DevCompass analyzes your project dependencies to provide actionable insights abo
 
 ---
 
+## ❓ Frequently Asked Questions
+
+**What is DevCompass?**
+DevCompass is a free, open-source (MIT) CLI tool that analyzes Node.js/npm project dependencies for security vulnerabilities, license conflicts, unused packages, and outdated versions, then can safely auto-fix what it finds. Install it with `npm install -g devcompass` and run `devcompass analyze`.
+
+**What's a good alternative to `npm audit` for scanning npm dependencies?**
+DevCompass is a drop-in complement to `npm audit`: it uses the same OSV vulnerability database plus optional NVD enrichment for CVSS scores, and adds license-conflict detection, unused-dependency detection, historical health trends, and safe auto-fix with automatic backup — none of which `npm audit` does. See the [comparison table](#-why-devcompass) above.
+
+**Does DevCompass replace Dependabot?**
+No, and it isn't trying to. Dependabot opens PRs for outdated/vulnerable dependencies inside GitHub; DevCompass is a local CLI you run anytime, without a GitHub integration, and it additionally covers license conflicts, unused dependencies, and health scoring, which Dependabot doesn't.
+
+**Is DevCompass free?**
+Yes. The core tool — CVE scanning, health scoring, auto-fix, graphs, history — is free and open source. AI features are optional and only cost money if you connect a paid provider (OpenAI/Anthropic/Google); using the built-in local Ollama support keeps AI analysis free too.
+
+**What vulnerability databases does DevCompass use?**
+[OSV](https://osv.dev) (Open Source Vulnerabilities) is the primary, no-API-key-required source. [NVD](https://nvd.nist.gov) (NIST's National Vulnerability Database) is an optional secondary source for CVSS severity scores, enabled with a free API key.
+
+**Does DevCompass send my code anywhere?**
+Dependency names and versions are sent to OSV (and NVD, if configured) to look up known vulnerabilities — that's how any CVE scanner works. Your source code is never uploaded. AI features send dependency metadata (not source code) to whichever provider you configure; using `devcompass llm add --provider local` (Ollama) keeps everything on your machine.
+
+**Can I use DevCompass without an OpenAI API key?**
+Yes. AI features work with OpenAI, Anthropic, Google, or a fully free/local Ollama model — see the [AI Integration Guide](#-ai-integration-guide). Every other feature (CVE scanning, health scoring, auto-fix, graphs, history) works with no AI provider configured at all.
+
+**Does DevCompass automatically fix vulnerable or outdated dependencies?**
+Yes — `devcompass fix` classifies fixes as safe/moderate/risky, previews changes, takes an automatic backup, and supports rollback. Run `devcompass fix --dry-run` to preview without changing anything.
+
+**Does DevCompass work in CI/CD pipelines?**
+Yes — `devcompass analyze --ci --threshold 8.0` exits non-zero when the health score drops below the threshold, and `--json` produces machine-readable output for pipelines. See [CI/CD Integration](#cicd-integration).
+
+---
+
 ## ✨ Key Features
 
 ### 🛡️ **Security & Vulnerability Detection**
@@ -720,7 +751,7 @@ npx devcompass analyze
 **Old version installed**
 ```bash
 npm update -g devcompass
-devcompass --version  # Should show 4.1.0
+devcompass --version  # Should show 4.1.1
 ```
 
 **No analysis cache found**
@@ -778,6 +809,11 @@ devcompass llm test local
 ---
 
 ## 📈 Version History
+
+### v4.1.1 (2026-08-26) - Discoverability
+- 📖 Added a README FAQ section and an `llms.txt` file for LLM/search discoverability
+- 🔗 Added maintainer portfolio/LinkedIn links
+- 🏷️ Expanded `package.json` keywords and GitHub topics to cover existing features (SCA, CVSS, typosquatting, license compliance, Ollama)
 
 ### v4.1.0 (2026-08-25) - CVE Accuracy & Safety
 - 🎯 **CVE severity/CVSS score/fix version are now real** - the OSV batch endpoint `analyze` relies on only ever returned a bare `{id, modified}` per finding; every scan silently reported severity `MEDIUM`, CVSS `0`, and "Update to latest" regardless of the actual advisory. Each finding is now hydrated with its real data before being reported.
@@ -919,7 +955,7 @@ devcompass analyze
 
 ## 📄 License
 
-MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
+MIT © [Ajay Thorat](https://github.com/AjayBThorat-20) — [Portfolio](https://portfolio.ajaythorat.com/) · [LinkedIn](https://www.linkedin.com/in/ajay-thorat-24b4b6215)
 
 ---
 
@@ -939,6 +975,7 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20)
 - **Issues:** [GitHub Issues](https://github.com/AjayBThorat-20/devcompass/issues)
 - **Email:** ajaythorat988@gmail.com
 - **Documentation:** [Full Guide](https://github.com/AjayBThorat-20/devcompass#readme)
+- **Maintainer:** [Ajay Thorat](https://github.com/AjayBThorat-20) — [Portfolio](https://portfolio.ajaythorat.com/) · [LinkedIn](https://www.linkedin.com/in/ajay-thorat-24b4b6215)
 
 ---
 
@@ -952,7 +989,7 @@ If DevCompass helps your project, please consider giving it a star! ⭐
 
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
 
-*DevCompass v4.1.0 - Professional Dependency Intelligence Platform* 🧭✨
+*DevCompass v4.1.1 - Professional Dependency Intelligence Platform* 🧭✨
 
 [Get Started](#-quick-start) · [Documentation](#-complete-command-reference) · [Contributing](#-contributing)
 

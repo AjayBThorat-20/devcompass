@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.1] - 2026-08-26
+
+### Docs
+
+- Added a `## Frequently Asked Questions` section to the README, answering the comparison/setup/privacy questions people actually ask ("alternative to npm audit", "does it replace Dependabot", "does it send my code anywhere", etc.) in direct Q&A form.
+- Added `llms.txt` at the repo root (per the [llms.txt](https://llmstxt.org/) convention) summarizing the project and linking README/CHANGELOG/MIGRATION/CONTRIBUTING for LLM- and crawler-based discovery.
+- Linked the maintainer's portfolio and LinkedIn from the README and `llms.txt`, and switched `package.json`'s `author` field to the structured `{name, email, url}` form.
+- Expanded `package.json` keywords and the GitHub repo topics to cover real, existing features that weren't previously discoverable by name (SCA, CVSS, typosquatting detection, license compliance, Ollama/local-AI support).
+
 ## [4.1.0] - 2026-08-25
 
 ### Fixed

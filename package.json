@@ -1,6 +1,6 @@
 {
   "name": "devcompass",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "description": "Dependency health checker with ecosystem intelligence, unified interactive dashboard with 5 dynamic layouts (Tree/Force/Radial/Conflict/Analytics), historical tracking with SQLite, snapshot comparison, timeline visualization, modular CSS/JS architecture, intelligent clustering, real-time filtering, advanced zoom controls, theme support (dark/light), supply chain security with auto-fix, license conflict resolution, package quality auto-fix, batch fix modes, backup & rollback, and professional dependency exploration.",
   "main": "src/index.js",
   "bin": {
@@ -11,7 +11,8 @@
     "src/",
     "data/",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "llms.txt"
   ],
   "scripts": {
     "test": "node --test test/unit/",
@@ -36,9 +37,30 @@
     "dependency-graph",
     "snapshot",
     "auto-fix",
-    "health-score"
+    "health-score",
+    "npm-audit-alternative",
+    "dependabot-alternative",
+    "osv",
+    "nvd",
+    "ollama",
+    "llm",
+    "sca",
+    "software-composition-analysis",
+    "cvss",
+    "typosquatting",
+    "gpl",
+    "license-compliance",
+    "node-security",
+    "javascript-security",
+    "dependency-scanner",
+    "package-audit",
+    "ci-cd"
   ],
-  "author": "Ajay Thorat <ajaythorat988@gmail.com>",
+  "author": {
+    "name": "Ajay Thorat",
+    "email": "ajaythorat988@gmail.com",
+    "url": "https://portfolio.ajaythorat.com/"
+  },
   "license": "MIT",
   "dependencies": {
     "axios": "^1.6.0",

@@ -1,5 +1,26 @@
 # Migration Guide
 
+## From v4.1.0 → v4.1.1
+
+### What's New
+- **📖 README FAQ section** answering common comparison/setup/privacy questions in direct Q&A form
+- **📄 `llms.txt`** added at the repo root for LLM- and crawler-based discovery
+- **🔗 Maintainer links** (portfolio, LinkedIn) added to the README and `package.json`'s `author` field
+- **🏷️ Expanded keywords/topics** covering existing features (SCA, CVSS, typosquatting detection, license compliance, Ollama) that weren't previously discoverable by name
+
+### Migration Steps
+```bash
+npm install -g devcompass@4.1.1
+```
+
+### What Changed
+- **Modified**: `README.md`, `package.json` (version, keywords, author, files)
+- **Added**: `llms.txt`
+
+No breaking changes. No code, config, or usage changes required.
+
+---
+
 ## From v4.0.0 → v4.1.0
 
 ### What's New
