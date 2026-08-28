@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.3] - 2026-08-28
+
+### Docs
+
+- Regenerated `demo-overview.gif`, `demo-analyze.gif`, and `demo-fix.gif` in `docs/assets/` - `analyze`/`fix` print a `DevCompass v${version}` banner and `--help` prints a "New in vX.X.X" line, both read live from `package.json`; these three GIFs were recorded on `3.2.7` and never re-recorded across five subsequent releases, so the README showed a version five majors/minors behind current.
+
 ## [4.1.2] - 2026-08-28
 
 ### Docs
