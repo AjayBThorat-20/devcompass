@@ -6,7 +6,7 @@ DevCompass is a complement to `npm audit` and Dependabot for teams that also wan
 
 ## Install & usage
 
-- [README](https://raw.githubusercontent.com/AjayBThorat-20/devcompass/main/README.md): install instructions, full command reference (`analyze`, `fix`, `cve`, `graph`, `snapshot`, `compare`, `history`, `timeline`, `backup`, `ai`, `llm`, `config`), comparison vs. npm audit/Dependabot, CVE detection internals, AI provider setup, CI/CD integration, troubleshooting, and FAQ.
+- [README](https://raw.githubusercontent.com/AjayBThorat-20/devcompass/main/README.md): install instructions, full command reference (`analyze`, `fix`, `cve`, `graph`, `snapshot`, `compare`, `history`, `timeline`, `backup`, `ai`, `llm`, `config`, `clean`), comparison vs. npm audit/Dependabot, CVE detection internals, AI provider setup, CI/CD integration, troubleshooting, and FAQ.
 - [npm package](https://www.npmjs.com/package/devcompass): install command, current version, download stats.
 - [GitHub repository](https://github.com/AjayBThorat-20/devcompass): source code, issue tracker.
 

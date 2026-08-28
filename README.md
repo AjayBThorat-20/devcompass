@@ -256,6 +256,12 @@ devcompass cve cache --clear          # Clear cached data
 - **Performance:** First run 2-5s, cached <100ms
 - **Storage:** SQLite local database
 
+<p align="center">
+  <img src="docs/assets/demo-cve.gif" alt="devcompass cve key and cache --stats output" width="760">
+  <br>
+  <sub>Checking NVD key status and CVE cache statistics — both read-only, never touch your stored key</sub>
+</p>
+
 ---
 
 ### Fixing & Automation
@@ -331,6 +337,12 @@ devcompass graph --open
 - Export as PNG/JSON
 
 <p align="center">
+  <img src="docs/assets/demo-graph.gif" alt="devcompass graph generating a force-directed layout filtered to vulnerable packages" width="760">
+  <br>
+  <sub><code>devcompass graph --layout force --filter vulnerable</code></sub>
+</p>
+
+<p align="center">
   <img src="docs/assets/dashboard-graph.png" alt="DevCompass interactive dependency graph dashboard" width="800">
 </p>
 
@@ -360,6 +372,12 @@ devcompass snapshot delete 123
 devcompass snapshot delete 123 --yes
 ```
 
+<p align="center">
+  <img src="docs/assets/demo-snapshot.gif" alt="devcompass snapshot list and snapshot view output" width="760">
+  <br>
+  <sub>Listing snapshots for a project, then viewing one in detail</sub>
+</p>
+
 #### `compare` - Snapshot Comparison
 
 Compare two snapshots to track changes over time.
@@ -375,38 +393,74 @@ devcompass compare 51 52 --verbose
 devcompass compare 51 52 -o report.md
 ```
 
+<p align="center">
+  <img src="docs/assets/demo-compare.gif" alt="devcompass compare showing packages removed and health score change between two snapshots" width="760">
+  <br>
+  <sub>Real before/after: same project across two snapshots, health 4.96 → 10.00 after <code>devcompass fix</code></sub>
+</p>
+
 #### `history` - Historical Analysis
 
-View and analyze snapshot history.
+View and analyze snapshot history across all projects, or filtered to one.
 
 ```bash
 # List all snapshots
 devcompass history list
 devcompass history list --limit 50
-devcompass history list --month 05-2025
+devcompass history list --project myapp
+
+# Filter by date
+devcompass history list --date 25-08-2026     # Specific day
+devcompass history list --month 08-2026       # Specific month
+devcompass history list --year 2026           # Specific year
+devcompass history list --from 01-08-2026 --to 28-08-2026
 
 # Monthly summary
 devcompass history summary
 
-# Statistics
+# Statistics (totals, first/last snapshot, average health)
 devcompass history stats
+
+# Delete old snapshots beyond a threshold (default: keep last 30)
+devcompass history cleanup
+devcompass history cleanup --keep 10 --project myapp
 ```
+
+> **Note:** `history` only takes a subcommand — it has no per-snapshot detail view. Use `devcompass snapshot view <id>` (above) or `devcompass compare <id1> <id2>` for a single snapshot's details.
+
+<p align="center">
+  <img src="docs/assets/demo-history.gif" alt="devcompass history list and history stats output" width="760">
+  <br>
+  <sub><code>devcompass history list --project docs-demo-project</code> followed by <code>devcompass history stats</code></sub>
+</p>
 
 #### `timeline` - Timeline Visualization
 
-Generate interactive timeline showing dependency evolution.
+Generate a health-score trend summary and an interactive HTML timeline showing dependency evolution.
 
 ```bash
-# Generate timeline
+# Generate timeline (last 30 days, all projects)
 devcompass timeline
 
 # Customize timeframe
 devcompass timeline --days 30
 devcompass timeline --days 90
 
+# Filter to one project
+devcompass timeline --project myapp
+
+# Custom output path
+devcompass timeline --output my-timeline.html
+
 # Open in browser
 devcompass timeline --open
 ```
+
+<p align="center">
+  <img src="docs/assets/demo-timeline.gif" alt="devcompass timeline showing an improving health score trend" width="760">
+  <br>
+  <sub>Trend detection picks up the real 4.96 → 10 jump and labels it "improving"</sub>
+</p>
 
 ---
 
@@ -432,6 +486,12 @@ devcompass backup clean                # Keep latest 5
 devcompass backup clean --keep 3       # Keep latest 3
 ```
 
+<p align="center">
+  <img src="docs/assets/demo-backup.gif" alt="devcompass backup list and backup restore output" width="760">
+  <br>
+  <sub>Restore automatically snapshots the current state first, then rolls back package.json / package-lock.json</sub>
+</p>
+
 ---
 
 ### AI Commands
@@ -454,6 +514,12 @@ devcompass ai chat
 # Get recommendations
 devcompass ai recommend
 ```
+
+<p align="center">
+  <img src="docs/assets/demo-ai.gif" alt="devcompass ai ask giving a real answer from a local Ollama model" width="760">
+  <br>
+  <sub>Real response from a free local model (Ollama) — no API key, no cost</sub>
+</p>
 
 #### `llm` - AI Provider Management
 
@@ -483,6 +549,12 @@ devcompass llm update openai --model gpt-4o
 devcompass llm remove anthropic
 ```
 
+<p align="center">
+  <img src="docs/assets/demo-llm.gif" alt="devcompass llm list and llm test output" width="760">
+  <br>
+  <sub>Listing the configured local (Ollama) provider and testing the connection</sub>
+</p>
+
 ---
 
 ### Configuration
@@ -501,6 +573,44 @@ devcompass config --show
 # Remove GitHub token
 devcompass config --remove-github-token
 ```
+
+<p align="center">
+  <img src="docs/assets/demo-config.gif" alt="devcompass config --show output" width="760">
+</p>
+
+---
+
+### Maintenance
+
+#### `clean` - Clean Output Directories
+
+Manage the `.devcompass/` output directory in the current project (cache, backups, generated graphs, reports, exports, and temp files).
+
+```bash
+# Show a summary of what's stored, with cleanup options
+devcompass clean
+
+# Clean everything
+devcompass clean --all
+
+# Clean one category at a time
+devcompass clean --cache      # Cached analysis results
+devcompass clean --backups    # Internal .devcompass/backups/ (rarely populated — see note below)
+devcompass clean --temp       # Temporary files
+devcompass clean --graphs     # Generated dependency-graph HTML files
+devcompass clean --reports    # Generated reports
+
+# Skip the confirmation prompt
+devcompass clean --graphs --force
+```
+
+Running `devcompass clean` with no flags never deletes anything — it prints a summary (file counts and size per category) and the list of available flags; you always pass an explicit category (or `--all`) to actually clean something, plus `--force` to skip the "Continue? (y/N)" prompt.
+
+> **Note:** `--backups` here only clears the `.devcompass/backups/` directory tracked by this command's own output manager. The `package.json`/`package-lock.json` backups that `fix` and `backup restore` actually create and use live in `<project>/.devcompass-backups/` (a separate directory) — manage those with `devcompass backup clean`, not `devcompass clean --backups`.
+
+<p align="center">
+  <img src="docs/assets/demo-clean.gif" alt="devcompass clean summary followed by devcompass clean --graphs --force" width="760">
+</p>
 
 ---
 
@@ -713,14 +823,14 @@ devcompass history stats
 
 ```
 ~/.devcompass/
-├── history.db          # Snapshot database
-├── cve.db             # CVE cache
-├── ai.db              # AI conversation history
-├── config.db          # Configuration
-└── llm.db             # LLM provider settings
+├── history.db          # Snapshot database (analyze, snapshot, history, compare, timeline)
+├── cve.db              # CVE cache + NVD API key
+├── ai.db                # LLM provider settings + AI conversation/cost history
+├── config.db           # Configuration (GitHub token)
+└── .encryption-salt     # Salt for AES-256-GCM encryption of stored keys/tokens
 
-<project>/.devcompass-backups/  # Backup files
-<project>/.devcompass-cache.json  # Analysis cache
+<project>/.devcompass/            # Per-project output: cache, backups, graphs, reports, exports, temp
+<project>/.devcompass-backups/    # package.json / package-lock.json backups (used by `fix` and `backup`)
 ```
 
 ### Configuration Files
