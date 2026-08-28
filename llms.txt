@@ -23,6 +23,6 @@ DevCompass is a complement to `npm audit` and Dependabot for teams that also wan
 ## Author
 
 DevCompass is created and maintained by Ajay Thorat.
-- [Portfolio](https://portfolio.ajaythorat.com/)
+- [Portfolio](https://www.ajaythorat.com)
 - [LinkedIn](https://www.linkedin.com/in/ajay-thorat-24b4b6215)
 - [GitHub](https://github.com/AjayBThorat-20)

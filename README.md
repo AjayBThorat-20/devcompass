@@ -751,7 +751,7 @@ npx devcompass analyze
 **Old version installed**
 ```bash
 npm update -g devcompass
-devcompass --version  # Should show 4.1.1
+devcompass --version  # Should show 4.1.2
 ```
 
 **No analysis cache found**
@@ -809,6 +809,9 @@ devcompass llm test local
 ---
 
 ## 📈 Version History
+
+### v4.1.2 (2026-08-28) - Docs Fix
+- 🔗 Fixed the maintainer portfolio link (`https://portfolio.ajaythorat.com/` → `https://www.ajaythorat.com`) in the README, `llms.txt`, and `package.json`'s `author.url`
 
 ### v4.1.1 (2026-08-26) - Discoverability
 - 📖 Added a README FAQ section and an `llms.txt` file for LLM/search discoverability
@@ -955,7 +958,7 @@ devcompass analyze
 
 ## 📄 License
 
-MIT © [Ajay Thorat](https://github.com/AjayBThorat-20) — [Portfolio](https://portfolio.ajaythorat.com/) · [LinkedIn](https://www.linkedin.com/in/ajay-thorat-24b4b6215)
+MIT © [Ajay Thorat](https://github.com/AjayBThorat-20) — [Portfolio](https://www.ajaythorat.com) · [LinkedIn](https://www.linkedin.com/in/ajay-thorat-24b4b6215)
 
 ---
 
@@ -975,7 +978,7 @@ MIT © [Ajay Thorat](https://github.com/AjayBThorat-20) — [Portfolio](https://
 - **Issues:** [GitHub Issues](https://github.com/AjayBThorat-20/devcompass/issues)
 - **Email:** ajaythorat988@gmail.com
 - **Documentation:** [Full Guide](https://github.com/AjayBThorat-20/devcompass#readme)
-- **Maintainer:** [Ajay Thorat](https://github.com/AjayBThorat-20) — [Portfolio](https://portfolio.ajaythorat.com/) · [LinkedIn](https://www.linkedin.com/in/ajay-thorat-24b4b6215)
+- **Maintainer:** [Ajay Thorat](https://github.com/AjayBThorat-20) — [Portfolio](https://www.ajaythorat.com) · [LinkedIn](https://www.linkedin.com/in/ajay-thorat-24b4b6215)
 
 ---
 
@@ -989,7 +992,7 @@ If DevCompass helps your project, please consider giving it a star! ⭐
 
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
 
-*DevCompass v4.1.1 - Professional Dependency Intelligence Platform* 🧭✨
+*DevCompass v4.1.2 - Professional Dependency Intelligence Platform* 🧭✨
 
 [Get Started](#-quick-start) · [Documentation](#-complete-command-reference) · [Contributing](#-contributing)
 

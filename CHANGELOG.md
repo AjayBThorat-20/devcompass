@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.2] - 2026-08-28
+
+### Docs
+
+- Fixed the maintainer portfolio link - `README.md`, `llms.txt`, and `package.json`'s `author.url` pointed at `https://portfolio.ajaythorat.com/`, a subdomain that's no longer the correct address. Now `https://www.ajaythorat.com`.
+
 ## [4.1.1] - 2026-08-26
 
 ### Docs
