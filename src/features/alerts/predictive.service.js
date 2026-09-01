@@ -4,15 +4,21 @@ const { checkGitHubIssues } = require('./github-tracker.service');
 
 async function generatePredictiveWarnings(packages, options = {}) {
   const { onProgress } = options;
+  const warnings = [];
 
   try {
-    if (!packages || Object.keys(packages).length === 0) return [];
+    if (!packages || Object.keys(packages).length === 0) return warnings;
 
     const githubData = await checkGitHubIssues(packages, { concurrency: 5, onProgress });
-    const warnings = [];
+    const failed = [];
 
     for (const data of githubData) {
       if (!data) continue;
+
+      if (data.failed) {
+        failed.push(data.package);
+        continue;
+      }
 
       if (data.riskScore >= 3) {
         warnings.push({
@@ -47,10 +53,17 @@ async function generatePredictiveWarnings(packages, options = {}) {
       }
     }
 
+    if (failed.length > 0) {
+      warnings.incomplete = true;
+      warnings.incompleteReason = `Could not fetch GitHub issue data for ${failed.length} package(s): ${failed.slice(0, 5).join(', ')}${failed.length > 5 ? ', …' : ''}`;
+    }
+
     return warnings;
   } catch (error) {
     if (process.env.DEBUG) console.error('Error generating predictive warnings:', error.message);
-    return [];
+    warnings.incomplete = true;
+    warnings.incompleteReason = error.message;
+    return warnings;
   }
 }
 

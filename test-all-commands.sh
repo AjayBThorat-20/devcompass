@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# DevCompass v3.2.6 - Complete Command Test Suite
+# DevCompass v4.1.3 - Complete Command Test Suite
 # Tests ALL commands across multiple projects
 
 set -e
@@ -54,7 +54,7 @@ test_command() {
 }
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  DevCompass v3.2.6 - Complete Command Test Suite          ║"
+echo "║  DevCompass v4.1.3 - Complete Command Test Suite          ║"
 echo "║  Testing ALL commands across multiple projects            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
@@ -183,7 +183,7 @@ test_command "History Summary" "devcompass history summary" ""
 test_command "History Stats" "devcompass history stats" ""
 
 # Check if snapshots exist for comparison
-SNAPSHOT_COUNT=$(devcompass snapshot list 2>/dev/null | grep -c "Snapshot" || echo "0")
+SNAPSHOT_COUNT=$(devcompass snapshot list 2>/dev/null | grep -c "Snapshot" || true)
 if [ "$SNAPSHOT_COUNT" -ge 2 ]; then
   test_command "Compare Snapshots" "devcompass compare 1 2" ""
 fi
@@ -283,7 +283,7 @@ echo ""
 # Final status
 if [ $FAILED_TESTS -eq 0 ]; then
   echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
-  echo -e "${GREEN}║  ✓ ALL TESTS PASSED! DevCompass v3.2.6 is working!        ║${NC}"
+  echo -e "${GREEN}║  ✓ ALL TESTS PASSED! DevCompass v4.1.3 is working!        ║${NC}"
   echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
   exit 0
 else

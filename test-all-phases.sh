@@ -3,8 +3,6 @@
 # DevCompass v3.2.6 - Comprehensive Test Suite
 # Tests all fixes from Phases 1-4
 
-set -e
-
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║  DevCompass v3.2.6 - Comprehensive Test Suite             ║"
 echo "║  Testing Phases 1-4 (55 files)                            ║"
@@ -46,7 +44,7 @@ echo ""
 # Test 1.1: LRU Cache Implementation
 echo "Test 1.1: LRU Cache (registry-client.js)"
 node -e "
-const registryClient = require('./src/services/registry-client');
+const registryClient = require('./src/shared/services/registry-client');
 const stats = registryClient.getCacheStats();
 console.log('Memory cache size:', stats.memoryCount);
 console.log('Disk cache entries:', stats.diskCount);
@@ -66,7 +64,7 @@ fi
 # Test 1.3: Secure API Key Pattern
 echo ""
 echo "Test 1.3: API Key Security"
-if grep -q "_getDecryptedKey" src/ai/token-manager.js; then
+if grep -q "_getDecryptedKey" src/features/ai/token.manager.js; then
     test_result "Lazy decryption pattern exists"
 else
     test_result "Lazy decryption pattern missing"
@@ -75,7 +73,7 @@ fi
 # Test 1.4: Circuit Breaker Exists
 echo ""
 echo "Test 1.4: Circuit Breaker Implementation"
-if [ -f "src/utils/circuit-breaker.js" ]; then
+if [ -f "src/shared/utils/circuit-breaker.js" ]; then
     test_result "Circuit breaker file exists"
 else
     test_result "Circuit breaker file missing"
@@ -89,9 +87,9 @@ echo ""
 
 # Test 2.1: Rate Limiter
 echo "Test 2.1: Rate Limiter Implementation"
-if [ -f "src/utils/rate-limiter.js" ]; then
+if [ -f "src/shared/utils/rate-limiter.js" ]; then
     node -e "
-    const RateLimiter = require('./src/utils/rate-limiter');
+    const RateLimiter = require('./src/shared/utils/rate-limiter');
     const limiter = new RateLimiter(5, 1000);
     let success = 0;
     for (let i = 0; i < 10; i++) {
@@ -109,7 +107,7 @@ fi
 echo ""
 echo "Test 2.2: Snapshot Transaction Atomicity"
 devcompass analyze > /dev/null 2>&1
-SNAPSHOT_COUNT=$(devcompass history list 2>/dev/null | grep -c "Health:" || echo "0")
+SNAPSHOT_COUNT=$(devcompass history list 2>/dev/null | grep -c "Health:" || true)
 if [ "$SNAPSHOT_COUNT" -gt 0 ]; then
     test_result "Snapshot transactions working (found $SNAPSHOT_COUNT snapshots)"
 else
@@ -134,7 +132,7 @@ fi
 echo ""
 echo "Test 2.4: Circuit Breaker State Machine"
 node -e "
-const CircuitBreaker = require('./src/utils/circuit-breaker');
+const CircuitBreaker = require('./src/shared/utils/circuit-breaker');
 const cb = new CircuitBreaker(3, 5000);
 console.log('Initial state:', cb.getState());
 cb.recordFailure();
@@ -153,7 +151,7 @@ echo ""
 
 # Test 3.1: Single-Pass Enrichment
 echo "Test 3.1: Graph Generator Single-Pass Enrichment"
-if grep -q "enrichNodesWithAnalysisSinglePass" src/graph/generator.js; then
+if grep -q "enrichNodesWithAnalysisSinglePass" src/features/graph/graph.generator.js; then
     test_result "Single-pass enrichment implemented"
 else
     test_result "Single-pass enrichment missing"
@@ -176,9 +174,9 @@ fi
 # Test 3.3: File Cache Implementation
 echo ""
 echo "Test 3.3: File Cache with mtime Validation"
-if [ -f "src/utils/file-cache.js" ]; then
+if [ -f "src/shared/utils/file-cache.js" ]; then
     node -e "
-    const fileCache = require('./src/utils/file-cache');
+    const fileCache = require('./src/shared/utils/file-cache');
     console.log('File cache size:', fileCache.size);
     " 2>/dev/null
     test_result "File cache accessible"
@@ -189,9 +187,9 @@ fi
 # Test 3.4: Process Manager
 echo ""
 echo "Test 3.4: Process Manager Cleanup"
-if [ -f "src/utils/process-manager.js" ]; then
+if [ -f "src/shared/utils/process-manager.js" ]; then
     node -e "
-    const processManager = require('./src/utils/process-manager');
+    const processManager = require('./src/shared/utils/process-manager');
     console.log('Active processes:', processManager.count);
     " 2>/dev/null
     test_result "Process manager tracking"
@@ -202,9 +200,9 @@ fi
 # Test 3.5: Async Executor
 echo ""
 echo "Test 3.5: Async Executor (Non-blocking)"
-if [ -f "src/utils/async-executor.js" ]; then
+if [ -f "src/shared/utils/async-executor.js" ]; then
     node -e "
-    const AsyncExecutor = require('./src/utils/async-executor');
+    const AsyncExecutor = require('./src/shared/utils/async-executor');
     const executor = new AsyncExecutor();
     executor.exec('echo', ['test'], { timeout: 1000 })
         .then(() => process.exit(0))
@@ -218,7 +216,7 @@ fi
 # Test 3.6: Session Locks
 echo ""
 echo "Test 3.6: AI Conversation Thread Safety"
-if grep -q "acquireLock" src/ai/conversation.js && grep -q "releaseLock" src/ai/conversation.js; then
+if grep -q "acquireLock" src/features/ai/conversation.manager.js && grep -q "releaseLock" src/features/ai/conversation.manager.js; then
     test_result "Session locks implemented"
 else
     test_result "Session locks missing"
@@ -232,7 +230,7 @@ echo ""
 
 # Test 4.1: Shared Package.json Parsing
 echo "Test 4.1: Shared Package.json via File Cache"
-if grep -q "fileCache.readJSON" src/commands/analyze/index.js; then
+if grep -q "fileCache.readJSON" src/features/analyze/index.js; then
     test_result "Shared package.json parsing"
 else
     test_result "Still using multiple fs.readFileSync calls"
@@ -241,7 +239,7 @@ fi
 # Test 4.2: Memory Optimization
 echo ""
 echo "Test 4.2: Registry Client Memory Optimization"
-if grep -q "minimizePackageData" src/services/registry-client.js; then
+if grep -q "minimizePackageData" src/shared/services/registry-client.js; then
     test_result "Package data minimization implemented"
 else
     test_result "Package data minimization missing"
@@ -250,7 +248,7 @@ fi
 # Test 4.3: Database Indexes
 echo ""
 echo "Test 4.3: Database Index Coverage"
-INDEX_COUNT=$(grep -c "CREATE INDEX" src/history/database.js || echo "0")
+INDEX_COUNT=$(grep -c "CREATE INDEX" src/features/history/history.database.js || true)
 if [ "$INDEX_COUNT" -ge 12 ]; then
     test_result "Database has $INDEX_COUNT indexes (≥12)"
 else
@@ -260,7 +258,7 @@ fi
 # Test 4.4: JSON Validation Loop
 echo ""
 echo "Test 4.4: JSON Validation in Collectors"
-if grep -q "JSON.parse(line)" src/commands/analyze/collectors/dependency-collector.js; then
+if grep -q "JSON.parse(line)" src/features/analyze/collectors/dependency.collector.js; then
     test_result "JSON validation loop implemented"
 else
     test_result "JSON validation loop missing"
@@ -270,12 +268,12 @@ fi
 echo ""
 echo "Test 4.5: New Utility Files"
 UTILS=(
-    "src/utils/semver-validator.js"
-    "src/utils/error-handler.js"
-    "src/utils/logger.js"
-    "src/utils/constants.js"
-    "src/utils/progress-spinner.js"
-    "src/utils/temp-cleaner.js"
+    "src/shared/utils/semver-validator.js"
+    "src/shared/utils/error-handler.js"
+    "src/shared/utils/logger.js"
+    "src/shared/utils/constants.js"
+    "src/shared/utils/progress-spinner.js"
+    "src/shared/utils/temp-cleaner.js"
 )
 
 for util in "${UTILS[@]}"; do
@@ -291,9 +289,9 @@ test_result "Utility files check"
 # Test 4.6: Semver Validator
 echo ""
 echo "Test 4.6: Semver Validator Functionality"
-if [ -f "src/utils/semver-validator.js" ]; then
+if [ -f "src/shared/utils/semver-validator.js" ]; then
     node -e "
-    const SemverValidator = require('./src/utils/semver-validator');
+    const SemverValidator = require('./src/shared/utils/semver-validator');
     const valid = SemverValidator.isValid('1.2.3');
     const type = SemverValidator.getUpdateType('1.0.0', '2.0.0');
     console.log('Valid:', valid, 'Type:', type);
@@ -307,9 +305,9 @@ fi
 # Test 4.7: Error Handler
 echo ""
 echo "Test 4.7: Error Handler"
-if [ -f "src/utils/error-handler.js" ]; then
+if [ -f "src/shared/utils/error-handler.js" ]; then
     node -e "
-    const ErrorHandler = require('./src/utils/error-handler');
+    const ErrorHandler = require('./src/shared/utils/error-handler');
     const error = new Error('Test error');
     error.code = 'ENOENT';
     const info = ErrorHandler.parseError(error);
@@ -324,9 +322,9 @@ fi
 # Test 4.8: Logger
 echo ""
 echo "Test 4.8: Structured Logger"
-if [ -f "src/utils/logger.js" ]; then
+if [ -f "src/shared/utils/logger.js" ]; then
     node -e "
-    const Logger = require('./src/utils/logger');
+    const Logger = require('./src/shared/utils/logger');
     const logger = new Logger({ silent: true });
     logger.info('Test message');
     console.log('Logger initialized');
@@ -339,12 +337,13 @@ fi
 # Test 4.9: Constants
 echo ""
 echo "Test 4.9: Constants File"
-if [ -f "src/utils/constants.js" ]; then
+if [ -f "src/shared/utils/constants.js" ]; then
     node -e "
-    const constants = require('./src/utils/constants');
+    const constants = require('./src/shared/utils/constants');
+    const packageJson = require('./package.json');
     console.log('Version:', constants.VERSION);
     console.log('Rate limits defined:', Object.keys(constants.RATE_LIMITS).length);
-    process.exit(constants.VERSION === '3.2.6' ? 0 : 1);
+    process.exit(constants.VERSION === packageJson.version ? 0 : 1);
     " 2>/dev/null
     test_result "Constants accessible"
 else
@@ -354,9 +353,9 @@ fi
 # Test 4.10: Temp Cleaner
 echo ""
 echo "Test 4.10: Temp File Cleaner"
-if [ -f "src/utils/temp-cleaner.js" ]; then
+if [ -f "src/shared/utils/temp-cleaner.js" ]; then
     node -e "
-    const tempCleaner = require('./src/utils/temp-cleaner');
+    const tempCleaner = require('./src/shared/utils/temp-cleaner');
     const tempFile = tempCleaner.createTempFile('test');
     console.log('Temp file:', tempFile);
     tempCleaner.cleanAll();
@@ -386,9 +385,9 @@ fi
 # Integration Test 2: History Persistence
 echo ""
 echo "Integration 2: History Database Persistence"
-SNAPSHOT_COUNT_BEFORE=$(devcompass history list 2>/dev/null | grep -c "Health:" || echo "0")
+SNAPSHOT_COUNT_BEFORE=$(devcompass history list 2>/dev/null | grep -c "Health:" || true)
 devcompass analyze > /dev/null 2>&1
-SNAPSHOT_COUNT_AFTER=$(devcompass history list 2>/dev/null | grep -c "Health:" || echo "0")
+SNAPSHOT_COUNT_AFTER=$(devcompass history list 2>/dev/null | grep -c "Health:" || true)
 if [ "$SNAPSHOT_COUNT_AFTER" -gt "$SNAPSHOT_COUNT_BEFORE" ]; then
     test_result "Snapshot persistence ($SNAPSHOT_COUNT_BEFORE → $SNAPSHOT_COUNT_AFTER)"
 else

@@ -12,12 +12,12 @@ class Tooltip {
     const score = data.healthScore || 8;
     const issues = data.issues || [];
     
-    let content = `<div class="tooltip-title">${window.truncateText(data.name || data.id, 30)}</div>`;
+    let content = `<div class="tooltip-title">${window.escapeHtml(window.truncateText(data.name || data.id, 30))}</div>`;
     content += `<div class="tooltip-content">`;
-    
+
     content += `<div class="tooltip-row">
       <span class="tooltip-label">Version</span>
-      <span class="tooltip-value">${data.version || 'N/A'}</span>
+      <span class="tooltip-value">${window.escapeHtml(data.version || 'N/A')}</span>
     </div>`;
     
     content += `<div class="tooltip-row">
@@ -49,7 +49,7 @@ class Tooltip {
       content += `<div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color);">`;
       issues.forEach(issue => {
         const badgeClass = this.getIssueBadgeClass(issue.type);
-        content += `<span class="tooltip-badge ${badgeClass}">${issue.title || issue.type}</span>`;
+        content += `<span class="tooltip-badge ${badgeClass}">${window.escapeHtml(issue.title || issue.type)}</span>`;
       });
       content += `</div>`;
     }

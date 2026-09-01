@@ -23,7 +23,7 @@ async function saveSnapshot(data) {
       metadata: {
         projectName: data.metadata?.projectName || 'unknown',
         projectVersion: data.metadata?.projectVersion || '1.0.0',
-        totalDependencies: data.issues.length,
+        totalDependencies: data.metadata?.totalDependencies ?? data.issues.length,
         generatedAt: new Date().toISOString()
       }
     };

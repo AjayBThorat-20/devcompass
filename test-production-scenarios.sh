@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# DevCompass v3.2.6 - Production Scenario Test Suite
+# DevCompass v4.1.3 - Production Scenario Test Suite
 # Real-world use cases and edge cases
 
 set -e
@@ -52,7 +52,7 @@ test_scenario() {
 }
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  DevCompass v3.2.6 - Production Scenario Test Suite       ║"
+echo "║  DevCompass v4.1.3 - Production Scenario Test Suite       ║"
 echo "║  Real-world use cases & stress testing                    ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
@@ -157,7 +157,7 @@ test_scenario "Enterprise: Timeline tracking" \
   "devcompass timeline --days 30"
 
 test_scenario "Enterprise: Cross-project stats" \
-  "cd ../.. && devcompass history stats && cd test/project4-complex"
+  "(cd ../.. && devcompass history stats)"
 
 cd ../../
 
@@ -389,7 +389,7 @@ echo ""
 if [ $FAILED_TESTS -eq 0 ]; then
   echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
   echo -e "${GREEN}║  ✓ ALL PRODUCTION SCENARIOS PASSED!                        ║${NC}"
-  echo -e "${GREEN}║  DevCompass v3.2.6 is production-ready! 🚀                ║${NC}"
+  echo -e "${GREEN}║  DevCompass v4.1.3 is production-ready! 🚀                ║${NC}"
   echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
   exit 0
 else

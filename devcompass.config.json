@@ -1,7 +1,0 @@
-{
-  "ignore": ["lodash"],
-  "ignoreSeverity": ["low"],
-  "minSeverity": "high",
-  "minScore": 7,
-  "cache": true
-}

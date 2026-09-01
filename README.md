@@ -40,7 +40,7 @@ DevCompass analyzes your project dependencies to provide actionable insights abo
 - **📊 Health** - Dependency quality, maintenance status, and project health scores
 - **🤖 Intelligence** - AI-powered recommendations and package alternatives
 - **📈 History** - Track changes over time with snapshots and timeline visualization
-- **🎨 Visualization** - Interactive dependency graphs with multiple layouts
+- **🎨 Visualization** - Interactive dependency graphs with 5 layouts (Tree, Force, Radial, Conflict, Analytics)
 - **🔧 Automation** - Auto-fix issues with intelligent risk classification
 
 ---
@@ -111,7 +111,7 @@ Monitor dependency evolution with comprehensive tracking:
 
 Explore dependencies with rich, interactive graphs:
 
-- **4 Layout Modes** - Tree, Force-directed, Radial, Conflict
+- **5 Layout Modes** - Tree, Force-directed, Radial, Conflict, Analytics
 - **Real-Time Filtering** - Show only vulnerable, outdated, or unused packages
 - **Dark/Light Themes** - Comfortable viewing in any environment
 - **Export Options** - PNG, JSON, or interactive HTML
@@ -313,6 +313,7 @@ devcompass graph
 devcompass graph --layout force       # Force-directed
 devcompass graph --layout radial      # Radial tree
 devcompass graph --layout conflict    # Highlight conflicts
+devcompass graph --layout analytics   # Analytics dashboard view
 
 # Apply filters
 devcompass graph --filter vulnerable  # Security issues only
@@ -861,7 +862,7 @@ npx devcompass analyze
 **Old version installed**
 ```bash
 npm update -g devcompass
-devcompass --version  # Should show 4.1.2
+devcompass --version  # Should show 4.1.3
 ```
 
 **No analysis cache found**
@@ -919,6 +920,9 @@ devcompass llm test local
 ---
 
 ## 📈 Version History
+
+### v4.1.3 (2026-08-28) - Stale Demo GIFs
+- 🎬 Regenerated `demo-overview.gif`, `demo-analyze.gif`, and `demo-fix.gif` - these were recorded on `3.2.7` and never re-recorded across five subsequent releases, so the README showed a version five majors/minors behind current. `analyze`/`fix` print a `DevCompass v${version}` banner and `--help` prints a "New in vX.X.X" line, both read live from `package.json`.
 
 ### v4.1.2 (2026-08-28) - Docs Fix
 - 🔗 Fixed the maintainer portfolio link (`https://portfolio.ajaythorat.com/` → `https://www.ajaythorat.com`) in the README, `llms.txt`, and `package.json`'s `author.url`
@@ -1102,7 +1106,7 @@ If DevCompass helps your project, please consider giving it a star! ⭐
 
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
 
-*DevCompass v4.1.2 - Professional Dependency Intelligence Platform* 🧭✨
+*DevCompass v4.1.3 - Professional Dependency Intelligence Platform* 🧭✨
 
 [Get Started](#-quick-start) · [Documentation](#-complete-command-reference) · [Contributing](#-contributing)
 

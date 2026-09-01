@@ -100,12 +100,27 @@ async function runAnalyze(options = {}) {
       console.error(`\n⚠️  CVE scan incomplete: ${cveData.incompleteReason}. Vulnerability results below may be missing entries — this is not a confirmed clean scan.\n`);
     }
 
+    if (predictiveData?.incomplete && !silent && mode !== 'silent') {
+      console.error(`\n⚠️  Predictive scan incomplete: ${predictiveData.incompleteReason}. Bug-activity warnings below may be missing entries for those packages.\n`);
+    }
+
+    if (securityData?.incomplete && !silent && mode !== 'silent') {
+      console.error(`\n⚠️  Security scan incomplete: ${securityData.incompleteReason}. Vulnerability/supply-chain warnings below may be missing entries — this is not a confirmed clean scan.\n`);
+    }
+
+    if (shouldRunEcosystem && ecosystemData?.incomplete && !silent && mode !== 'silent') {
+      console.error(`\n⚠️  Ecosystem scan incomplete: ${ecosystemData.incompleteReason}. Ecosystem alerts below may be missing entries.\n`);
+    }
+
     const metadata = {
       projectName: packageJson.name || 'unknown',
       projectVersion: packageJson.version || '1.0.0',
       projectPath,
       projectInfo: `${packageJson.name || 'unknown'}@${packageJson.version || '1.0.0'}`,
       cveScanIncomplete: !!cveData?.incomplete,
+      predictiveScanIncomplete: !!predictiveData?.incomplete,
+      securityScanIncomplete: !!securityData?.incomplete,
+      ecosystemScanIncomplete: !!(shouldRunEcosystem && ecosystemData?.incomplete),
       healthScore,
       totalDependencies,
       aiInsight: aiEnabled ? await generateAIInsight(allIssues) : null

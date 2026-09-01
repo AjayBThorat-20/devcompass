@@ -3,6 +3,8 @@
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const https = require('https');
+const fs = require('fs');
+const path = require('path');
 
 const execAsync = promisify(exec);
 
@@ -23,18 +25,24 @@ class IssuesAnalyzer {
     }
 
     const issues = [];
+    let failed = false;
 
     try {
-      issues.push(...(await this.getNpmVulnerabilities(packageName, version, projectPath)));
+      const vulnIssues = await this.getNpmVulnerabilities(packageName, version, projectPath);
+      if (vulnIssues.auditFailed) failed = true;
+      issues.push(...vulnIssues);
       const registryData = await this.getRegistryMetadata(packageName);
+      if (registryData === null) failed = true;
       const deprecation = this.getDeprecationStatus(packageName, registryData);
       if (deprecation) issues.push(deprecation);
       const maintenance = this.getMaintenanceStatus(packageName, registryData);
       if (maintenance) issues.push(maintenance);
     } catch (error) {
       if (process.env.DEBUG) console.error(`[IssuesAnalyzer] Error fetching issues for ${packageName}:`, error.message);
+      failed = true;
     }
 
+    issues.failed = failed;
     this.cache.set(cacheKey, { timestamp: Date.now(), issues });
     return issues;
   }
@@ -49,6 +57,7 @@ class IssuesAnalyzer {
     if (cached && Date.now() - cached.timestamp < this.cacheTTL) return cached.audit;
 
     let audit = { vulnerabilities: {}, advisories: {} };
+    let failed = false;
     try {
       const { stdout } = await execAsync('npm audit --json', {
         cwd: projectPath,
@@ -63,11 +72,16 @@ class IssuesAnalyzer {
         try {
           audit = JSON.parse(error.stdout);
         } catch (parseError) {
-          // npm audit fails without package-lock.json, that's fine
+          // npm audit fails without package-lock.json, that's fine — only flag
+          // it as a real failure when a lockfile exists and audit still broke
+          failed = fs.existsSync(path.join(projectPath, 'package-lock.json'));
         }
+      } else {
+        failed = fs.existsSync(path.join(projectPath, 'package-lock.json'));
       }
     }
 
+    audit._failed = failed;
     this.auditCache.set(projectPath, { timestamp: Date.now(), audit });
     return audit;
   }
@@ -75,6 +89,7 @@ class IssuesAnalyzer {
   async getNpmVulnerabilities(packageName, version, projectPath = process.cwd()) {
     const issues = [];
     const audit = await this.getProjectAudit(projectPath);
+    issues.auditFailed = !!audit._failed;
 
     const vulnerabilities = audit.vulnerabilities || {};
     if (vulnerabilities[packageName]) {
@@ -194,13 +209,19 @@ class IssuesAnalyzer {
       chunks.push(packages.slice(i, i + concurrency));
     }
 
+    const failedPackages = [];
+
     for (const chunk of chunks) {
       const chunkResults = await Promise.all(
         chunk.map(async (pkg) => ({ name: pkg.name, issues: await this.getIssues(pkg.name, pkg.version, projectPath) }))
       );
-      chunkResults.forEach(({ name, issues }) => { if (issues.length > 0) results.set(name, issues); });
+      chunkResults.forEach(({ name, issues }) => {
+        if (issues.length > 0) results.set(name, issues);
+        if (issues.failed) failedPackages.push(name);
+      });
     }
 
+    results.failedPackages = failedPackages;
     return results;
   }
 

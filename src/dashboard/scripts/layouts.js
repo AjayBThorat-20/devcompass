@@ -463,7 +463,7 @@ const LayoutEngine = {
       .slice(0, 10);
     const items = sorted.map(n => `
       <div class="analytics-package-item">
-        <div class="analytics-package-name">${this.truncate(n.name || n.id, 25)}</div>
+        <div class="analytics-package-name">${window.escapeHtml(this.truncate(n.name || n.id, 25))}</div>
         <div class="analytics-package-score" style="color:${window.getHealthColor(n)}">${n.healthScore || 8}/10</div>
       </div>
     `).join('');

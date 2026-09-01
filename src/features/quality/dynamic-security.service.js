@@ -76,6 +76,13 @@ function checkInstallScripts(packageJsonPath) {
 }
 
 async function runNpmAudit(projectPath) {
+  // No package-lock.json is an expected reason for npm audit to come back
+  // empty — not a failure worth flagging. Any other failure (npm missing,
+  // timeout, permission error, unparseable output) with a lockfile present
+  // means the audit genuinely didn't run, so callers must not treat the
+  // resulting empty vulnerability list as a confirmed clean scan.
+  const hasLockfile = fs.existsSync(path.join(projectPath, 'package-lock.json'));
+
   try {
     const output = execSync('npm audit --json', {
       cwd: projectPath,
@@ -92,11 +99,11 @@ async function runNpmAudit(projectPath) {
         return parseAuditData(JSON.parse(stdoutText));
       } catch (parseError) {
         if (process.env.DEBUG) console.error('[dynamic-security] failed to parse npm audit error output:', parseError.message);
-        return { vulnerabilities: [], summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 } };
+        return { vulnerabilities: [], summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 }, incomplete: hasLockfile };
       }
     }
     if (process.env.DEBUG) console.error('[dynamic-security] npm audit execSync failed with no stdout:', error.message);
-    return { vulnerabilities: [], summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 } };
+    return { vulnerabilities: [], summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 }, incomplete: hasLockfile };
   }
 }
 

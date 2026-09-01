@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# DevCompass v3.2.6 - Extended Test Suite (FIXED)
+# DevCompass v4.1.3 - Extended Test Suite (FIXED)
 # Tests all remaining commands not covered in basic tests
 
 set -e
@@ -64,7 +64,7 @@ test_command() {
 }
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  DevCompass v3.2.6 - Extended Command Test Suite          ║"
+echo "║  DevCompass v4.1.3 - Extended Command Test Suite          ║"
 echo "║  Testing ALL remaining commands                            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
@@ -199,7 +199,7 @@ devcompass analyze --silent 2>/dev/null || true
 sleep 1
 devcompass analyze --silent 2>/dev/null || true
 
-SNAPSHOT_COUNT=$(devcompass snapshot list 2>/dev/null | grep -c "Snapshot" || echo "0")
+SNAPSHOT_COUNT=$(devcompass snapshot list 2>/dev/null | grep -c "Snapshot" || true)
 
 if [ "$SNAPSHOT_COUNT" -ge 2 ]; then
   test_command "Compare: Basic" "devcompass compare 1 2" ""
@@ -236,7 +236,7 @@ cd "$PROJECT2"
 test_command "Backup: List" "devcompass backup list" ""
 
 # Try to get backup count safely
-BACKUP_COUNT=$(devcompass backup list 2>/dev/null | grep -c "backup-2" || echo "0")
+BACKUP_COUNT=$(devcompass backup list 2>/dev/null | grep -c "backup-2" || true)
 
 if [ -n "$BACKUP_COUNT" ] && [ "$BACKUP_COUNT" -gt 0 ] 2>/dev/null; then
   BACKUP_NAME=$(devcompass backup list 2>/dev/null | grep -oP 'backup-[0-9T:Z-]+' | head -1)
