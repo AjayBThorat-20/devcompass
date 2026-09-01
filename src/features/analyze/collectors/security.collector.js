@@ -13,10 +13,18 @@ async function collectSecurityData(projectPath, packageJson = null) {
     }
     const dependencies = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
     const result = await analyzeSupplyChain(projectPath, dependencies);
-    return result.warnings || [];
+    const warnings = result.warnings || [];
+    if (result.incomplete) {
+      warnings.incomplete = true;
+      warnings.incompleteReason = result.incompleteReason || 'Security scan could not complete';
+    }
+    return warnings;
   } catch (error) {
     if (process.env.DEBUG) console.error('Security collection failed:', error.message);
-    return [];
+    const warnings = [];
+    warnings.incomplete = true;
+    warnings.incompleteReason = error.message;
+    return warnings;
   }
 }
 

@@ -22,7 +22,10 @@ async function collectEcosystemData(projectPath, packageJson = null) {
     return await checkEcosystemAlerts(projectPath, dependencies);
   } catch (error) {
     if (process.env.DEBUG) console.error('Ecosystem collection failed:', error.message);
-    return [];
+    const alerts = [];
+    alerts.incomplete = true;
+    alerts.incompleteReason = error.message;
+    return alerts;
   }
 }
 

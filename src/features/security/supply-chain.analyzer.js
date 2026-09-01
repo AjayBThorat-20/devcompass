@@ -89,11 +89,13 @@ async function analyzeSupplyChain(projectPath, dependencies = {}) {
         critical: auditResult.summary?.critical || 0,
         high: auditResult.summary?.high || 0
       },
-      audit: auditResult
+      audit: auditResult,
+      incomplete: !!auditResult.incomplete,
+      incompleteReason: auditResult.incomplete ? 'npm audit could not be run for this project' : undefined
     };
   } catch (error) {
     if (process.env.DEBUG) console.error('[supply-chain] Analysis failed:', error.message);
-    return emptyResult;
+    return { ...emptyResult, incomplete: true, incompleteReason: error.message };
   }
 }
 

@@ -22,7 +22,10 @@ async function collectPredictiveData(projectPath, packageJson = null) {
     return await generatePredictiveWarnings(dependencies);
   } catch (error) {
     if (process.env.DEBUG) console.error('Predictive collection failed:', error.message);
-    return [];
+    const warnings = [];
+    warnings.incomplete = true;
+    warnings.incompleteReason = error.message;
+    return warnings;
   }
 }
 

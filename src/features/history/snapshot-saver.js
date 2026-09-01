@@ -19,7 +19,7 @@ class SnapshotSaver {
         process.cwd(),
         graphData.nodes?.length || 0,
         metadata.totalDependencies || 0,
-        analysisData.healthScore || this.calculateOverallHealth(graphData.nodes),
+        analysisData.healthScore ?? this.calculateOverallHealth(graphData.nodes),
         JSON.stringify({ devcompass_version: version, analysis_date: new Date().toISOString(), command: process.argv.slice(2).join(' ') })
       );
 
@@ -31,7 +31,7 @@ class SnapshotSaver {
 
       if (Array.isArray(graphData.nodes)) {
         for (const node of graphData.nodes) {
-          insertPackage.run(snapshotId, node.name || node.id || 'unknown', node.version || '1.0.0', node.depth || 0, node.healthScore || 8.0, node.isVulnerable ? 1 : 0, node.isDeprecated ? 1 : 0, node.isOutdated ? 1 : 0, node.isUnused ? 1 : 0, JSON.stringify(node.issues || []));
+          insertPackage.run(snapshotId, node.name || node.id || 'unknown', node.version || '1.0.0', node.depth || 0, node.healthScore ?? 8.0, node.isVulnerable ? 1 : 0, node.isDeprecated ? 1 : 0, node.isOutdated ? 1 : 0, node.isUnused ? 1 : 0, JSON.stringify(node.issues || []));
         }
       }
 
@@ -58,7 +58,7 @@ class SnapshotSaver {
 
   calculateOverallHealth(nodes) {
     if (!nodes?.length) return 8.0;
-    const scores = nodes.filter(n => n.type !== 'root').map(n => n.healthScore || 8.0);
+    const scores = nodes.filter(n => n.type !== 'root').map(n => n.healthScore ?? 8.0);
     return scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 8.0;
   }
 }

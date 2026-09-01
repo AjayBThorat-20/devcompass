@@ -21,7 +21,7 @@ async function graphCommand(options = {}) {
     open: shouldOpen = false
   } = options;
 
-  const validLayouts = ['tree', 'force', 'radial', 'conflict'];
+  const validLayouts = ['tree', 'force', 'radial', 'conflict', 'analytics'];
   const validFilters = ['all', 'vulnerable', 'outdated', 'unused', 'deprecated', 'conflict'];
 
   if (!validLayouts.includes(layout)) {
@@ -54,7 +54,7 @@ async function graphCommand(options = {}) {
   const isJSONExport = format === 'json' || output.endsWith('.json');
   if (!isJSONExport) {
     console.log(chalk.cyan('💡 Generating unified interactive graph with:'));
-    console.log(chalk.gray('   • All layouts (Tree, Force, Radial, Conflict)'));
+    console.log(chalk.gray('   • All layouts (Tree, Force, Radial, Conflict, Analytics)'));
     console.log(chalk.gray('   • All filters (Vulnerable, Outdated, Unused, Deprecated)'));
     console.log(chalk.gray('   • Dynamic controls (no page reload needed)\n'));
   }
@@ -85,7 +85,7 @@ async function graphCommand(options = {}) {
       process.exit(0);
     }
 
-    graphData.metadata = { ...graphData.metadata, availableLayouts: ['tree', 'force', 'radial', 'conflict'], availableFilters: validFilters, defaultLayout: layout, defaultFilter: filter, defaultDepth: depth !== Infinity ? depth : 10, width, height };
+    graphData.metadata = { ...graphData.metadata, availableLayouts: ['tree', 'force', 'radial', 'conflict', 'analytics'], availableFilters: validFilters, defaultLayout: layout, defaultFilter: filter, defaultDepth: depth !== Infinity ? depth : 10, width, height };
 
     const issueCount = graphData.nodes.filter(n => n.issues?.length > 0).length;
     spinner.succeed(`Generated graph with ${chalk.cyan(graphData.nodes.length)} nodes${issueCount > 0 ? ` (${chalk.yellow(issueCount)} with issues)` : ''}`);
@@ -150,7 +150,7 @@ function displaySummary(graphData, result, analysisLoaded, options, outputManage
   console.log(`  ${chalk.gray('Location:')}      ${outputManager.getRelativePath(result.path)}`);
   if (result.format === 'HTML') {
     console.log(`  ${chalk.gray('Mode:')}          ${chalk.green('✓ Unified Interactive')}`);
-    console.log(`  ${chalk.gray('Layouts:')}       Tree, Force, Radial, Conflict ${chalk.gray('(switchable)')}`);
+    console.log(`  ${chalk.gray('Layouts:')}       Tree, Force, Radial, Conflict, Analytics ${chalk.gray('(switchable)')}`);
   }
   console.log(`  ${chalk.gray('Total Nodes:')}   ${stats.totalNodes}`);
   console.log(`  ${chalk.gray('Total Links:')}   ${stats.totalLinks}`);

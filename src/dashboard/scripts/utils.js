@@ -65,6 +65,13 @@ function truncateText(text, maxLength = 20) {
   return text.substring(0, maxLength - 3) + '...';
 }
 
+function escapeHtml(text) {
+  if (text === undefined || text === null) return '';
+  return String(text).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
 function debounce(func, wait = 300) {
   let timeout;
   return function executedFunction(...args) {
@@ -82,7 +89,7 @@ function deepClone(obj) {
 }
 
 function nodeMatchesFilters(node, filters) {
-  if (filters.health && filters.health !== 'all') {
+  if (node.type !== 'root' && filters.health && filters.health !== 'all') {
     const score = node.healthScore || 8;
     
     switch (filters.health) {
@@ -198,6 +205,7 @@ window.getNodeStroke = getNodeStroke;
 window.buildHierarchy = buildHierarchy;
 window.formatNumber = formatNumber;
 window.truncateText = truncateText;
+window.escapeHtml = escapeHtml;
 window.debounce = debounce;
 window.deepClone = deepClone;
 window.nodeMatchesFilters = nodeMatchesFilters;
@@ -214,6 +222,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buildHierarchy,
     formatNumber,
     truncateText,
+    escapeHtml,
     debounce,
     deepClone,
     nodeMatchesFilters,

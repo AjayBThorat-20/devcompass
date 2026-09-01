@@ -16,7 +16,10 @@ async function checkEcosystemAlerts(projectPath, dependencies) {
     return await fetchDynamicAlerts(installedVersions, projectPath);
   } catch (error) {
     if (process.env.DEBUG) console.error('Error in checkEcosystemAlerts:', error.message);
-    return [];
+    const alerts = [];
+    alerts.incomplete = true;
+    alerts.incompleteReason = error.message;
+    return alerts;
   }
 }
 
@@ -50,8 +53,16 @@ async function fetchDynamicAlerts(installedVersions, projectPath = process.cwd()
         });
       });
     });
+
+    if (issuesMap.failedPackages?.length > 0) {
+      alerts.incomplete = true;
+      const failed = issuesMap.failedPackages;
+      alerts.incompleteReason = `Could not check ${failed.length} package(s) for ecosystem issues: ${failed.slice(0, 5).join(', ')}${failed.length > 5 ? ', …' : ''}`;
+    }
   } catch (error) {
     if (process.env.DEBUG) console.error('Error fetching dynamic alerts:', error.message);
+    alerts.incomplete = true;
+    alerts.incompleteReason = error.message;
   }
 
   return alerts;

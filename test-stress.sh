@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# DevCompass v3.2.6 - Stress Test Suite
+# DevCompass v4.1.3 - Stress Test Suite
 # Tests system limits and edge cases
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  DevCompass v3.2.6 - Stress Test Suite                    ║"
+echo "║  DevCompass v4.1.3 - Stress Test Suite                    ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 

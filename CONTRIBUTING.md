@@ -52,6 +52,11 @@ test/project*/         Fixture projects used by the manual test-*.sh scripts
 If you're not sure where something belongs, open a draft PR early and ask —
 better than guessing and having to move files later.
 
+For a deeper look at how the pieces fit together — the analyze pipeline, the
+`Issue` model and scoring, the CLI command pattern, the SQLite databases, and
+the dashboard's HTML templating — see
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Running tests
 
 ```bash

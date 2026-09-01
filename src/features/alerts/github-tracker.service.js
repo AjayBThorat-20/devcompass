@@ -29,48 +29,81 @@ function makeGitHubRequest(requestPath, params = {}) {
       .map(([key, val]) => `${key}=${encodeURIComponent(val)}`)
       .join('&');
 
-    const options = {
-      hostname: 'api.github.com',
-      path: `${requestPath}?${queryString}`,
-      method: 'GET',
-      headers: {
-        'User-Agent': 'DevCompass-CLI',
-        'Accept': 'application/vnd.github.v3+json'
-      }
-    };
-
-    if (token) options.headers['Authorization'] = `Bearer ${token}`;
-
-    const req = https.request(options, (res) => {
-      clearTimeout(hardDeadline);
-      let data = '';
-      res.on('data', chunk => { data += chunk; });
-      res.on('end', () => {
-        if (res.statusCode === 200) {
-          try {
-            resolve(JSON.parse(data));
-          } catch (error) {
-            reject(new Error('Failed to parse GitHub response'));
-          }
-        } else if (res.statusCode === 403 || res.statusCode === 429) {
-          reject(new Error('GitHub rate limit exceeded'));
-        } else if (res.statusCode === 404) {
-          reject(new Error('Repository not found'));
-        } else {
-          reject(new Error(`GitHub API returned ${res.statusCode}`));
-        }
-      });
-    });
+    let settled = false;
+    let currentReq = null;
 
     // req.setTimeout only aborts on socket *idle* time; a connection that
     // never establishes (dropped SYN, filtered network) can hang well past it
     // with no timeout/error event ever firing. Force a hard deadline on top —
     // same fix already applied to the npm registry / package-metadata clients.
-    const hardDeadline = setTimeout(() => req.destroy(new Error('hard timeout')), 10000);
+    // One deadline covers the whole logical request (including redirects), not
+    // just a single hop, so a chain of slow redirects can't multiply the wait.
+    const hardDeadline = setTimeout(() => {
+      if (currentReq) currentReq.destroy(new Error('hard timeout'));
+    }, 10000);
 
-    req.on('error', (error) => { clearTimeout(hardDeadline); reject(new Error(`Network error: ${error.message}`)); });
-    req.setTimeout(10000, () => { clearTimeout(hardDeadline); req.destroy(); reject(new Error('GitHub API request timeout')); });
-    req.end();
+    function finish(fn, value) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(hardDeadline);
+      fn(value);
+    }
+
+    function send(hostname, reqPath, redirectCount) {
+      const options = {
+        hostname,
+        path: reqPath,
+        method: 'GET',
+        headers: {
+          'User-Agent': 'DevCompass-CLI',
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      };
+
+      // Only send the token to the real GitHub API host — a redirect must
+      // never carry it off to whatever host the Location header names.
+      if (token && hostname === 'api.github.com') options.headers['Authorization'] = `Bearer ${token}`;
+
+      const req = https.request(options, (res) => {
+        res.on('error', (error) => { finish(reject, new Error(`Network error: ${error.message}`)); });
+
+        if ([301, 302, 307, 308].includes(res.statusCode) && res.headers.location && redirectCount < 3) {
+          res.resume();
+          try {
+            const next = new URL(res.headers.location, `https://${hostname}`);
+            send(next.hostname, `${next.pathname}${next.search}`, redirectCount + 1);
+          } catch (error) {
+            finish(reject, new Error('Failed to follow GitHub redirect'));
+          }
+          return;
+        }
+
+        let data = '';
+        res.on('data', chunk => { data += chunk; });
+        res.on('end', () => {
+          if (res.statusCode === 200) {
+            try {
+              finish(resolve, JSON.parse(data));
+            } catch (error) {
+              finish(reject, new Error('Failed to parse GitHub response'));
+            }
+          } else if (res.statusCode === 403 || res.statusCode === 429) {
+            finish(reject, new Error('GitHub rate limit exceeded'));
+          } else if (res.statusCode === 404) {
+            finish(reject, new Error('Repository not found'));
+          } else {
+            finish(reject, new Error(`GitHub API returned ${res.statusCode}`));
+          }
+        });
+      });
+
+      currentReq = req;
+      req.on('error', (error) => { finish(reject, new Error(`Network error: ${error.message}`)); });
+      req.setTimeout(10000, () => { req.destroy(); finish(reject, new Error('GitHub API request timeout')); });
+      req.end();
+    }
+
+    send('api.github.com', `${requestPath}?${queryString}`, 0);
   });
 }
 
@@ -87,11 +120,11 @@ async function fetchGitHubIssues(packageName) {
       labels: 'bug'
     });
 
-    if (!Array.isArray(data)) return null;
+    if (!Array.isArray(data)) return { package: packageName, failed: true, error: 'Unexpected GitHub API response shape' };
     return analyzeIssues(data, packageName);
   } catch (error) {
     if (process.env.DEBUG) console.error(`GitHub API error for ${packageName}:`, error.message);
-    return null;
+    return { package: packageName, failed: true, error: error.message };
   }
 }
 
@@ -207,7 +240,7 @@ async function checkGitHubIssues(packages, options = {}) {
     return await processBatch(trackedAndInstalled, concurrency, onProgress);
   } catch (error) {
     if (process.env.DEBUG) console.error('GitHub batch processing error:', error.message);
-    return [];
+    return trackedAndInstalled.map(pkg => ({ package: pkg, failed: true, error: error.message }));
   }
 }
 

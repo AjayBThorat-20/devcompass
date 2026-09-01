@@ -339,5 +339,3 @@ echo -e "  ${CYAN}bash test-all-commands.sh${NC}    Run comprehensive tests"
 echo -e "  ${CYAN}cd test/project1-simple${NC}       Enter a test project"
 echo -e "  ${CYAN}devcompass analyze${NC}            Test analyze command"
 echo ""
-
-chmod +x create-test-projects.sh
