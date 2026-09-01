@@ -862,7 +862,7 @@ npx devcompass analyze
 **Old version installed**
 ```bash
 npm update -g devcompass
-devcompass --version  # Should show 4.1.3
+devcompass --version  # Should show 4.1.4
 ```
 
 **No analysis cache found**
@@ -920,6 +920,11 @@ devcompass llm test local
 ---
 
 ## 📈 Version History
+
+### v4.1.4 (2026-09-01) - Security Fixes & Honest Incomplete-Scan Reporting
+- 🔒 Fixed a GitHub token redirect leak and a dashboard XSS
+- 🐛 Fixed `graph --layout analytics` (was rejected by CLI validation), and predictive/security/ecosystem scans silently reporting "clean" on partial failure
+- 📖 Added `docs/ARCHITECTURE.md` and `docs/TEST_AUDIT.md`
 
 ### v4.1.3 (2026-08-28) - Stale Demo GIFs
 - 🎬 Regenerated `demo-overview.gif`, `demo-analyze.gif`, and `demo-fix.gif` - these were recorded on `3.2.7` and never re-recorded across five subsequent releases, so the README showed a version five majors/minors behind current. `analyze`/`fix` print a `DevCompass v${version}` banner and `--help` prints a "New in vX.X.X" line, both read live from `package.json`.
@@ -1106,7 +1111,7 @@ If DevCompass helps your project, please consider giving it a star! ⭐
 
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
 
-*DevCompass v4.1.3 - Professional Dependency Intelligence Platform* 🧭✨
+*DevCompass v4.1.4 - Professional Dependency Intelligence Platform* 🧭✨
 
 [Get Started](#-quick-start) · [Documentation](#-complete-command-reference) · [Contributing](#-contributing)
 

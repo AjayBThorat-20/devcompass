@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.4] - 2026-09-01
+
+### Fixed
+
+- **🔒 GitHub token could leak to a third-party host on redirect**: the predictive-warnings GitHub API client now only attaches the `Authorization` header when the request host is actually `api.github.com`, and resolves redirects (301/302/307/308, capped at 3 hops) explicitly instead of letting Node's `https` follow them implicitly. A single hard deadline now covers the whole redirect chain rather than just the first hop.
+- **🔒 Dashboard XSS**: package name/version/issue-title strings from analysis data were interpolated into dashboard HTML (tooltips, the analytics panel) without escaping. All now go through a new `escapeHtml()` helper.
+- **🐛 `graph --layout analytics` was rejected**: the fully-implemented 5th graph layout was missing from `validLayouts`, so using it always hit `process.exit(1)`. README and CLI output now also document it as the 5th layout.
+- **🐛 Predictive/security/ecosystem scans silently reported "clean" on partial failure**: a failed GitHub issues lookup, `npm audit` run, or ecosystem check returned an empty array indistinguishable from "nothing found," the same class of bug fixed for CVE scanning in `4.1.0`. Each collector now threads through an `incomplete`/`incompleteReason` flag, surfaced as a warning by `analyze` the same way CVE-scan incompleteness already is.
+- A few falsy-zero/undefined bugs in snapshot persistence (`snapshot-manager.js`, `snapshot-saver.js`) where `|| default` silently discarded a real `0` or `false` value in favor of the fallback.
+
+### Added
+
+- `docs/ARCHITECTURE.md` — internal developer documentation of the codebase's structure and data flow.
+- `docs/TEST_AUDIT.md` — a full audit of the test suite cross-checked against the source it exercises, and the review that found the fixes above.
+
+### Removed
+
+- `src/shared/utils/ci-handler.js` — dead code, no longer referenced anywhere.
+- `devcompass.config.json` — orphaned; no loader in `src/` ever read it.
+- Duplicated contributing guide at `.github/CONTRIBUTING.md`, now a pointer to the root `CONTRIBUTING.md`.
+
 ## [4.1.3] - 2026-08-28
 
 ### Docs

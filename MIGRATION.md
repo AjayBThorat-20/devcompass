@@ -1,5 +1,27 @@
 # Migration Guide
 
+## From v4.1.3 → v4.1.4
+
+### What's New
+- **🔒 Fixed a GitHub token redirect leak** in the predictive-warnings client and a **dashboard XSS** where analysis data was interpolated into HTML unescaped
+- **🐛 Fixed `graph --layout analytics`**, which was always rejected by CLI validation despite being fully implemented
+- **🐛 Predictive/security/ecosystem scans now report when they're incomplete** instead of silently looking clean, matching the CVE-scan fix from `4.1.0`
+- **📖 Added `docs/ARCHITECTURE.md` and `docs/TEST_AUDIT.md`** for contributors
+
+### Migration Steps
+```bash
+npm install -g devcompass@4.1.4
+```
+
+### What Changed
+- **Modified**: several `src/features/*` collectors and services, dashboard scripts, `README.md`
+- **Removed**: `src/shared/utils/ci-handler.js` (dead code), `devcompass.config.json` (orphaned, unused)
+- **Added**: `docs/ARCHITECTURE.md`, `docs/TEST_AUDIT.md`
+
+No breaking changes. No code, config, or usage changes required.
+
+---
+
 ## From v4.1.0 → v4.1.1
 
 ### What's New
