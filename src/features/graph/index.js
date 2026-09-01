@@ -41,7 +41,7 @@ async function graphCommand(options = {}) {
     process.exit(1);
   }
 
-  console.log(chalk.bold('\n📊 DevCompass - Dependency Graph\n'));
+  console.log(chalk.bold('\n📊 Depvora - Dependency Graph\n'));
 
   const outputManager = new OutputManager(projectPath);
   const packageJsonPath = path.join(projectPath, 'package.json');

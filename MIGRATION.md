@@ -1,5 +1,30 @@
 # Migration Guide
 
+## From devcompass v4.1.3 → depvora v5.0.0
+
+### What's New
+- **📦 Renamed `devcompass` → `depvora`**: new package name, new CLI binary, new GitHub repo (`AjayBThorat-20/depvora`), same tool and maintainer
+
+### Migration Steps
+```bash
+npm uninstall -g devcompass
+npm install -g depvora
+
+# Re-authenticate (config/cache directory moved, see below)
+depvora config --github-token <your-token>
+```
+
+### What Changed
+- **CLI command**: `devcompass` → `depvora`
+- **Config/cache directory**: `~/.devcompass` → `~/.depvora` — your GitHub token, CVE/registry cache, AI history, and snapshot history do **not** carry over automatically. Re-run `depvora config --github-token <token>` and let caches/history rebuild on next use.
+- **Per-project backup directory**: `.devcompass-backups/` → `.depvora-backups/` (only affects backups created going forward; old backups stay where they are and can still be restored manually)
+- **npm package**: `devcompass` is now deprecated on npm and will not receive further updates; it remains installed as-is for anyone pinned to it
+
+### Breaking Changes
+This is a breaking rename. Any scripts, CI configs, or aliases invoking `devcompass ...` must be updated to `depvora ...`.
+
+---
+
 ## From v4.1.0 → v4.1.1
 
 ### What's New

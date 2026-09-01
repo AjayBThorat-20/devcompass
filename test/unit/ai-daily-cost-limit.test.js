@@ -1,10 +1,10 @@
 // test/unit/ai-daily-cost-limit.test.js
 // Regression test: the daily AI cost limit used to live in an in-memory
 // object (`costLimiter` in ai.command.js) initialized fresh on every module
-// load. Since each `devcompass ai ask` invocation is a brand new CLI
+// load. Since each `depvora ai ask` invocation is a brand new CLI
 // process, the counter reset to $0 every single command and never actually
 // stopped anyone from blowing past the $10/day limit across separate calls
-// — it only "worked" within one long-lived `devcompass ai chat` session.
+// — it only "worked" within one long-lived `depvora ai chat` session.
 //
 // The fix persists each request's cost to ai_conversations (which askQuestion
 // previously never wrote to, despite the DB method already existing) and
@@ -15,7 +15,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const aiDatabase = require('../../src/features/ai/ai.database');
 
-const TEST_SESSION = 'devcompass-test-daily-cost-session';
+const TEST_SESSION = 'depvora-test-daily-cost-session';
 
 function cleanup() {
   aiDatabase.db.prepare('DELETE FROM ai_conversations WHERE session_id = ?').run(TEST_SESSION);

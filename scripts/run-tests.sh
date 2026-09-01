@@ -5,7 +5,7 @@
 # Builds several throwaway npm projects under a temp directory, each
 # representing a different scenario (clean project, vulnerable dependency,
 # unused dependency, license risk, mixed issues, empty project), runs every
-# devcompass command against each project, saves output to
+# depvora command against each project, saves output to
 # scripts/output/<project-name>/<command-name>.log, and then runs content
 # assertions against the key logs to catch silent correctness bugs that an
 # exit-code-only check would miss (duplicate issues, wrong versions,
@@ -29,10 +29,10 @@ set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-DEVCOMPASS_BIN="$PROJECT_ROOT/bin/devcompass.js"
+DEPVORA_BIN="$PROJECT_ROOT/bin/depvora.js"
 
 OUTPUT_DIR="$SCRIPT_DIR/output"
-TEMP_ROOT="$(mktemp -d /tmp/devcompass-test.XXXXXX)"
+TEMP_ROOT="$(mktemp -d /tmp/depvora-test.XXXXXX)"
 
 KEEP_TEMP=0
 ONLY_SCENARIO=""
@@ -197,8 +197,8 @@ assert_not_contains() {
   return 0
 }
 
-devcompass() {
-  node "$DEVCOMPASS_BIN" "$@"
+depvora() {
+  node "$DEPVORA_BIN" "$@"
 }
 
 write_package_json() {
@@ -211,7 +211,7 @@ write_package_json() {
 {
   "name": "$name",
   "version": "1.0.0",
-  "description": "devcompass test fixture",
+  "description": "depvora test fixture",
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
@@ -288,32 +288,32 @@ run_all_commands() {
 
   color_cyan "==> $name ($dir)"
 
-  run_cmd "$dir" "$name" "01-version"            0   -- devcompass --version
-  run_cmd "$dir" "$name" "02-analyze-default"    0   -- devcompass analyze
-  run_cmd "$dir" "$name" "03-analyze-deep"       0   -- devcompass analyze --deep
-  run_cmd "$dir" "$name" "04-analyze-json"       0   -- devcompass analyze --json
-  run_cmd "$dir" "$name" "05-analyze-silent"     any -- devcompass analyze --silent
-  run_cmd "$dir" "$name" "06-analyze-ci"         any -- devcompass analyze --ci --threshold 7.0
-  run_cmd "$dir" "$name" "07-fix-dry-run"        0   -- devcompass fix --dry-run
-  run_cmd "$dir" "$name" "08-fix-preview"        0   -- devcompass fix --preview
-  run_cmd "$dir" "$name" "09-graph-json"         0   -- devcompass graph --format json --output graph.json
-  run_cmd "$dir" "$name" "10-graph-html"         0   -- devcompass graph --output graph.html
-  run_cmd "$dir" "$name" "11-graph-force-layout" 0   -- devcompass graph --layout force --filter vulnerable --output graph-force.html
-  run_cmd "$dir" "$name" "12-history-list"       any -- devcompass history list
-  run_cmd "$dir" "$name" "13-history-stats"      any -- devcompass history stats
-  run_cmd "$dir" "$name" "14-history-summary"    any -- devcompass history summary
-  run_cmd "$dir" "$name" "15-backup-list"        any -- devcompass backup list
-  run_cmd "$dir" "$name" "16-snapshot-list"      any -- devcompass snapshot list
-  run_cmd "$dir" "$name" "17-timeline"           any -- devcompass timeline --days 7
-  run_cmd "$dir" "$name" "18-cve-status"         any -- devcompass cve key
-  run_cmd "$dir" "$name" "19-cve-cache-stats"    0   -- devcompass cve cache --stats
-  run_cmd "$dir" "$name" "20-llm-list"           0   -- devcompass llm list
-  run_cmd "$dir" "$name" "21-config-show"        0   -- devcompass config --show
-  run_cmd "$dir" "$name" "22-clean-summary"      0   -- devcompass clean
-  run_cmd "$dir" "$name" "23-fix-yes"            any -- devcompass fix --yes
-  run_cmd "$dir" "$name" "24-analyze-after-fix"  0   -- devcompass analyze --deep
-  run_cmd "$dir" "$name" "25-backup-list-after"  any -- devcompass backup list
-  run_cmd "$dir" "$name" "26-clean-all-force"    0   -- devcompass clean --all --force
+  run_cmd "$dir" "$name" "01-version"            0   -- depvora --version
+  run_cmd "$dir" "$name" "02-analyze-default"    0   -- depvora analyze
+  run_cmd "$dir" "$name" "03-analyze-deep"       0   -- depvora analyze --deep
+  run_cmd "$dir" "$name" "04-analyze-json"       0   -- depvora analyze --json
+  run_cmd "$dir" "$name" "05-analyze-silent"     any -- depvora analyze --silent
+  run_cmd "$dir" "$name" "06-analyze-ci"         any -- depvora analyze --ci --threshold 7.0
+  run_cmd "$dir" "$name" "07-fix-dry-run"        0   -- depvora fix --dry-run
+  run_cmd "$dir" "$name" "08-fix-preview"        0   -- depvora fix --preview
+  run_cmd "$dir" "$name" "09-graph-json"         0   -- depvora graph --format json --output graph.json
+  run_cmd "$dir" "$name" "10-graph-html"         0   -- depvora graph --output graph.html
+  run_cmd "$dir" "$name" "11-graph-force-layout" 0   -- depvora graph --layout force --filter vulnerable --output graph-force.html
+  run_cmd "$dir" "$name" "12-history-list"       any -- depvora history list
+  run_cmd "$dir" "$name" "13-history-stats"      any -- depvora history stats
+  run_cmd "$dir" "$name" "14-history-summary"    any -- depvora history summary
+  run_cmd "$dir" "$name" "15-backup-list"        any -- depvora backup list
+  run_cmd "$dir" "$name" "16-snapshot-list"      any -- depvora snapshot list
+  run_cmd "$dir" "$name" "17-timeline"           any -- depvora timeline --days 7
+  run_cmd "$dir" "$name" "18-cve-status"         any -- depvora cve key
+  run_cmd "$dir" "$name" "19-cve-cache-stats"    0   -- depvora cve cache --stats
+  run_cmd "$dir" "$name" "20-llm-list"           0   -- depvora llm list
+  run_cmd "$dir" "$name" "21-config-show"        0   -- depvora config --show
+  run_cmd "$dir" "$name" "22-clean-summary"      0   -- depvora clean
+  run_cmd "$dir" "$name" "23-fix-yes"            any -- depvora fix --yes
+  run_cmd "$dir" "$name" "24-analyze-after-fix"  0   -- depvora analyze --deep
+  run_cmd "$dir" "$name" "25-backup-list-after"  any -- depvora backup list
+  run_cmd "$dir" "$name" "26-clean-all-force"    0   -- depvora clean --all --force
 }
 
 # ---------------------------------------------------------------------------
@@ -443,8 +443,8 @@ run_assertions_for_scenario() {
 # ---------------------------------------------------------------------------
 
 main() {
-  if [ ! -f "$DEVCOMPASS_BIN" ]; then
-    color_red "Cannot find devcompass entrypoint at: $DEVCOMPASS_BIN"
+  if [ ! -f "$DEPVORA_BIN" ]; then
+    color_red "Cannot find depvora entrypoint at: $DEPVORA_BIN"
     color_red "Run this script from inside the project as: bash scripts/run-tests.sh"
     exit 1
   fi

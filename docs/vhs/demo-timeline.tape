@@ -1,6 +1,6 @@
 # Regenerate: vhs docs/vhs/demo-timeline.tape
-# Requires: devcompass linked globally, with at least two snapshots of the
-# same project (e.g. before/after `devcompass fix`) in ~/.devcompass/history.db
+# Requires: depvora linked globally, with at least two snapshots of the
+# same project (e.g. before/after `depvora fix`) in ~/.depvora/history.db
 
 Output docs/assets/demo-timeline.gif
 
@@ -14,11 +14,11 @@ Set Padding 20
 Set Margin 0
 
 Hide
-Type "cd /tmp/devcompass-docs-demo-fix && clear"
+Type "cd /tmp/depvora-docs-demo-fix && clear"
 Enter
 Sleep 300ms
 Show
 
-Type "devcompass timeline --days 30 --project docs-demo-project"
+Type "depvora timeline --days 30 --project docs-demo-project"
 Enter
 Sleep 3s

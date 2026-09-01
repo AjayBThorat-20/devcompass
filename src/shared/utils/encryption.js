@@ -11,7 +11,7 @@ const AUTH_TAG_LENGTH = 16;
 const SALT_LENGTH = 32;
 
 function getSaltPath() {
-  return path.join(os.homedir(), '.devcompass', '.encryption-salt');
+  return path.join(os.homedir(), '.depvora', '.encryption-salt');
 }
 
 function getOrCreateSalt() {
@@ -34,7 +34,7 @@ function getOrCreateSalt() {
   } catch (error) {
     // Read-only home or similar — fall back to a fixed salt. This only degrades to
     // the previous (pre-salt) security level, it never breaks encrypt/decrypt.
-    return crypto.createHash('sha256').update('devcompass-fallback-salt').digest();
+    return crypto.createHash('sha256').update('depvora-fallback-salt').digest();
   }
 }
 

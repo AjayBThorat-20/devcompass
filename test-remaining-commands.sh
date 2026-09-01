@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# DevCompass v3.2.6 - Extended Test Suite (FIXED)
+# Depvora v3.2.6 - Extended Test Suite (FIXED)
 # Tests all remaining commands not covered in basic tests
 
 set -e
@@ -64,7 +64,7 @@ test_command() {
 }
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  DevCompass v3.2.6 - Extended Command Test Suite          ║"
+echo "║  Depvora v3.2.6 - Extended Command Test Suite          ║"
 echo "║  Testing ALL remaining commands                            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
@@ -81,9 +81,9 @@ echo -e "${MAGENTA}PHASE 1: CVE Command${NC}"
 echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-test_command "CVE: Test Connection" "devcompass cve test" ""
-test_command "CVE: Cache Stats" "devcompass cve cache --stats" ""
-test_command "CVE: Clear Cache" "devcompass cve cache --clear" ""
+test_command "CVE: Test Connection" "depvora cve test" ""
+test_command "CVE: Cache Stats" "depvora cve cache --stats" ""
+test_command "CVE: Clear Cache" "depvora cve cache --clear" ""
 
 # ============================================================
 # PHASE 2: Config Command Tests
@@ -93,7 +93,7 @@ echo -e "${MAGENTA}PHASE 2: Config Command${NC}"
 echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-test_command "Config: Show Configuration" "devcompass config --show" ""
+test_command "Config: Show Configuration" "depvora config --show" ""
 
 # ============================================================
 # PHASE 3: Snapshot Command (Detailed)
@@ -108,14 +108,14 @@ cd "$PROJECT1"
 echo -e "${YELLOW}Note: Snapshots are auto-saved during analyze${NC}"
 echo ""
 
-test_command "Snapshot: List Verbose" "devcompass snapshot list --verbose" ""
+test_command "Snapshot: List Verbose" "depvora snapshot list --verbose" ""
 
 # Check if we have any snapshots
-SNAPSHOT_COUNT=$(devcompass snapshot list 2>/dev/null | grep -oP 'Snapshot #\K\d+' | wc -l || echo "0")
+SNAPSHOT_COUNT=$(depvora snapshot list 2>/dev/null | grep -oP 'Snapshot #\K\d+' | wc -l || echo "0")
 
 if [ "$SNAPSHOT_COUNT" -gt 0 ]; then
-  SNAPSHOT_ID=$(devcompass snapshot list 2>/dev/null | grep -oP 'Snapshot #\K\d+' | head -1)
-  test_command "Snapshot: View Details" "devcompass snapshot view $SNAPSHOT_ID" ""
+  SNAPSHOT_ID=$(depvora snapshot list 2>/dev/null | grep -oP 'Snapshot #\K\d+' | head -1)
+  test_command "Snapshot: View Details" "depvora snapshot view $SNAPSHOT_ID" ""
 else
   echo -e "${YELLOW}⚠️  No snapshots available for detailed tests${NC}"
   echo ""
@@ -131,11 +131,11 @@ echo -e "${MAGENTA}PHASE 4: Analyze Command (Advanced)${NC}"
 echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-test_command "Analyze: Silent Mode" "devcompass analyze --silent" "$PROJECT1"
-test_command "Analyze: No History Save" "devcompass analyze --no-history" "$PROJECT1"
-test_command "Analyze: AI Enabled" "devcompass analyze --ai" "$PROJECT1"
-test_command "Analyze: CI Fail (High Threshold)" "! devcompass analyze --ci --threshold 11.0 2>/dev/null" "$PROJECT1" "false"
-test_command "Analyze: Deep + JSON" "devcompass analyze --deep --json" "$PROJECT2"
+test_command "Analyze: Silent Mode" "depvora analyze --silent" "$PROJECT1"
+test_command "Analyze: No History Save" "depvora analyze --no-history" "$PROJECT1"
+test_command "Analyze: AI Enabled" "depvora analyze --ai" "$PROJECT1"
+test_command "Analyze: CI Fail (High Threshold)" "! depvora analyze --ci --threshold 11.0 2>/dev/null" "$PROJECT1" "false"
+test_command "Analyze: Deep + JSON" "depvora analyze --deep --json" "$PROJECT2"
 
 # ============================================================
 # PHASE 5: Fix Command (Advanced Options)
@@ -145,12 +145,12 @@ echo -e "${MAGENTA}PHASE 5: Fix Command (Advanced)${NC}"
 echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-test_command "Fix: Dry Run" "devcompass fix --dry-run" "$PROJECT2"
-test_command "Fix: Verbose Mode" "devcompass fix --preview --verbose" "$PROJECT2"
-test_command "Fix: Skip Categories" "devcompass fix --skip supply-chain --preview" "$PROJECT2"
-test_command "Fix: Only Security" "devcompass fix --only security --preview" "$PROJECT2"
-test_command "Fix: Batch Mode Critical" "devcompass fix --batch-mode critical --preview" "$PROJECT2"
-test_command "Fix: Batch Mode All" "devcompass fix --batch-mode all --preview" "$PROJECT3"
+test_command "Fix: Dry Run" "depvora fix --dry-run" "$PROJECT2"
+test_command "Fix: Verbose Mode" "depvora fix --preview --verbose" "$PROJECT2"
+test_command "Fix: Skip Categories" "depvora fix --skip supply-chain --preview" "$PROJECT2"
+test_command "Fix: Only Security" "depvora fix --only security --preview" "$PROJECT2"
+test_command "Fix: Batch Mode Critical" "depvora fix --batch-mode critical --preview" "$PROJECT2"
+test_command "Fix: Batch Mode All" "depvora fix --batch-mode all --preview" "$PROJECT3"
 
 # ============================================================
 # PHASE 6: Graph Command (Advanced Options)
@@ -160,12 +160,12 @@ echo -e "${MAGENTA}PHASE 6: Graph Command (Advanced)${NC}"
 echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-test_command "Graph: Radial Layout" "devcompass graph --layout radial --output radial.html" "$PROJECT1"
-test_command "Graph: Conflict Layout" "devcompass graph --layout conflict --output conflict.html" "$PROJECT2"
-test_command "Graph: Custom Dimensions" "devcompass graph --width 1600 --height 900 --output large.html" "$PROJECT3"
-test_command "Graph: Max Depth 2" "devcompass graph --depth 2 --output shallow.html" "$PROJECT1"
-test_command "Graph: Filter Unused" "devcompass graph --filter unused --output unused.html" "$PROJECT3"
-test_command "Graph: Filter Deprecated" "devcompass graph --filter deprecated --output deprecated.html" "$PROJECT3"
+test_command "Graph: Radial Layout" "depvora graph --layout radial --output radial.html" "$PROJECT1"
+test_command "Graph: Conflict Layout" "depvora graph --layout conflict --output conflict.html" "$PROJECT2"
+test_command "Graph: Custom Dimensions" "depvora graph --width 1600 --height 900 --output large.html" "$PROJECT3"
+test_command "Graph: Max Depth 2" "depvora graph --depth 2 --output shallow.html" "$PROJECT1"
+test_command "Graph: Filter Unused" "depvora graph --filter unused --output unused.html" "$PROJECT3"
+test_command "Graph: Filter Deprecated" "depvora graph --filter deprecated --output deprecated.html" "$PROJECT3"
 
 # ============================================================
 # PHASE 7: History Command (Detailed)
@@ -177,10 +177,10 @@ echo ""
 
 cd "$PROJECT1"
 
-test_command "History: List Limited" "devcompass history list --limit 5" ""
-test_command "History: Summary by Month" "devcompass history summary --month 05-2026" ""
-test_command "History: Stats Verbose" "devcompass history stats" ""
-test_command "History: Cleanup (Dry)" "echo 'n' | devcompass history cleanup --keep 10" ""
+test_command "History: List Limited" "depvora history list --limit 5" ""
+test_command "History: Summary by Month" "depvora history summary --month 05-2026" ""
+test_command "History: Stats Verbose" "depvora history stats" ""
+test_command "History: Cleanup (Dry)" "echo 'n' | depvora history cleanup --keep 10" ""
 
 cd - > /dev/null
 
@@ -195,15 +195,15 @@ echo ""
 cd "$PROJECT1"
 
 # Create multiple snapshots for comparison
-devcompass analyze --silent 2>/dev/null || true
+depvora analyze --silent 2>/dev/null || true
 sleep 1
-devcompass analyze --silent 2>/dev/null || true
+depvora analyze --silent 2>/dev/null || true
 
-SNAPSHOT_COUNT=$(devcompass snapshot list 2>/dev/null | grep -c "Snapshot" || echo "0")
+SNAPSHOT_COUNT=$(depvora snapshot list 2>/dev/null | grep -c "Snapshot" || echo "0")
 
 if [ "$SNAPSHOT_COUNT" -ge 2 ]; then
-  test_command "Compare: Basic" "devcompass compare 1 2" ""
-  test_command "Compare: Verbose" "devcompass compare 1 2 --verbose" ""
+  test_command "Compare: Basic" "depvora compare 1 2" ""
+  test_command "Compare: Verbose" "depvora compare 1 2 --verbose" ""
 else
   echo -e "${YELLOW}⚠️  Not enough snapshots for comparison tests${NC}"
   echo ""
@@ -219,9 +219,9 @@ echo -e "${MAGENTA}PHASE 9: Timeline Command (Detailed)${NC}"
 echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-test_command "Timeline: 7 Days" "devcompass timeline --days 7" "$PROJECT1"
-test_command "Timeline: Custom Output" "devcompass timeline --output timeline-custom.html" "$PROJECT2"
-test_command "Timeline: Filter by Project" "devcompass timeline --project test-project-simple" "$PROJECT1"
+test_command "Timeline: 7 Days" "depvora timeline --days 7" "$PROJECT1"
+test_command "Timeline: Custom Output" "depvora timeline --output timeline-custom.html" "$PROJECT2"
+test_command "Timeline: Filter by Project" "depvora timeline --project test-project-simple" "$PROJECT1"
 
 # ============================================================
 # PHASE 10: Backup Command (Detailed)
@@ -233,17 +233,17 @@ echo ""
 
 cd "$PROJECT2"
 
-test_command "Backup: List" "devcompass backup list" ""
+test_command "Backup: List" "depvora backup list" ""
 
 # Try to get backup count safely
-BACKUP_COUNT=$(devcompass backup list 2>/dev/null | grep -c "backup-2" || echo "0")
+BACKUP_COUNT=$(depvora backup list 2>/dev/null | grep -c "backup-2" || echo "0")
 
 if [ -n "$BACKUP_COUNT" ] && [ "$BACKUP_COUNT" -gt 0 ] 2>/dev/null; then
-  BACKUP_NAME=$(devcompass backup list 2>/dev/null | grep -oP 'backup-[0-9T:Z-]+' | head -1)
+  BACKUP_NAME=$(depvora backup list 2>/dev/null | grep -oP 'backup-[0-9T:Z-]+' | head -1)
   
   if [ -n "$BACKUP_NAME" ]; then
-    test_command "Backup: Info" "devcompass backup info --name $BACKUP_NAME" ""
-    test_command "Backup: Clean Keep 3" "echo 'n' | devcompass backup clean --keep 3" ""
+    test_command "Backup: Info" "depvora backup info --name $BACKUP_NAME" ""
+    test_command "Backup: Clean Keep 3" "echo 'n' | depvora backup clean --keep 3" ""
   fi
 else
   echo -e "${YELLOW}⚠️  No backups available for detailed tests${NC}"
@@ -260,9 +260,9 @@ echo -e "${MAGENTA}PHASE 11: LLM Command (Detailed)${NC}"
 echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-test_command "LLM: Stats" "devcompass llm stats" ""
-test_command "LLM: Set Default" "devcompass llm default local" ""
-test_command "LLM: Update Provider" "devcompass llm update local --model qwen2.5:0.5b" ""
+test_command "LLM: Stats" "depvora llm stats" ""
+test_command "LLM: Set Default" "depvora llm default local" ""
+test_command "LLM: Update Provider" "depvora llm update local --model qwen2.5:0.5b" ""
 
 # ============================================================
 # PHASE 12: AI Command (Detailed)
@@ -276,10 +276,10 @@ echo ""
 if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
   cd "$PROJECT1"
   
-  test_command "AI: Recommend" "timeout 30 devcompass ai recommend" ""
-  test_command "AI: Ask Complex Question" "echo 'What dependencies do I have?' | timeout 30 devcompass ai ask" ""
-  test_command "AI: Alternatives for lodash" "timeout 30 devcompass ai alternatives lodash" ""
-  test_command "AI: With Provider Option" "echo 'Quick health check' | timeout 30 devcompass ai ask --provider local" ""
+  test_command "AI: Recommend" "timeout 30 depvora ai recommend" ""
+  test_command "AI: Ask Complex Question" "echo 'What dependencies do I have?' | timeout 30 depvora ai ask" ""
+  test_command "AI: Alternatives for lodash" "timeout 30 depvora ai alternatives lodash" ""
+  test_command "AI: With Provider Option" "echo 'Quick health check' | timeout 30 depvora ai ask --provider local" ""
   
   cd - > /dev/null
 else
@@ -298,13 +298,13 @@ echo ""
 cd "$PROJECT3"
 
 # Generate some content first (silently)
-devcompass analyze --silent 2>/dev/null || true
-devcompass graph --output test-graph.html 2>/dev/null > /dev/null || true
+depvora analyze --silent 2>/dev/null || true
+depvora graph --output test-graph.html 2>/dev/null > /dev/null || true
 
-test_command "Clean: Summary" "devcompass clean" ""
-test_command "Clean: Cache Only" "devcompass clean --cache --force" ""
-test_command "Clean: Graphs Only" "devcompass clean --graphs --force" ""
-test_command "Clean: Multiple Dirs" "devcompass clean --cache --temp --force" ""
+test_command "Clean: Summary" "depvora clean" ""
+test_command "Clean: Cache Only" "depvora clean --cache --force" ""
+test_command "Clean: Graphs Only" "depvora clean --graphs --force" ""
+test_command "Clean: Multiple Dirs" "depvora clean --cache --temp --force" ""
 
 cd - > /dev/null
 
@@ -321,19 +321,19 @@ mkdir -p test/empty-project
 cd test/empty-project
 
 # Test commands should fail without package.json (! inverts exit code)
-test_command "Edge: Analyze without package.json" "! devcompass analyze 2>/dev/null" "" "false"
-test_command "Edge: Graph without package.json" "! devcompass graph 2>/dev/null" "" "false"
-test_command "Edge: Fix without package.json" "! devcompass fix 2>/dev/null" "" "false"
+test_command "Edge: Analyze without package.json" "! depvora analyze 2>/dev/null" "" "false"
+test_command "Edge: Graph without package.json" "! depvora graph 2>/dev/null" "" "false"
+test_command "Edge: Fix without package.json" "! depvora fix 2>/dev/null" "" "false"
 
 cd ../..
 rm -rf test/empty-project
 
 # Test invalid options - these should now fail with validation
-test_command "Edge: Invalid CI Threshold (abc)" "! devcompass analyze --ci --threshold abc 2>/dev/null" "$PROJECT1" "false"
-test_command "Edge: Invalid CI Threshold (15)" "! devcompass analyze --ci --threshold 15 2>/dev/null" "$PROJECT1" "false"
-test_command "Edge: Invalid Graph Layout" "! devcompass graph --layout invalid 2>/dev/null" "$PROJECT1" "false"
-test_command "Edge: Invalid Graph Filter" "! devcompass graph --filter nonexistent 2>/dev/null" "$PROJECT1" "false"
-test_command "Edge: Invalid Snapshot ID" "! devcompass snapshot view 99999 2>/dev/null" "$PROJECT1" "false"
+test_command "Edge: Invalid CI Threshold (abc)" "! depvora analyze --ci --threshold abc 2>/dev/null" "$PROJECT1" "false"
+test_command "Edge: Invalid CI Threshold (15)" "! depvora analyze --ci --threshold 15 2>/dev/null" "$PROJECT1" "false"
+test_command "Edge: Invalid Graph Layout" "! depvora graph --layout invalid 2>/dev/null" "$PROJECT1" "false"
+test_command "Edge: Invalid Graph Filter" "! depvora graph --filter nonexistent 2>/dev/null" "$PROJECT1" "false"
+test_command "Edge: Invalid Snapshot ID" "! depvora snapshot view 99999 2>/dev/null" "$PROJECT1" "false"
 
 # ============================================================
 # FINAL SUMMARY

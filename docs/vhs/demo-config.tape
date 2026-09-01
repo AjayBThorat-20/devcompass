@@ -1,5 +1,5 @@
 # Regenerate: vhs docs/vhs/demo-config.tape
-# Requires: devcompass linked globally. Uses only the read-only --show flag
+# Requires: depvora linked globally. Uses only the read-only --show flag
 # so it never touches your real stored GitHub token.
 
 Output docs/assets/demo-config.gif
@@ -19,6 +19,6 @@ Enter
 Sleep 300ms
 Show
 
-Type "devcompass config --show"
+Type "depvora config --show"
 Enter
 Sleep 2s

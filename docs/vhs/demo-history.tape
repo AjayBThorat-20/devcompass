@@ -1,6 +1,6 @@
 # Regenerate: vhs docs/vhs/demo-history.tape
-# Requires: devcompass linked globally, with real snapshots already in
-# ~/.devcompass/history.db
+# Requires: depvora linked globally, with real snapshots already in
+# ~/.depvora/history.db
 
 Output docs/assets/demo-history.gif
 
@@ -14,15 +14,15 @@ Set Padding 20
 Set Margin 0
 
 Hide
-Type "cd /tmp/devcompass-docs-demo-fix && clear"
+Type "cd /tmp/depvora-docs-demo-fix && clear"
 Enter
 Sleep 300ms
 Show
 
-Type "devcompass history list --project docs-demo-project"
+Type "depvora history list --project docs-demo-project"
 Enter
 Sleep 2s
 
-Type "devcompass history stats"
+Type "depvora history stats"
 Enter
 Sleep 2s

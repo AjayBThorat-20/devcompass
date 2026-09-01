@@ -9,7 +9,7 @@ function renderDeepOutput(issues, metadata) {
   const ranker = createRanker(issues);
   const grouped = ranker.groupByType();
 
-  ConsoleFormatter.header(`DevCompass Deep Analysis v${version}`, metadata.projectInfo);
+  ConsoleFormatter.header(`Depvora Deep Analysis v${version}`, metadata.projectInfo);
 
   if (metadata.healthScore !== undefined) ConsoleFormatter.healthScore(metadata.healthScore);
 
@@ -50,10 +50,10 @@ function renderDeepOutput(issues, metadata) {
   }
 
   ConsoleFormatter.actions([
-    { icon: '✔', label: 'Fix safe issues', command: 'devcompass fix' },
-    { icon: '⚠️', label: 'Fix all issues', command: 'devcompass fix --all' },
-    { icon: '📊', label: 'Open dashboard', command: 'devcompass graph' },
-    { icon: '💾', label: 'Export JSON', command: 'devcompass analyze --json' }
+    { icon: '✔', label: 'Fix safe issues', command: 'depvora fix' },
+    { icon: '⚠️', label: 'Fix all issues', command: 'depvora fix --all' },
+    { icon: '📊', label: 'Open dashboard', command: 'depvora graph' },
+    { icon: '💾', label: 'Export JSON', command: 'depvora analyze --json' }
   ]);
 }
 

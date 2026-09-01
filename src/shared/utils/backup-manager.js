@@ -6,7 +6,7 @@ const path = require('path');
 class BackupManager {
   constructor(projectPath) {
     this.projectPath = projectPath;
-    this.backupDir = path.join(projectPath, '.devcompass-backups');
+    this.backupDir = path.join(projectPath, '.depvora-backups');
   }
 
   resolveBackupPath(backupName) {
@@ -43,13 +43,13 @@ class BackupManager {
       let projectVersion = 'unknown';
       try { projectVersion = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')).version || 'unknown'; } catch (e) { /* ignore */ }
 
-      let devcompassVersion = 'unknown';
+      let depvoraVersion = 'unknown';
       try {
         const pkgJsonPath = path.join(__dirname, '../../../package.json');
-        if (fs.existsSync(pkgJsonPath)) devcompassVersion = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8')).version || 'unknown';
+        if (fs.existsSync(pkgJsonPath)) depvoraVersion = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8')).version || 'unknown';
       } catch (e) { /* ignore */ }
 
-      fs.writeFileSync(path.join(backupPath, 'metadata.json'), JSON.stringify({ timestamp: new Date().toISOString(), reason, filesBackedUp: backedUpFiles, projectVersion, devcompassVersion, ...metadata }, null, 2));
+      fs.writeFileSync(path.join(backupPath, 'metadata.json'), JSON.stringify({ timestamp: new Date().toISOString(), reason, filesBackedUp: backedUpFiles, projectVersion, depvoraVersion, ...metadata }, null, 2));
 
       await this.cleanOldBackups(5);
       return backupPath;

@@ -1,4 +1,4 @@
-# Contributing to DevCompass
+# Contributing to Depvora
 
 Thank you for your interest in contributing! 🎉
 
@@ -11,7 +11,7 @@ This project adheres to our [Code of Conduct](../CODE_OF_CONDUCT.md). Please rea
 ### Reporting Bugs
 1. Check existing issues first
 2. Use the bug report template
-3. Include DevCompass version, Node version, and reproduction steps
+3. Include Depvora version, Node version, and reproduction steps
 
 ### Suggesting Features
 1. Check if it's already been suggested
@@ -29,8 +29,8 @@ This project adheres to our [Code of Conduct](../CODE_OF_CONDUCT.md). Please rea
 ## Development Setup
 
 ```bash
-git clone https://github.com/AjayBThorat-20/devcompass.git
-cd devcompass
+git clone https://github.com/AjayBThorat-20/depvora.git
+cd depvora
 npm install
 npm link  # Test locally
 ```

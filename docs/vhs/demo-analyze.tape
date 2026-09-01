@@ -1,5 +1,5 @@
 # Regenerate: vhs docs/vhs/demo-analyze.tape
-# Requires: devcompass linked globally, and a demo project at /tmp/devcompass-demo
+# Requires: depvora linked globally, and a demo project at /tmp/depvora-demo
 # with real vulnerable dependencies (axios@0.21.1, lodash@4.17.15, minimist@1.2.5)
 
 Output docs/assets/demo-analyze.gif
@@ -14,11 +14,11 @@ Set Padding 20
 Set Margin 0
 
 Hide
-Type "cd /tmp/devcompass-demo && clear"
+Type "cd /tmp/depvora-demo && clear"
 Enter
 Sleep 300ms
 Show
 
-Type "devcompass analyze"
+Type "depvora analyze"
 Enter
 Sleep 30s

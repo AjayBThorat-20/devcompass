@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# DevCompass v3.2.6 - Complete Test Suite Runner
+# Depvora v3.2.6 - Complete Test Suite Runner
 # Runs all test scripts in sequence
 
 set -e
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  DevCompass v3.2.6 - Complete Test Suite                  ║"
+echo "║  Depvora v3.2.6 - Complete Test Suite                  ║"
 echo "║  Running ALL test scripts                                 ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
@@ -58,7 +58,7 @@ echo ""
 if [ $FAILED_SCRIPTS -eq 0 ]; then
   echo "╔════════════════════════════════════════════════════════════╗"
   echo "║  🎉 ALL TEST SUITES PASSED! 🎉                            ║"
-  echo "║  DevCompass v3.2.6 is fully tested and working!           ║"
+  echo "║  Depvora v3.2.6 is fully tested and working!           ║"
   echo "╚════════════════════════════════════════════════════════════╝"
   exit 0
 else

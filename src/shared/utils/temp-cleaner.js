@@ -20,13 +20,13 @@ class TempCleaner {
   registerFile(filepath) { this.tempFiles.add(filepath); return filepath; }
   registerDir(dirpath) { this.tempDirs.add(dirpath); return dirpath; }
 
-  createTempFile(prefix = 'devcompass', ext = '.tmp') {
+  createTempFile(prefix = 'depvora', ext = '.tmp') {
     const filename = `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}${ext}`;
     const filepath = path.join(os.tmpdir(), filename);
     return this.registerFile(filepath);
   }
 
-  createTempDir(prefix = 'devcompass') {
+  createTempDir(prefix = 'depvora') {
     const dirname = `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const dirpath = path.join(os.tmpdir(), dirname);
     fs.mkdirSync(dirpath, { recursive: true });

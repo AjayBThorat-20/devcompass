@@ -540,7 +540,7 @@
       "Performance & Monitoring": 10,
       "Miscellaneous": 20
     },
-    "description": "Popular npm packages tracked by DevCompass for ecosystem health monitoring",
+    "description": "Popular npm packages tracked by Depvora for ecosystem health monitoring",
     "lastUpdated": "2026-04-20",
     "version": "1.0.0"
   }

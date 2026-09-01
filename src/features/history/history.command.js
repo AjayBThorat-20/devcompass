@@ -56,7 +56,7 @@ function listSnapshots(options) {
     spinner.succeed(`Found ${snapshots.length} snapshot(s) ${filterDescription}`);
 
     if (snapshots.length === 0) {
-      console.log(chalk.yellow('\nNo snapshots found. Run "devcompass analyze" to create one.\n'));
+      console.log(chalk.yellow('\nNo snapshots found. Run "depvora analyze" to create one.\n'));
       return;
     }
 
@@ -100,7 +100,7 @@ function displayGroupedSnapshots(snapshots) {
   });
 
   console.log('\n' + chalk.gray(`Total: ${snapshots.length} snapshots`));
-  console.log(chalk.gray('Use "devcompass history show <id>" to view details\n'));
+  console.log(chalk.gray('Use "depvora history show <id>" to view details\n'));
 }
 
 function displaySnapshotTable(snapshots) {
@@ -113,8 +113,8 @@ function displaySnapshotTable(snapshots) {
     console.log(chalk.cyan(String(s.id).padEnd(6)) + chalk.white(formatDate(s.timestamp).padEnd(22)) + chalk.white(s.project_name.substring(0, 23).padEnd(25)) + chalk.white(String(s.total_dependencies).padEnd(8)) + healthColor(s.health_score.toFixed(1)));
   });
 
-  console.log('\n' + chalk.gray('Use "devcompass history show <id>" to view details'));
-  console.log(chalk.gray('Use "devcompass compare <id1> <id2>" to compare snapshots\n'));
+  console.log('\n' + chalk.gray('Use "depvora history show <id>" to view details'));
+  console.log(chalk.gray('Use "depvora compare <id1> <id2>" to compare snapshots\n'));
 }
 
 function showSnapshot(options) {
@@ -152,7 +152,7 @@ function showSnapshot(options) {
 }
 
 async function saveSnapshotCmd(options) {
-  console.log(chalk.yellow('💡 Snapshots are auto-saved when running "devcompass analyze"\n'));
+  console.log(chalk.yellow('💡 Snapshots are auto-saved when running "depvora analyze"\n'));
 }
 
 function cleanupSnapshots(options) {
@@ -211,8 +211,8 @@ function showMonthlySummary(options) {
 }
 
 function showHelp() {
-  console.log(chalk.bold('\n📚 DevCompass History Commands\n'));
-  console.log('Usage: devcompass history <command> [options]\n');
+  console.log(chalk.bold('\n📚 Depvora History Commands\n'));
+  console.log('Usage: depvora history <command> [options]\n');
   console.log('Commands: list, show <id>, summary, cleanup, stats\n');
 }
 

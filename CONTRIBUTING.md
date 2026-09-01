@@ -1,4 +1,4 @@
-# Contributing to DevCompass
+# Contributing to Depvora
 
 Thanks for considering a contribution — this is a solo-maintained project, and
 even small PRs (a typo fix, a new package alternative) genuinely help.
@@ -14,16 +14,16 @@ even small PRs (a typo fix, a new package alternative) genuinely help.
 ## Development setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/devcompass.git
-cd devcompass
+git clone https://github.com/YOUR_USERNAME/depvora.git
+cd depvora
 npm install
 
-# Link the CLI so `devcompass` resolves to your local checkout
+# Link the CLI so `depvora` resolves to your local checkout
 npm link
 
 # Run it against any project
 cd /path/to/some-project
-devcompass analyze
+depvora analyze
 ```
 
 ## Project layout
@@ -104,5 +104,5 @@ you'd rather not pick your own.
 
 ## Questions
 
-Open a [GitHub issue](https://github.com/AjayBThorat-20/devcompass/issues) or
+Open a [GitHub issue](https://github.com/AjayBThorat-20/depvora/issues) or
 email ajaythorat988@gmail.com.

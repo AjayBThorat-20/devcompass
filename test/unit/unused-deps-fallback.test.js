@@ -13,7 +13,7 @@ const path = require('node:path');
 const { fallbackUnusedCheck } = require('../../src/features/analyze/collectors/unused-deps.collector');
 
 function makeProject(indexSource) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'devcompass-unused-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'depvora-unused-'));
   fs.mkdirSync(path.join(dir, 'src'));
   fs.writeFileSync(path.join(dir, 'src', 'index.js'), indexSource);
   return dir;
@@ -21,7 +21,7 @@ function makeProject(indexSource) {
 
 test('a crafted dependency name cannot execute injected shell commands', async () => {
   const dir = makeProject("require('express');\n");
-  // deliberately avoids the substring "devcompass" — it's in this project's own
+  // deliberately avoids the substring "depvora" — it's in this project's own
   // skipPackages list and would make the malicious dep name get filtered out
   // before reaching the injection check, unrelated to what this test verifies
   const canaryFile = path.join(os.tmpdir(), `injection-canary-${process.pid}`);

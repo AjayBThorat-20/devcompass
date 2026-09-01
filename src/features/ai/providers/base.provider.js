@@ -10,7 +10,7 @@ class BaseProvider {
   async streamPrompt(messages, onChunk, options = {}) { throw new Error('streamPrompt must be implemented by subclass'); }
   estimateCost(inputTokens, outputTokens) { throw new Error('estimateCost must be implemented by subclass'); }
 
-  // Shared by all providers so `devcompass llm test` actually exercises the
+  // Shared by all providers so `depvora llm test` actually exercises the
   // configured credentials/base URL instead of reporting success just because
   // a provider row exists in the database.
   async test() {

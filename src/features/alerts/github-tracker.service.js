@@ -34,7 +34,7 @@ function makeGitHubRequest(requestPath, params = {}) {
       path: `${requestPath}?${queryString}`,
       method: 'GET',
       headers: {
-        'User-Agent': 'DevCompass-CLI',
+        'User-Agent': 'Depvora-CLI',
         'Accept': 'application/vnd.github.v3+json'
       }
     };

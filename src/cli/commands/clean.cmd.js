@@ -3,7 +3,7 @@
 module.exports = function registerCleanCommand(program) {
   program
     .command('clean')
-    .description('Clean DevCompass output directories')
+    .description('Clean Depvora output directories')
     .option('--all', 'Clean all output directories')
     .option('--cache', 'Clean cache only')
     .option('--backups', 'Clean backups only')

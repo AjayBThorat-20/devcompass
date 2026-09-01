@@ -11,7 +11,7 @@
   };
 
   function init() {
-    console.log('🚀 DevCompass Dashboard v4.0.0 initializing...');
+    console.log('🚀 Depvora Dashboard v4.0.0 initializing...');
 
     if (typeof window.graphData === 'undefined' || !window.graphData) {
       console.error('No graph data available');
@@ -203,7 +203,7 @@
     init();
   }
 
-  window.DevCompass = {
+  window.Depvora = {
     version: '4.0.0',
     get graphData() { return window.graphData; },
     get clusters() { return window.clusters; },

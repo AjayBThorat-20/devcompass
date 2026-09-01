@@ -20,7 +20,7 @@ class SnapshotSaver {
         graphData.nodes?.length || 0,
         metadata.totalDependencies || 0,
         analysisData.healthScore || this.calculateOverallHealth(graphData.nodes),
-        JSON.stringify({ devcompass_version: version, analysis_date: new Date().toISOString(), command: process.argv.slice(2).join(' ') })
+        JSON.stringify({ depvora_version: version, analysis_date: new Date().toISOString(), command: process.argv.slice(2).join(' ') })
       );
 
       const snapshotId = snapshotResult.lastInsertRowid;

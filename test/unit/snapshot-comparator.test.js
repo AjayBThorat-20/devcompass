@@ -1,7 +1,7 @@
 // test/unit/snapshot-comparator.test.js
 // Regression test: compare.command.js used to call loader.getSnapshot() twice
 // per snapshot ID — once to validate existence, then again inside
-// comparator.compare() — doubling the SQLite reads on every `devcompass
+// comparator.compare() — doubling the SQLite reads on every `depvora
 // compare` run for no behavioral benefit. compare() now accepts already-
 // loaded snapshots and only falls back to the loader when it doesn't have them.
 

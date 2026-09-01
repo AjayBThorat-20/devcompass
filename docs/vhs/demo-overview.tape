@@ -1,5 +1,5 @@
 # Regenerate: vhs docs/vhs/demo-overview.tape
-# Requires: devcompass linked globally (`npm link` from the repo root)
+# Requires: depvora linked globally (`npm link` from the repo root)
 
 Output docs/assets/demo-overview.gif
 
@@ -18,6 +18,6 @@ Enter
 Sleep 300ms
 Show
 
-Type "devcompass --help"
+Type "depvora --help"
 Enter
 Sleep 5s

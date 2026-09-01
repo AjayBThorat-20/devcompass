@@ -10,13 +10,13 @@ function formatAsJson(alerts, unusedDeps, outdatedDeps, score, totalDeps, securi
   const safeRecommendations = Array.isArray(recommendations) ? recommendations : [];
   const supplyChainWarnings = Array.isArray(supplyChainData?.warnings) ? supplyChainData.warnings : [];
 
-  let devcompassVersion = '0.0.0';
+  let depvoraVersion = '0.0.0';
   try {
-    devcompassVersion = require('../../../package.json').version;
+    depvoraVersion = require('../../../package.json').version;
   } catch (error) { /* fallback stays */ }
 
   const output = {
-    version: devcompassVersion,
+    version: depvoraVersion,
     timestamp: new Date().toISOString(),
     summary: {
       healthScore: score?.total ?? 0,

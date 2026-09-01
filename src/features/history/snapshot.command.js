@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 async function saveSnapshot(options = {}) {
-  console.log(chalk.yellow('💡 Snapshots are auto-saved when running "devcompass analyze"\n'));
+  console.log(chalk.yellow('💡 Snapshots are auto-saved when running "depvora analyze"\n'));
 }
 
 async function listSnapshots(options = {}) {
@@ -17,7 +17,7 @@ async function listSnapshots(options = {}) {
 
     if (!snapshots?.length) {
       console.log(chalk.yellow('No snapshots found.\n'));
-      console.log(chalk.gray('   devcompass analyze (auto-saves snapshot)\n'));
+      console.log(chalk.gray('   depvora analyze (auto-saves snapshot)\n'));
       return;
     }
 
@@ -53,7 +53,7 @@ async function viewSnapshot(snapshotId, options = {}) {
       data = snapshotLoader.getSnapshot(snapshotId);
     } catch (error) {
       console.log(chalk.red(`❌ Snapshot #${snapshotId} not found\n`));
-      console.log(chalk.gray('💡 List all snapshots: devcompass snapshot list\n'));
+      console.log(chalk.gray('💡 List all snapshots: depvora snapshot list\n'));
       const recent = snapshotLoader.listSnapshots(null, 5);
       if (recent?.length) {
         console.log(chalk.bold('Recent snapshots:'));
@@ -91,8 +91,8 @@ async function viewSnapshot(snapshotId, options = {}) {
     }
 
     console.log(chalk.bold('💡 Available Actions:'));
-    console.log(chalk.gray('  Compare: devcompass compare <id1> <id2>'));
-    console.log(chalk.gray('  Delete: devcompass snapshot delete ' + snapshotId + '\n'));
+    console.log(chalk.gray('  Compare: depvora compare <id1> <id2>'));
+    console.log(chalk.gray('  Delete: depvora snapshot delete ' + snapshotId + '\n'));
   } catch (error) {
     console.error(chalk.red('\n❌ Failed to view snapshot\n'), chalk.gray(error.message));
     if (process.env.DEBUG) console.error(chalk.dim(error.stack));
@@ -137,11 +137,11 @@ async function deleteSnapshot(snapshotId, options = {}) {
 }
 
 function showHelp() {
-  console.log(chalk.bold.cyan('\n📸 DevCompass Snapshot Command\n'));
-  console.log('  devcompass snapshot save');
-  console.log('  devcompass snapshot list');
-  console.log('  devcompass snapshot view <id>');
-  console.log('  devcompass snapshot delete <id>\n');
+  console.log(chalk.bold.cyan('\n📸 Depvora Snapshot Command\n'));
+  console.log('  depvora snapshot save');
+  console.log('  depvora snapshot list');
+  console.log('  depvora snapshot view <id>');
+  console.log('  depvora snapshot delete <id>\n');
 }
 
 module.exports = { saveSnapshot, listSnapshots, viewSnapshot, deleteSnapshot, showHelp };

@@ -8,7 +8,7 @@ const path = require('path');
 class BatchReporter {
   constructor(projectPath) {
     this.projectPath = projectPath;
-    this.reportPath = path.join(projectPath, 'devcompass-batch-report.json');
+    this.reportPath = path.join(projectPath, 'depvora-batch-report.json');
   }
 
   generateReport(batchResults, summary) {

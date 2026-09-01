@@ -6,7 +6,7 @@ const path = require('path');
 class OutputManager {
   constructor(projectPath = process.cwd()) {
     this.projectPath = projectPath;
-    this.baseDir = path.join(projectPath, '.devcompass');
+    this.baseDir = path.join(projectPath, '.depvora');
     this.directories = {
       root: this.baseDir,
       cache: path.join(this.baseDir, 'cache'),
@@ -25,10 +25,10 @@ class OutputManager {
 
   ensureGitignore() {
     const gitignorePath = path.join(this.projectPath, '.gitignore');
-    const entry = '.devcompass/';
+    const entry = '.depvora/';
     try {
       let content = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
-      if (!content.includes(entry)) fs.writeFileSync(gitignorePath, content.trim() + '\n\n# DevCompass outputs\n' + entry + '\n', 'utf8');
+      if (!content.includes(entry)) fs.writeFileSync(gitignorePath, content.trim() + '\n\n# Depvora outputs\n' + entry + '\n', 'utf8');
     } catch (error) { if (process.env.DEBUG) console.error('Failed to update .gitignore:', error.message); }
   }
 

@@ -19,7 +19,7 @@ async function addProvider(options) {
       console.log(chalk.green('✅ ' + result.message));
       console.log(chalk.gray(`   Model: ${model}`));
       if (baseUrl) console.log(chalk.gray(`   Base URL: ${baseUrl}`));
-      console.log('\n💡 Test: devcompass llm test ' + provider);
+      console.log('\n💡 Test: depvora llm test ' + provider);
     } else {
       console.error(chalk.red('❌ Error: ' + result.message));
     }
@@ -33,7 +33,7 @@ function listProviders() {
     const providers = tokenManager.listProviders();
     if (providers.length === 0) {
       console.log(chalk.yellow('⚠️  No LLM providers configured'));
-      console.log('\n💡 devcompass llm add --provider openai --token sk-xxx --model gpt-4');
+      console.log('\n💡 depvora llm add --provider openai --token sk-xxx --model gpt-4');
       return;
     }
     console.log(chalk.bold('\n📋 Configured LLM Providers\n'));
@@ -138,14 +138,14 @@ function showStats(options = {}) {
 }
 
 function showHelp() {
-  console.log(chalk.bold('\n🤖 DevCompass LLM Management\n'));
+  console.log(chalk.bold('\n🤖 Depvora LLM Management\n'));
   console.log('Commands:');
-  console.log('  devcompass llm add --provider <name> --token <token> --model <model>');
-  console.log('  devcompass llm list');
-  console.log('  devcompass llm default <provider>');
-  console.log('  devcompass llm test <provider>');
-  console.log('  devcompass llm remove <provider>');
-  console.log('  devcompass llm stats\n');
+  console.log('  depvora llm add --provider <name> --token <token> --model <model>');
+  console.log('  depvora llm list');
+  console.log('  depvora llm default <provider>');
+  console.log('  depvora llm test <provider>');
+  console.log('  depvora llm remove <provider>');
+  console.log('  depvora llm stats\n');
 }
 
 module.exports = { addProvider, listProviders, setDefaultProvider, updateProvider, removeProvider, testProvider, showStats, showHelp };

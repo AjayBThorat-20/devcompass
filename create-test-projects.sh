@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# DevCompass v3.2.6 - Comprehensive Test Setup
+# Depvora v3.2.6 - Comprehensive Test Setup
 # Creates multiple test projects and tests all commands
 
 set -e
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  DevCompass v3.2.6 - Complete Test Suite Setup            ║"
+echo "║  Depvora v3.2.6 - Complete Test Suite Setup            ║"
 echo "║  Creating multiple test projects & testing all commands   ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
@@ -311,7 +311,7 @@ if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
   echo -e "${GREEN}✓ Ollama is running${NC}"
   
   # Add local provider
-  devcompass llm add --provider local --model qwen2.5:0.5b --base-url http://localhost:11434 2>/dev/null || true
+  depvora llm add --provider local --model qwen2.5:0.5b --base-url http://localhost:11434 2>/dev/null || true
   echo -e "${GREEN}✓ Local AI provider configured${NC}"
 else
   echo -e "${YELLOW}⚠️  Ollama not running. Start it with: ollama serve${NC}"
@@ -337,7 +337,7 @@ echo ""
 echo -e "${YELLOW}Next steps:${NC}"
 echo -e "  ${CYAN}bash test-all-commands.sh${NC}    Run comprehensive tests"
 echo -e "  ${CYAN}cd test/project1-simple${NC}       Enter a test project"
-echo -e "  ${CYAN}devcompass analyze${NC}            Test analyze command"
+echo -e "  ${CYAN}depvora analyze${NC}            Test analyze command"
 echo ""
 
 chmod +x create-test-projects.sh

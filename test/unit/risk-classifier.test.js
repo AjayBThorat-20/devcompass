@@ -1,5 +1,5 @@
 // test/unit/risk-classifier.test.js
-// risk-classifier.js decides which fixes `devcompass fix` applies automatically
+// risk-classifier.js decides which fixes `depvora fix` applies automatically
 // (safe) vs. requires `--all`/manual review for (moderate/risky) — it had zero
 // test coverage despite gating every automated change this tool ever makes.
 

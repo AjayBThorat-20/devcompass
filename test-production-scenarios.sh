@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# DevCompass v3.2.6 - Production Scenario Test Suite
+# Depvora v3.2.6 - Production Scenario Test Suite
 # Real-world use cases and edge cases
 
 set -e
@@ -52,7 +52,7 @@ test_scenario() {
 }
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  DevCompass v3.2.6 - Production Scenario Test Suite       ║"
+echo "║  Depvora v3.2.6 - Production Scenario Test Suite       ║"
 echo "║  Real-world use cases & stress testing                    ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
@@ -68,16 +68,16 @@ echo ""
 cd test/project1-simple
 
 test_scenario "CI: JSON output for parsing" \
-  "devcompass analyze --json > ci-output.json && [ -s ci-output.json ]"
+  "depvora analyze --json > ci-output.json && [ -s ci-output.json ]"
 
 test_scenario "CI: Exit code on healthy project" \
-  "devcompass analyze --ci --threshold 7.0"
+  "depvora analyze --ci --threshold 7.0"
 
 test_scenario "CI: Silent mode (no stdout pollution)" \
-  "devcompass analyze --silent && echo 'passed'"
+  "depvora analyze --silent && echo 'passed'"
 
 test_scenario "CI: Combined flags" \
-  "devcompass analyze --ci --json --silent --no-history"
+  "depvora analyze --ci --json --silent --no-history"
 
 cd ../../
 
@@ -92,19 +92,19 @@ echo ""
 cd test/project2-vulnerable
 
 test_scenario "Dev: Morning health check" \
-  "devcompass analyze"
+  "depvora analyze"
 
 test_scenario "Dev: Generate visual graph" \
-  "devcompass graph --open 2>/dev/null || devcompass graph"
+  "depvora graph --open 2>/dev/null || depvora graph"
 
 test_scenario "Dev: Preview fixes before applying" \
-  "devcompass fix --preview"
+  "depvora fix --preview"
 
 test_scenario "Dev: Check what changed today" \
-  "devcompass history list --limit 5"
+  "depvora history list --limit 5"
 
 test_scenario "Dev: AI recommendations" \
-  "timeout 20 devcompass ai recommend || true"
+  "timeout 20 depvora ai recommend || true"
 
 cd ../../
 
@@ -119,19 +119,19 @@ echo ""
 cd test/project2-vulnerable
 
 test_scenario "Security: Deep analysis" \
-  "devcompass analyze --deep"
+  "depvora analyze --deep"
 
 test_scenario "Security: CVE database test" \
-  "devcompass cve test"
+  "depvora cve test"
 
 test_scenario "Security: Vulnerability graph" \
-  "devcompass graph --filter vulnerable --output security-audit.html"
+  "depvora graph --filter vulnerable --output security-audit.html"
 
 test_scenario "Security: Export for compliance" \
-  "devcompass analyze --json > security-report.json"
+  "depvora analyze --json > security-report.json"
 
 test_scenario "Security: Fix critical only" \
-  "devcompass fix --batch-mode critical --preview"
+  "depvora fix --batch-mode critical --preview"
 
 cd ../../
 
@@ -146,18 +146,18 @@ echo ""
 cd test/project4-complex
 
 test_scenario "Enterprise: Complex analysis" \
-  "devcompass analyze --deep"
+  "depvora analyze --deep"
 
 test_scenario "Enterprise: Generate all graph types" \
-  "devcompass graph --layout tree --output enterprise-tree.html && \
-   devcompass graph --layout force --output enterprise-force.html && \
-   devcompass graph --layout radial --output enterprise-radial.html"
+  "depvora graph --layout tree --output enterprise-tree.html && \
+   depvora graph --layout force --output enterprise-force.html && \
+   depvora graph --layout radial --output enterprise-radial.html"
 
 test_scenario "Enterprise: Timeline tracking" \
-  "devcompass timeline --days 30"
+  "depvora timeline --days 30"
 
 test_scenario "Enterprise: Cross-project stats" \
-  "cd ../.. && devcompass history stats && cd test/project4-complex"
+  "cd ../.. && depvora history stats && cd test/project4-complex"
 
 cd ../../
 
@@ -172,19 +172,19 @@ echo ""
 cd test/project3-outdated
 
 test_scenario "Upgrade: Identify outdated" \
-  "devcompass analyze"
+  "depvora analyze"
 
 test_scenario "Upgrade: Outdated dependency graph" \
-  "devcompass graph --filter outdated --output upgrade-plan.html"
+  "depvora graph --filter outdated --output upgrade-plan.html"
 
 test_scenario "Upgrade: High priority fixes only" \
-  "devcompass fix --batch-mode high --preview"
+  "depvora fix --batch-mode high --preview"
 
 test_scenario "Upgrade: Create backup before major changes" \
-  "devcompass analyze && devcompass backup list"
+  "depvora analyze && depvora backup list"
 
 test_scenario "Upgrade: AI alternative suggestions" \
-  "timeout 20 devcompass ai alternatives express || true"
+  "timeout 20 depvora ai alternatives express || true"
 
 cd ../../
 
@@ -199,16 +199,16 @@ echo ""
 cd test/project1-simple
 
 test_scenario "Team: Generate shareable report" \
-  "devcompass analyze --json > team-report.json"
+  "depvora analyze --json > team-report.json"
 
 test_scenario "Team: Create visual for presentation" \
-  "devcompass graph --width 1920 --height 1080 --output presentation.html"
+  "depvora graph --width 1920 --height 1080 --output presentation.html"
 
 test_scenario "Team: Compare with last week" \
-  "devcompass history summary --month 05-2026"
+  "depvora history summary --month 05-2026"
 
 test_scenario "Team: Export graph as data" \
-  "devcompass graph --format json --output graph-data.json"
+  "depvora graph --format json --output graph-data.json"
 
 cd ../../
 
@@ -223,19 +223,19 @@ echo ""
 cd test/project1-simple
 
 test_scenario "Maintenance: Check disk usage" \
-  "devcompass clean"
+  "depvora clean"
 
 test_scenario "Maintenance: Clean old caches" \
-  "devcompass clean --cache --force"
+  "depvora clean --cache --force"
 
 test_scenario "Maintenance: Clean old graphs" \
-  "devcompass clean --graphs --force"
+  "depvora clean --graphs --force"
 
 test_scenario "Maintenance: History cleanup" \
-  "echo 'n' | devcompass history cleanup --keep 10"
+  "echo 'n' | depvora history cleanup --keep 10"
 
 test_scenario "Maintenance: Clear CVE cache" \
-  "devcompass cve cache --clear"
+  "depvora cve cache --clear"
 
 cd ../../
 
@@ -254,17 +254,17 @@ cd test/error-scenarios
 
 # No package.json
 test_scenario "Error: Missing package.json" \
-  "! devcompass analyze 2>/dev/null" "false"
+  "! depvora analyze 2>/dev/null" "false"
 
 # Invalid JSON
 echo '{invalid json}' > package.json
 test_scenario "Error: Corrupted package.json" \
-  "! devcompass analyze 2>/dev/null" "false"
+  "! depvora analyze 2>/dev/null" "false"
 
 # Empty package.json
 echo '{}' > package.json
 test_scenario "Graceful: Empty package.json handled" \
-  "devcompass analyze 2>/dev/null" "false"
+  "depvora analyze 2>/dev/null" "false"
 
 cd ../../
 rm -rf test/error-scenarios
@@ -280,18 +280,18 @@ echo ""
 cd test/project4-complex
 
 test_scenario "Performance: Rapid successive analyses" \
-  "devcompass analyze --silent && \
-   devcompass analyze --silent && \
-   devcompass analyze --silent"
+  "depvora analyze --silent && \
+   depvora analyze --silent && \
+   depvora analyze --silent"
 
 test_scenario "Performance: Multiple graph generations" \
-  "devcompass graph --output perf1.html && \
-   devcompass graph --output perf2.html && \
-   devcompass graph --output perf3.html"
+  "depvora graph --output perf1.html && \
+   depvora graph --output perf2.html && \
+   depvora graph --output perf3.html"
 
 test_scenario "Performance: Concurrent operations" \
-  "devcompass analyze --json > /dev/null & \
-   devcompass graph --output concurrent.html && \
+  "depvora analyze --json > /dev/null & \
+   depvora graph --output concurrent.html && \
    wait"
 
 cd ../../
@@ -307,16 +307,16 @@ echo ""
 cd test/project2-vulnerable
 
 test_scenario "Integration: Full workflow simulation" \
-  "devcompass analyze && \
-   devcompass fix --preview && \
-   devcompass graph --filter vulnerable --output workflow.html && \
-   devcompass history list && \
-   devcompass clean --temp --force"
+  "depvora analyze && \
+   depvora fix --preview && \
+   depvora graph --filter vulnerable --output workflow.html && \
+   depvora history list && \
+   depvora clean --temp --force"
 
 test_scenario "Integration: Multi-format outputs" \
-  "devcompass analyze --json > integration.json && \
-   devcompass graph --format json --output .devcompass/graphs/integration-graph.json && \
-   [ -s integration.json ] && [ -s .devcompass/graphs/integration-graph.json ]"
+  "depvora analyze --json > integration.json && \
+   depvora graph --format json --output .depvora/graphs/integration-graph.json && \
+   [ -s integration.json ] && [ -s .depvora/graphs/integration-graph.json ]"
 
 cd ../../
 
@@ -331,15 +331,15 @@ echo ""
 cd test/project2-vulnerable
 
 test_scenario "Filter: All graph filters" \
-  "devcompass graph --filter all --output filter-all.html && \
-   devcompass graph --filter vulnerable --output filter-vuln.html && \
-   devcompass graph --filter outdated --output filter-old.html && \
-   devcompass graph --filter deprecated --output filter-dep.html"
+  "depvora graph --filter all --output filter-all.html && \
+   depvora graph --filter vulnerable --output filter-vuln.html && \
+   depvora graph --filter outdated --output filter-old.html && \
+   depvora graph --filter deprecated --output filter-dep.html"
 
 test_scenario "Filter: Custom depth limits" \
-  "devcompass graph --depth 1 --output depth1.html && \
-   devcompass graph --depth 3 --output depth3.html && \
-   devcompass graph --depth 5 --output depth5.html"
+  "depvora graph --depth 1 --output depth1.html && \
+   depvora graph --depth 3 --output depth3.html && \
+   depvora graph --depth 5 --output depth5.html"
 
 cd ../../
 
@@ -352,14 +352,14 @@ echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 test_scenario "Config: Show current config" \
-  "devcompass config --show"
+  "depvora config --show"
 
 test_scenario "Config: LLM provider management" \
-  "devcompass llm list && \
-   devcompass llm stats"
+  "depvora llm list && \
+   depvora llm stats"
 
 test_scenario "Config: CVE cache management" \
-  "devcompass cve cache --stats"
+  "depvora cve cache --stats"
 
 # ============================================================
 # FINAL SUMMARY
@@ -389,7 +389,7 @@ echo ""
 if [ $FAILED_TESTS -eq 0 ]; then
   echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
   echo -e "${GREEN}║  ✓ ALL PRODUCTION SCENARIOS PASSED!                        ║${NC}"
-  echo -e "${GREEN}║  DevCompass v3.2.6 is production-ready! 🚀                ║${NC}"
+  echo -e "${GREEN}║  Depvora v3.2.6 is production-ready! 🚀                ║${NC}"
   echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
   exit 0
 else

@@ -13,7 +13,7 @@ async function compareCommand(options) {
 
   if (!id1 || !id2) {
     console.error(chalk.red('❌ Error: Two snapshot IDs required'));
-    console.log(chalk.gray('\nUsage: devcompass compare <id1> <id2>\n'));
+    console.log(chalk.gray('\nUsage: depvora compare <id1> <id2>\n'));
     process.exit(1);
   }
 

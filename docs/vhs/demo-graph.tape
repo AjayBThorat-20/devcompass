@@ -1,5 +1,5 @@
 # Regenerate: vhs docs/vhs/demo-graph.tape
-# Requires: devcompass linked globally, and a demo project at /tmp/devcompass-docs-demo
+# Requires: depvora linked globally, and a demo project at /tmp/depvora-docs-demo
 # with real vulnerable dependencies (axios@0.21.1, lodash@4.17.15, minimist@1.2.5)
 
 Output docs/assets/demo-graph.gif
@@ -14,11 +14,11 @@ Set Padding 20
 Set Margin 0
 
 Hide
-Type "cd /tmp/devcompass-docs-demo && clear"
+Type "cd /tmp/depvora-docs-demo && clear"
 Enter
 Sleep 300ms
 Show
 
-Type "devcompass graph --layout force --filter vulnerable"
+Type "depvora graph --layout force --filter vulnerable"
 Enter
 Sleep 3s

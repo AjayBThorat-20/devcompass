@@ -64,8 +64,8 @@ function resetZoom() {
 }
 
 function resetView() {
-  if (window.DevCompass && typeof window.DevCompass.resetPagination === 'function') {
-    window.DevCompass.resetPagination();
+  if (window.Depvora && typeof window.Depvora.resetPagination === 'function') {
+    window.Depvora.resetPagination();
   }
   resetZoom();
 }
@@ -137,8 +137,8 @@ function applyFilters() {
     currentFilters.health = healthFilterEl.value;
   }
 
-  if (window.DevCompass && typeof window.DevCompass.resetPagination === 'function') {
-    window.DevCompass.resetPagination();
+  if (window.Depvora && typeof window.Depvora.resetPagination === 'function') {
+    window.Depvora.resetPagination();
   }
 
   if (typeof window.renderCurrentLayout === 'function') {
@@ -176,7 +176,7 @@ function exportPNG() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `devcompass-graph-${Date.now()}.png`;
+        link.download = `depvora-graph-${Date.now()}.png`;
         link.click();
         URL.revokeObjectURL(url);
       });
@@ -204,7 +204,7 @@ function exportJSON() {
     filters: currentFilters
   };
 
-  window.exportAsJSON(exportData, `devcompass-data-${Date.now()}.json`);
+  window.exportAsJSON(exportData, `depvora-data-${Date.now()}.json`);
 }
 
 function exportReport() {
@@ -217,7 +217,7 @@ function exportReport() {
   const healthDist = window.statsManager ? window.statsManager.getHealthDistribution(window.graphData.nodes) : {};
 
   const report = {
-    title: 'DevCompass Dependency Report',
+    title: 'Depvora Dependency Report',
     generated: new Date().toISOString(),
     project: {
       name: document.getElementById('projectName')?.textContent || 'Unknown',
@@ -234,7 +234,7 @@ function exportReport() {
     }))
   };
 
-  window.exportAsJSON(report, `devcompass-report-${Date.now()}.json`);
+  window.exportAsJSON(report, `depvora-report-${Date.now()}.json`);
 }
 
 function toggleFullscreen() {

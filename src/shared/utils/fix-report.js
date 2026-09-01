@@ -34,7 +34,7 @@ class FixReport {
 
   async save(projectPath) {
     try {
-      const reportPath = path.join(projectPath, 'devcompass-fix-report.json');
+      const reportPath = path.join(projectPath, 'depvora-fix-report.json');
       const report = { summary: this.getSummary(), fixes: this.fixes, errors: this.errors, skipped: this.skipped };
       fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
       return reportPath;

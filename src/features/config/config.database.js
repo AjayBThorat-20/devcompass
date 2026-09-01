@@ -5,7 +5,7 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
-const CONFIG_DIR = path.join(os.homedir(), '.devcompass');
+const CONFIG_DIR = path.join(os.homedir(), '.depvora');
 const DB_PATH = path.join(CONFIG_DIR, 'config.db');
 
 function initDatabase() {

@@ -3,7 +3,7 @@
 module.exports = function registerConfigCommand(program) {
   program
     .command('config')
-    .description('Configure DevCompass settings')
+    .description('Configure Depvora settings')
     .option('--github-token <token>', 'Set GitHub Personal Access Token')
     .option('--remove-github-token', 'Remove GitHub token')
     .option('--show', 'Show current configuration')

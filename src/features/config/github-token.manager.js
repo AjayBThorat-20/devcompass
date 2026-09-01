@@ -8,7 +8,7 @@ const encryption = require('../../shared/utils/encryption');
 
 class GitHubTokenManager {
   constructor() {
-    this.configDir = path.join(os.homedir(), '.devcompass');
+    this.configDir = path.join(os.homedir(), '.depvora');
     this.legacyTokenFile = path.join(this.configDir, 'github-token');
     this.db = null;
   }
@@ -84,12 +84,12 @@ class GitHubTokenManager {
     console.log('1. Go to: https://github.com/settings/tokens/new');
     console.log('2. Select: "Classic" token, Scope: "public_repo"');
     console.log('3. Click "Generate token"');
-    console.log('4. Run: devcompass config --github-token <your-token>');
+    console.log('4. Run: depvora config --github-token <your-token>');
     console.log('');
     console.log('Benefits:');
     console.log('  • 60 → 5,000 requests/hour');
     console.log('  • Token is encrypted with AES-256-GCM');
-    console.log('  • Optional - DevCompass works without it');
+    console.log('  • Optional - Depvora works without it');
     console.log('');
     console.log('━'.repeat(70));
     console.log('');

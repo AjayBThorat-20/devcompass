@@ -1,27 +1,27 @@
 // src/core/utils/errors.js
 
-class DevCompassError extends Error {
-  constructor(message, code = 'UNKNOWN_ERROR') { super(message); this.name = 'DevCompassError'; this.code = code; }
+class DepvoraError extends Error {
+  constructor(message, code = 'UNKNOWN_ERROR') { super(message); this.name = 'DepvoraError'; this.code = code; }
 }
 
-class ValidationError extends DevCompassError {
+class ValidationError extends DepvoraError {
   constructor(message) { super(message, 'VALIDATION_ERROR'); this.name = 'ValidationError'; }
 }
 
-class ProjectError extends DevCompassError {
+class ProjectError extends DepvoraError {
   constructor(message) { super(message, 'PROJECT_ERROR'); this.name = 'ProjectError'; }
 }
 
-class AnalysisError extends DevCompassError {
+class AnalysisError extends DepvoraError {
   constructor(message) { super(message, 'ANALYSIS_ERROR'); this.name = 'AnalysisError'; }
 }
 
-class FixError extends DevCompassError {
+class FixError extends DepvoraError {
   constructor(message) { super(message, 'FIX_ERROR'); this.name = 'FixError'; }
 }
 
 function handleError(error) {
-  if (error instanceof DevCompassError) {
+  if (error instanceof DepvoraError) {
     console.error(`\n❌ ${error.message}\n`);
     if (process.env.DEBUG) console.error(error.stack);
     process.exit(1);
@@ -32,4 +32,4 @@ function handleError(error) {
   }
 }
 
-module.exports = { DevCompassError, ValidationError, ProjectError, AnalysisError, FixError, handleError };
+module.exports = { DepvoraError, ValidationError, ProjectError, AnalysisError, FixError, handleError };
