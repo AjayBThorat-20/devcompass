@@ -1,5 +1,5 @@
 # Regenerate: vhs docs/vhs/demo-cve.tape
-# Requires: depvora linked globally. Uses only read-only subcommands
+# Requires: devcompass linked globally. Uses only read-only subcommands
 # (key status, cache stats) so it never touches your real stored NVD key.
 
 Output docs/assets/demo-cve.gif
@@ -14,15 +14,15 @@ Set Padding 20
 Set Margin 0
 
 Hide
-Type "cd /tmp/depvora-docs-demo && clear"
+Type "cd /tmp/devcompass-docs-demo && clear"
 Enter
 Sleep 300ms
 Show
 
-Type "depvora cve key"
+Type "devcompass cve key"
 Enter
 Sleep 2s
 
-Type "depvora cve cache --stats"
+Type "devcompass cve cache --stats"
 Enter
 Sleep 2s

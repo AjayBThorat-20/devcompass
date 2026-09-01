@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Depvora v3.2.6 - Comprehensive Test Suite
+# DevCompass v3.2.6 - Comprehensive Test Suite
 # Tests all fixes from Phases 1-4
 
 set -e
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  Depvora v3.2.6 - Comprehensive Test Suite             ║"
+echo "║  DevCompass v3.2.6 - Comprehensive Test Suite             ║"
 echo "║  Testing Phases 1-4 (55 files)                            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
@@ -56,7 +56,7 @@ test_result "LRU Cache Stats"
 # Test 1.2: Promise.allSettled (analyze command)
 echo ""
 echo "Test 1.2: Promise.allSettled (parallel collection)"
-depvora analyze --json > /tmp/analysis-result.json 2>/dev/null
+devcompass analyze --json > /tmp/analysis-result.json 2>/dev/null
 if grep -q "healthScore" /tmp/analysis-result.json; then
     test_result "Promise.allSettled working"
 else
@@ -108,8 +108,8 @@ fi
 # Test 2.2: Transaction Wrapper
 echo ""
 echo "Test 2.2: Snapshot Transaction Atomicity"
-depvora analyze > /dev/null 2>&1
-SNAPSHOT_COUNT=$(depvora history list 2>/dev/null | grep -c "Health:" || echo "0")
+devcompass analyze > /dev/null 2>&1
+SNAPSHOT_COUNT=$(devcompass history list 2>/dev/null | grep -c "Health:" || echo "0")
 if [ "$SNAPSHOT_COUNT" -gt 0 ]; then
     test_result "Snapshot transactions working (found $SNAPSHOT_COUNT snapshots)"
 else
@@ -119,8 +119,8 @@ fi
 # Test 2.3: AI Provider Check
 echo ""
 echo "Test 2.3: AI Provider Configuration"
-if depvora llm list 2>/dev/null | grep -q "local"; then
-    depvora ai ask "test" > /tmp/ai-test.txt 2>&1
+if devcompass llm list 2>/dev/null | grep -q "local"; then
+    devcompass ai ask "test" > /tmp/ai-test.txt 2>&1
     if grep -q "Cost:" /tmp/ai-test.txt; then
         test_result "AI integration working"
     else
@@ -162,9 +162,9 @@ fi
 # Test 3.2: Atomic Cache Writes
 echo ""
 echo "Test 3.2: Atomic Cache Writes"
-depvora analyze > /dev/null 2>&1
-if [ -f ".depvora-cache.json" ]; then
-    if grep -q "version" .depvora-cache.json; then
+devcompass analyze > /dev/null 2>&1
+if [ -f ".devcompass-cache.json" ]; then
+    if grep -q "version" .devcompass-cache.json; then
         test_result "Cache file valid (atomic writes working)"
     else
         test_result "Cache file corrupted"
@@ -374,7 +374,7 @@ echo ""
 
 # Integration Test 1: Full Analysis
 echo "Integration 1: Complete Analysis Pipeline"
-depvora analyze --json > /tmp/full-analysis.json 2>&1
+devcompass analyze --json > /tmp/full-analysis.json 2>&1
 if [ -f "/tmp/full-analysis.json" ] && grep -q "healthScore" /tmp/full-analysis.json; then
     HEALTH_SCORE=$(grep -o '"healthScore":[0-9.]*' /tmp/full-analysis.json | head -1 | cut -d':' -f2)
     echo "  Health Score: $HEALTH_SCORE"
@@ -386,9 +386,9 @@ fi
 # Integration Test 2: History Persistence
 echo ""
 echo "Integration 2: History Database Persistence"
-SNAPSHOT_COUNT_BEFORE=$(depvora history list 2>/dev/null | grep -c "Health:" || echo "0")
-depvora analyze > /dev/null 2>&1
-SNAPSHOT_COUNT_AFTER=$(depvora history list 2>/dev/null | grep -c "Health:" || echo "0")
+SNAPSHOT_COUNT_BEFORE=$(devcompass history list 2>/dev/null | grep -c "Health:" || echo "0")
+devcompass analyze > /dev/null 2>&1
+SNAPSHOT_COUNT_AFTER=$(devcompass history list 2>/dev/null | grep -c "Health:" || echo "0")
 if [ "$SNAPSHOT_COUNT_AFTER" -gt "$SNAPSHOT_COUNT_BEFORE" ]; then
     test_result "Snapshot persistence ($SNAPSHOT_COUNT_BEFORE → $SNAPSHOT_COUNT_AFTER)"
 else
@@ -399,15 +399,15 @@ fi
 echo ""
 echo "Integration 3: Cache Performance"
 echo -n "  First run: "
-time depvora analyze > /dev/null 2>&1
+time devcompass analyze > /dev/null 2>&1
 echo -n "  Cached run: "
-time depvora analyze > /dev/null 2>&1
+time devcompass analyze > /dev/null 2>&1
 test_result "Cache effectiveness (check times above)"
 
 # Integration Test 4: Graph Generation
 echo ""
 echo "Integration 4: Graph Generation"
-if depvora graph --help > /dev/null 2>&1; then
+if devcompass graph --help > /dev/null 2>&1; then
     test_result "Graph command available"
 else
     test_skip "Graph command not available"
@@ -417,7 +417,7 @@ fi
 echo ""
 echo "Integration 5: Memory Footprint"
 MEMORY_BEFORE=$(ps aux | grep node | grep -v grep | awk '{sum+=$6} END {print sum}' || echo "0")
-depvora analyze > /dev/null 2>&1
+devcompass analyze > /dev/null 2>&1
 MEMORY_AFTER=$(ps aux | grep node | grep -v grep | awk '{sum+=$6} END {print sum}' || echo "0")
 echo "  Memory usage tracked"
 test_result "Memory monitoring"
@@ -442,7 +442,7 @@ echo -e "Pass Rate: ${GREEN}${PASS_RATE}%${NC}"
 if [ $FAILED -eq 0 ]; then
     echo ""
     echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║  🎉 ALL TESTS PASSED! Depvora v3.2.6 is ready!         ║${NC}"
+    echo -e "${GREEN}║  🎉 ALL TESTS PASSED! DevCompass v3.2.6 is ready!         ║${NC}"
     echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
     exit 0
 else

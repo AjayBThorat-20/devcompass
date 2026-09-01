@@ -7,7 +7,7 @@ const os = require('os');
 
 class HistoryDatabase {
   constructor() {
-    const dbDir = path.join(os.homedir(), '.depvora');
+    const dbDir = path.join(os.homedir(), '.devcompass');
     if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
     this.dbPath = path.join(dbDir, 'history.db');
     this.db = null;

@@ -5,7 +5,7 @@ const { ConsoleFormatter } = require('../../../core/formatters/console-formatter
 const { version } = require('../../../../package.json');
 
 function renderFixPreview(plan, mode = 'safe') {
-  ConsoleFormatter.header(`Depvora Fix v${version}`);
+  ConsoleFormatter.header(`DevCompass Fix v${version}`);
 
   const actions = getActionsForMode(plan, mode);
   const skipped = getSkippedActions(plan, mode);
@@ -14,7 +14,7 @@ function renderFixPreview(plan, mode = 'safe') {
   if (actions.length === 0) {
     console.log(chalk.yellow(`\n✅ No ${getModeLabel(mode).toLowerCase()} fixes available\n`));
     if (skipped.length > 0) {
-      console.log(chalk.gray(`There are ${skipped.length} risky fix(es). Use ${chalk.cyan('depvora fix --all')} to include them.\n`));
+      console.log(chalk.gray(`There are ${skipped.length} risky fix(es). Use ${chalk.cyan('devcompass fix --all')} to include them.\n`));
     }
     return;
   }
@@ -44,7 +44,7 @@ function renderFixPreview(plan, mode = 'safe') {
       console.log('');
     });
     if (skipped.length > 5) console.log(chalk.gray(`   ... and ${skipped.length - 5} more\n`));
-    console.log(chalk.gray(`To include risky fixes: ${chalk.cyan('depvora fix --all')}\n`));
+    console.log(chalk.gray(`To include risky fixes: ${chalk.cyan('devcompass fix --all')}\n`));
   }
 
   console.log(chalk.dim(line));

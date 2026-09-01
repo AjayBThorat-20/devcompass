@@ -1,6 +1,6 @@
 # Regenerate: vhs docs/vhs/demo-ai.tape
-# Requires: depvora linked globally, and a configured LLM provider
-# (`depvora llm add ...`) — this recording used a local Ollama model,
+# Requires: devcompass linked globally, and a configured LLM provider
+# (`devcompass llm add ...`) — this recording used a local Ollama model,
 # so it's a real free response, not a mock.
 
 Output docs/assets/demo-ai.gif
@@ -15,11 +15,11 @@ Set Padding 20
 Set Margin 0
 
 Hide
-Type "cd /tmp/depvora-docs-demo && clear"
+Type "cd /tmp/devcompass-docs-demo && clear"
 Enter
 Sleep 300ms
 Show
 
-Type `depvora ai ask "Why is axios flagged as a security risk?"`
+Type `devcompass ai ask "Why is axios flagged as a security risk?"`
 Enter
 Sleep 15s

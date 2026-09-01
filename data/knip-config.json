@@ -46,7 +46,7 @@
     "cssnano",
     "prettier",
     "eslint",
-    "depvora"
+    "devcompass"
   ],
   "skipPackages": [
     "typescript",
@@ -63,6 +63,6 @@
     "react",
     "react-dom",
     "next",
-    "depvora"
+    "devcompass"
   ]
 }

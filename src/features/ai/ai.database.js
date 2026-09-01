@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-const DB_DIR = path.join(os.homedir(), '.depvora');
+const DB_DIR = path.join(os.homedir(), '.devcompass');
 const DB_PATH = path.join(DB_DIR, 'ai.db');
 
 class AIDatabase {

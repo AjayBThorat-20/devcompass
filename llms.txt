@@ -1,28 +1,28 @@
-# Depvora
+# DevCompass
 
 > CLI tool that scans Node.js/npm project dependencies for CVE vulnerabilities (via OSV + NVD), license conflicts, unused packages, and outdated versions, then can safely auto-fix them with automatic backup and rollback. Free and open source (MIT). Optional AI-powered recommendations via OpenAI, Anthropic, Google, or a fully local/free Ollama model.
 
-Depvora is a complement to `npm audit` and Dependabot for teams that also want license-conflict detection, unused-dependency detection, a historical health score with trend tracking, interactive dependency graphs, and safe automated fixes — in one CLI, with no GitHub integration required. Install with `npm install -g depvora`, then run `depvora analyze`. It does not replace `npm audit`/Dependabot; it covers what they don't.
+DevCompass is a complement to `npm audit` and Dependabot for teams that also want license-conflict detection, unused-dependency detection, a historical health score with trend tracking, interactive dependency graphs, and safe automated fixes — in one CLI, with no GitHub integration required. Install with `npm install -g devcompass`, then run `devcompass analyze`. It does not replace `npm audit`/Dependabot; it covers what they don't.
 
 ## Install & usage
 
-- [README](https://raw.githubusercontent.com/AjayBThorat-20/depvora/main/README.md): install instructions, full command reference (`analyze`, `fix`, `cve`, `graph`, `snapshot`, `compare`, `history`, `timeline`, `backup`, `ai`, `llm`, `config`, `clean`), comparison vs. npm audit/Dependabot, CVE detection internals, AI provider setup, CI/CD integration, troubleshooting, and FAQ.
-- [npm package](https://www.npmjs.com/package/depvora): install command, current version, download stats.
-- [GitHub repository](https://github.com/AjayBThorat-20/depvora): source code, issue tracker.
+- [README](https://raw.githubusercontent.com/AjayBThorat-20/devcompass/main/README.md): install instructions, full command reference (`analyze`, `fix`, `cve`, `graph`, `snapshot`, `compare`, `history`, `timeline`, `backup`, `ai`, `llm`, `config`, `clean`), comparison vs. npm audit/Dependabot, CVE detection internals, AI provider setup, CI/CD integration, troubleshooting, and FAQ.
+- [npm package](https://www.npmjs.com/package/devcompass): install command, current version, download stats.
+- [GitHub repository](https://github.com/AjayBThorat-20/devcompass): source code, issue tracker.
 
 ## Reference
 
-- [CHANGELOG](https://raw.githubusercontent.com/AjayBThorat-20/depvora/main/CHANGELOG.md): complete version-by-version history.
-- [MIGRATION guide](https://raw.githubusercontent.com/AjayBThorat-20/depvora/main/MIGRATION.md): upgrade notes between major/minor versions.
-- [CONTRIBUTING](https://raw.githubusercontent.com/AjayBThorat-20/depvora/main/CONTRIBUTING.md): how to contribute, good-first-issue areas, PR checklist.
+- [CHANGELOG](https://raw.githubusercontent.com/AjayBThorat-20/devcompass/main/CHANGELOG.md): complete version-by-version history.
+- [MIGRATION guide](https://raw.githubusercontent.com/AjayBThorat-20/devcompass/main/MIGRATION.md): upgrade notes between major/minor versions.
+- [CONTRIBUTING](https://raw.githubusercontent.com/AjayBThorat-20/devcompass/main/CONTRIBUTING.md): how to contribute, good-first-issue areas, PR checklist.
 
 ## Optional
 
-- [LICENSE](https://raw.githubusercontent.com/AjayBThorat-20/depvora/main/LICENSE): MIT license text.
+- [LICENSE](https://raw.githubusercontent.com/AjayBThorat-20/devcompass/main/LICENSE): MIT license text.
 
 ## Author
 
-Depvora is created and maintained by Ajay Thorat.
+DevCompass is created and maintained by Ajay Thorat.
 - [Portfolio](https://www.ajaythorat.com)
 - [LinkedIn](https://www.linkedin.com/in/ajay-thorat-24b4b6215)
 - [GitHub](https://github.com/AjayBThorat-20)

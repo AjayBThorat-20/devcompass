@@ -32,10 +32,10 @@ module.exports = function registerAiCommand(program) {
         case 'chat': await aiCommand.startChat(projectPath, options); break;
         default:
           console.log(chalk.yellow('\n⚠️ Invalid AI command\n'));
-          console.log('  depvora ai ask "question"');
-          console.log('  depvora ai recommend');
-          console.log('  depvora ai alternatives <package>');
-          console.log('  depvora ai chat\n');
+          console.log('  devcompass ai ask "question"');
+          console.log('  devcompass ai recommend');
+          console.log('  devcompass ai alternatives <package>');
+          console.log('  devcompass ai chat\n');
       }
     });
 };

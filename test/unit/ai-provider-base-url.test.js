@@ -1,5 +1,5 @@
 // test/unit/ai-provider-base-url.test.js
-// Regression test: `depvora llm add --base-url ...` persists the URL under
+// Regression test: `devcompass llm add --base-url ...` persists the URL under
 // the DB column `base_url` (ai.database.js), but the OpenAI/Anthropic/Google
 // provider constructors only ever read `config.baseURL` (camelCase) — so a
 // configured custom base URL (e.g. a proxy/gateway) was silently ignored and

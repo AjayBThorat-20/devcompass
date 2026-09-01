@@ -5,12 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [5.0.0] - 2026-09-01
-
-### Changed
-
-- **Renamed `devcompass` → `depvora`** - the package, CLI binary, GitHub repo, and all docs now use the new name. This is a breaking change: the CLI command is now `depvora` instead of `devcompass`, and the config/cache directory moved from `~/.devcompass` to `~/.depvora` (existing GitHub token, cache, and history do not carry over automatically). See `MIGRATION.md` for upgrade steps. The old `devcompass` package on npm is deprecated and points here; it remains installable but will not receive further updates.
-
 ## [4.1.3] - 2026-08-28
 
 ### Docs

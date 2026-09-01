@@ -1,6 +1,6 @@
 # Regenerate: vhs docs/vhs/demo-snapshot.tape
-# Requires: depvora linked globally, with real snapshots already in
-# ~/.depvora/history.db (run `depvora analyze` a couple of times first)
+# Requires: devcompass linked globally, with real snapshots already in
+# ~/.devcompass/history.db (run `devcompass analyze` a couple of times first)
 
 Output docs/assets/demo-snapshot.gif
 
@@ -14,15 +14,15 @@ Set Padding 20
 Set Margin 0
 
 Hide
-Type "cd /tmp/depvora-docs-demo-fix && clear"
+Type "cd /tmp/devcompass-docs-demo-fix && clear"
 Enter
 Sleep 300ms
 Show
 
-Type "depvora snapshot list --project docs-demo-project"
+Type "devcompass snapshot list --project docs-demo-project"
 Enter
 Sleep 2s
 
-Type "depvora snapshot view 1087"
+Type "devcompass snapshot view 1087"
 Enter
 Sleep 3s

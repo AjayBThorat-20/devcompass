@@ -25,7 +25,7 @@ async function runFix(options = {}) {
 
   if (batch || batchMode || only || skip) {
     console.log('\n⚠️  Batch mode features are not yet available');
-    console.log('Use standard fix mode:\n  depvora fix\n  depvora fix --all\n  depvora fix --yes\n');
+    console.log('Use standard fix mode:\n  devcompass fix\n  devcompass fix --all\n  devcompass fix --yes\n');
     return;
   }
 

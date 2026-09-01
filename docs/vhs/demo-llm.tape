@@ -1,6 +1,6 @@
 # Regenerate: vhs docs/vhs/demo-llm.tape
-# Requires: depvora linked globally, with at least one provider already
-# configured (`depvora llm add ...`). Uses only read-only subcommands
+# Requires: devcompass linked globally, with at least one provider already
+# configured (`devcompass llm add ...`). Uses only read-only subcommands
 # (list, test) so it never touches your real stored provider list.
 
 Output docs/assets/demo-llm.gif
@@ -20,10 +20,10 @@ Enter
 Sleep 300ms
 Show
 
-Type "depvora llm list"
+Type "devcompass llm list"
 Enter
 Sleep 2s
 
-Type "depvora llm test local"
+Type "devcompass llm test local"
 Enter
 Sleep 3s

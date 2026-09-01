@@ -30,7 +30,7 @@ jobs:
     # The unit-test job above is fast and fully deterministic; this one drives
     # the real CLI (linked globally, same as an end user) against the 5 test
     # fixture projects in test/, hitting live OSV/npm-registry/GitHub APIs the
-    # same way `depvora analyze`/`fix`/`graph` do in production. That's
+    # same way `devcompass analyze`/`fix`/`graph` do in production. That's
     # exactly the kind of integration bug unit tests can't catch (e.g. an OSV
     # response-shape assumption that's only wrong against the real API), but
     # it also means this job can fail for reasons that have nothing to do with
@@ -47,7 +47,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Link depvora onto PATH (matches a real global install)
+      - name: Link devcompass onto PATH (matches a real global install)
         run: npm link
 
       # test/project*-* are gitignored scratch fixtures (see .gitignore),

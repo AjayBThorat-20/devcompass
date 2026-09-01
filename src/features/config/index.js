@@ -12,7 +12,7 @@ async function config(options) {
     if (token) {
       const masked = maskToken(token);
       console.log(chalk.green('✓'), 'GitHub token configured:', chalk.dim(masked));
-      console.log(chalk.dim('  Stored encrypted in: ~/.depvora/config.db'));
+      console.log(chalk.dim('  Stored encrypted in: ~/.devcompass/config.db'));
     } else {
       console.log(chalk.yellow('⚠'), 'No GitHub token configured');
       GitHubTokenManager.showTokenInstructions();
@@ -36,8 +36,8 @@ async function config(options) {
     if (tokenManager.saveToken(token)) {
       console.log(chalk.green('✓'), 'GitHub token saved successfully!');
       console.log('🔒 Token encrypted with AES-256-GCM');
-      console.log('📁 Stored in:', chalk.dim('~/.depvora/config.db'));
-      console.log('🎉 You can now use Depvora without rate limits!');
+      console.log('📁 Stored in:', chalk.dim('~/.devcompass/config.db'));
+      console.log('🎉 You can now use DevCompass without rate limits!');
     } else {
       console.log(chalk.red('✗'), 'Failed to save GitHub token');
     }
@@ -45,12 +45,12 @@ async function config(options) {
   }
 
   console.log('');
-  console.log(chalk.bold('Depvora Configuration'));
+  console.log(chalk.bold('DevCompass Configuration'));
   console.log('');
   console.log('Usage:');
-  console.log('  depvora config --github-token <token>  Set GitHub token');
-  console.log('  depvora config --show                  Show current token');
-  console.log('  depvora config --remove-github-token   Remove GitHub token');
+  console.log('  devcompass config --github-token <token>  Set GitHub token');
+  console.log('  devcompass config --show                  Show current token');
+  console.log('  devcompass config --remove-github-token   Remove GitHub token');
   console.log('');
   GitHubTokenManager.showTokenInstructions();
 }

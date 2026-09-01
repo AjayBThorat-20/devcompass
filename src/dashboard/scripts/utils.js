@@ -146,7 +146,7 @@ function calculateStats(nodes) {
   return stats;
 }
 
-function exportAsJSON(data, filename = 'depvora-export.json') {
+function exportAsJSON(data, filename = 'devcompass-export.json') {
   const dataStr = JSON.stringify(data, null, 2);
   const dataBlob = new Blob([dataStr], { type: 'application/json' });
   const url = URL.createObjectURL(dataBlob);
@@ -166,7 +166,7 @@ function getContrastColor(bgColor) {
 const storage = {
   set(key, value) {
     try {
-      localStorage.setItem(`depvora_${key}`, JSON.stringify(value));
+      localStorage.setItem(`devcompass_${key}`, JSON.stringify(value));
     } catch (e) {
       console.warn('LocalStorage not available:', e);
     }
@@ -174,7 +174,7 @@ const storage = {
   
   get(key, defaultValue = null) {
     try {
-      const item = localStorage.getItem(`depvora_${key}`);
+      const item = localStorage.getItem(`devcompass_${key}`);
       return item ? JSON.parse(item) : defaultValue;
     } catch (e) {
       console.warn('LocalStorage not available:', e);
@@ -184,7 +184,7 @@ const storage = {
   
   remove(key) {
     try {
-      localStorage.removeItem(`depvora_${key}`);
+      localStorage.removeItem(`devcompass_${key}`);
     } catch (e) {
       console.warn('LocalStorage not available:', e);
     }

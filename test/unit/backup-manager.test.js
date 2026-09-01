@@ -10,7 +10,7 @@ const path = require('node:path');
 const BackupManager = require('../../src/shared/utils/backup-manager');
 
 function makeProject() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'depvora-backup-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'devcompass-backup-'));
   fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'p', version: '1.0.0' }));
   fs.writeFileSync(path.join(dir, 'package-lock.json'), JSON.stringify({ name: 'p' }));
   return dir;

@@ -24,14 +24,14 @@ async function handleKeyCommand(options) {
     const apiKey = options.apiKey || options.key;
     if (!apiKey) {
       console.log(chalk.red('\n❌ API key is required\n'));
-      console.log(chalk.gray('  depvora cve key --set --api-key <your-key>\n'));
+      console.log(chalk.gray('  devcompass cve key --set --api-key <your-key>\n'));
       return;
     }
     const success = apiKeyManager.setAPIKey('nvd', apiKey);
     if (success) {
       console.log(chalk.green('\n✓ NVD API key saved successfully!\n'));
-      console.log(chalk.gray('  Test key: ') + chalk.cyan('depvora cve test'));
-      console.log(chalk.gray('  Run analysis: ') + chalk.cyan('depvora analyze\n'));
+      console.log(chalk.gray('  Test key: ') + chalk.cyan('devcompass cve test'));
+      console.log(chalk.gray('  Run analysis: ') + chalk.cyan('devcompass analyze\n'));
     } else {
       console.log(chalk.red('\n❌ Failed to save API key\n'));
     }
@@ -66,12 +66,12 @@ async function handleKeyCommand(options) {
     console.log(chalk.green('✓ Configured'));
     console.log(chalk.gray(`  Key: ${encryption.maskToken(nvdKey)}\n`));
     console.log(chalk.bold('💡 Commands:'));
-    console.log(chalk.gray('  Test: ') + chalk.cyan('depvora cve test'));
-    console.log(chalk.gray('  Remove: ') + chalk.cyan('depvora cve key --remove\n'));
+    console.log(chalk.gray('  Test: ') + chalk.cyan('devcompass cve test'));
+    console.log(chalk.gray('  Remove: ') + chalk.cyan('devcompass cve key --remove\n'));
   } else {
     console.log(chalk.yellow('⚠️  Not configured\n'));
     console.log(chalk.gray('  Visit: ') + chalk.cyan('https://nvd.nist.gov/developers/request-an-api-key'));
-    console.log(chalk.gray('  Then: ') + chalk.cyan('depvora cve key --set --api-key <your-key>\n'));
+    console.log(chalk.gray('  Then: ') + chalk.cyan('devcompass cve key --set --api-key <your-key>\n'));
   }
 }
 
@@ -80,11 +80,11 @@ async function testKey() {
   const result = await apiKeyManager.testAPIKey('nvd');
   if (result.success) {
     console.log(chalk.green('✓ ' + result.message + '\n'));
-    console.log(chalk.gray('  Run: ') + chalk.cyan('depvora analyze') + chalk.gray(' to scan with CVE detection\n'));
+    console.log(chalk.gray('  Run: ') + chalk.cyan('devcompass analyze') + chalk.gray(' to scan with CVE detection\n'));
   } else {
     console.log(chalk.red('✗ ' + result.message + '\n'));
     if (result.message.includes('not found')) {
-      console.log(chalk.gray('   depvora cve key --set --api-key <your-key>\n'));
+      console.log(chalk.gray('   devcompass cve key --set --api-key <your-key>\n'));
     }
   }
 }
@@ -110,9 +110,9 @@ function handleCacheCommand(options) {
 }
 
 function showHelp() {
-  console.log(chalk.bold.cyan('\n🛡️  Depvora CVE Management\n'));
+  console.log(chalk.bold.cyan('\n🛡️  DevCompass CVE Management\n'));
   console.log(chalk.bold('USAGE:'));
-  console.log('  depvora cve <command> [options]\n');
+  console.log('  devcompass cve <command> [options]\n');
   console.log(chalk.bold('COMMANDS:'));
   console.log(`  ${chalk.cyan('key')}      Manage NVD API keys`);
   console.log(`  ${chalk.cyan('test')}     Test NVD API key connection`);

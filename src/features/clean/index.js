@@ -19,12 +19,12 @@ async function cleanCommand(options = {}) {
   const outputManager = new OutputManager(projectPath);
 
   if (!outputManager.exists('root')) {
-    console.log(chalk.yellow('\n⚠️  No .depvora directory found. Nothing to clean.\n'));
+    console.log(chalk.yellow('\n⚠️  No .devcompass directory found. Nothing to clean.\n'));
     return;
   }
 
   const summary = outputManager.getSummary();
-  console.log(chalk.cyan('\n📁 Depvora Output Directory\n'));
+  console.log(chalk.cyan('\n📁 DevCompass Output Directory\n'));
   console.log(`Location: ${chalk.white(summary.relativePath)}\n`);
 
   let totalFiles = 0, totalSize = 0;

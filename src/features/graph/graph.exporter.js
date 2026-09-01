@@ -84,7 +84,7 @@ class GraphExporter {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Depvora - Dependency Graph</title>
+  <title>DevCompass - Dependency Graph</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }

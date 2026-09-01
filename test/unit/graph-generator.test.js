@@ -12,7 +12,7 @@ const path = require('node:path');
 const GraphGenerator = require('../../src/features/graph/graph.generator');
 
 function makeFixture(packageJson, packageLock) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'depvora-graph-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'devcompass-graph-'));
   fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify(packageJson));
   if (packageLock) fs.writeFileSync(path.join(dir, 'package-lock.json'), JSON.stringify(packageLock));
   return dir;

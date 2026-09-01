@@ -7,7 +7,7 @@ const { version } = require('../../../../package.json');
 function renderDefaultOutput(issues, metadata) {
   const topIssues = getTopIssues(issues, 3);
 
-  ConsoleFormatter.header(`Depvora v${version}`, metadata.projectInfo);
+  ConsoleFormatter.header(`DevCompass v${version}`, metadata.projectInfo);
 
   if (metadata.healthScore !== undefined) ConsoleFormatter.healthScore(metadata.healthScore);
 
@@ -39,9 +39,9 @@ function renderDefaultOutput(issues, metadata) {
 
   if (issues.length > 0) {
     ConsoleFormatter.actions([
-      { icon: '✔', label: 'Fix safe issues', command: 'depvora fix' },
-      { icon: '🔍', label: 'See full report', command: 'depvora analyze --deep' },
-      { icon: '📊', label: 'Open dashboard', command: 'depvora graph' }
+      { icon: '✔', label: 'Fix safe issues', command: 'devcompass fix' },
+      { icon: '🔍', label: 'See full report', command: 'devcompass analyze --deep' },
+      { icon: '📊', label: 'Open dashboard', command: 'devcompass graph' }
     ]);
   }
 }

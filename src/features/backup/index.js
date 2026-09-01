@@ -36,12 +36,12 @@ async function backup(action, options = {}) {
 }
 
 async function listBackups(backupManager, outputManager) {
-  console.log(chalk.bold.cyan('\n💾 Depvora Backups\n'));
+  console.log(chalk.bold.cyan('\n💾 DevCompass Backups\n'));
   const backups = await backupManager.listBackups();
 
   if (backups.length === 0) {
     console.log(chalk.gray('No backups found.'));
-    console.log(chalk.gray('💡 Backups are created automatically when you run "depvora fix"\n'));
+    console.log(chalk.gray('💡 Backups are created automatically when you run "devcompass fix"\n'));
     return;
   }
 
@@ -60,24 +60,24 @@ async function listBackups(backupManager, outputManager) {
 
   console.log(chalk.gray('─'.repeat(70)));
   console.log(chalk.gray('\n💡 COMMANDS:'));
-  console.log(chalk.gray('   Restore:'), chalk.cyan(`depvora backup restore --name ${backups[0].name}`));
-  console.log(chalk.gray('   Clean:'), chalk.cyan('depvora backup clean\n'));
+  console.log(chalk.gray('   Restore:'), chalk.cyan(`devcompass backup restore --name ${backups[0].name}`));
+  console.log(chalk.gray('   Clean:'), chalk.cyan('devcompass backup clean\n'));
 }
 
 async function restoreBackup(backupRestorer, projectPath, options) {
   const backupName = options.name;
   if (!backupName) {
     console.error(chalk.red('\n❌ Please specify a backup name'));
-    console.log(chalk.gray('\n  depvora backup restore --name <backup-name>\n'));
+    console.log(chalk.gray('\n  devcompass backup restore --name <backup-name>\n'));
     process.exit(1);
   }
 
-  console.log(chalk.bold.cyan('\n🔄 Depvora Backup Restore\n'));
+  console.log(chalk.bold.cyan('\n🔄 DevCompass Backup Restore\n'));
 
   const backupExists = await backupRestorer.backupExists(backupName);
   if (!backupExists) {
     console.error(chalk.red(`❌ Backup not found: ${backupName}`));
-    console.log(chalk.gray('\nRun "depvora backup list" to see available backups\n'));
+    console.log(chalk.gray('\nRun "devcompass backup list" to see available backups\n'));
     process.exit(1);
   }
 
@@ -114,7 +114,7 @@ async function restoreBackup(backupRestorer, projectPath, options) {
 }
 
 async function cleanBackups(backupManager, options) {
-  console.log(chalk.bold.cyan('\n🧹 Depvora Backup Cleanup\n'));
+  console.log(chalk.bold.cyan('\n🧹 DevCompass Backup Cleanup\n'));
   const { keep = 5, force = false } = options;
   const backups = await backupManager.listBackups();
 
@@ -151,11 +151,11 @@ async function showBackupInfo(backupManager, outputManager, options) {
   const backupName = options.name;
   if (!backupName) {
     console.error(chalk.red('\n❌ Please specify a backup name'));
-    console.log(chalk.gray('\n  depvora backup info --name <backup-name>\n'));
+    console.log(chalk.gray('\n  devcompass backup info --name <backup-name>\n'));
     process.exit(1);
   }
 
-  console.log(chalk.bold.cyan('\n📋 Depvora Backup Info\n'));
+  console.log(chalk.bold.cyan('\n📋 DevCompass Backup Info\n'));
   const backup = await backupManager.getBackupInfo(backupName);
 
   if (!backup) { console.error(chalk.red(`❌ Backup not found: ${backupName}\n`)); process.exit(1); }
@@ -171,7 +171,7 @@ async function showBackupInfo(backupManager, outputManager, options) {
   if (metadata.reason) console.log(`${chalk.bold('Reason:')}        ${metadata.reason}`);
   if (metadata.healthScore !== undefined) console.log(`${chalk.bold('Health score:')}  ${metadata.healthScore}/10`);
   if (metadata.projectVersion) console.log(`${chalk.bold('Project ver:')}   ${metadata.projectVersion}`);
-  if (metadata.depvoraVersion) console.log(`${chalk.bold('Depvora:')}    v${metadata.depvoraVersion}`);
+  if (metadata.devcompassVersion) console.log(`${chalk.bold('DevCompass:')}    v${metadata.devcompassVersion}`);
   console.log(chalk.gray('─'.repeat(70)));
   if (backup.files) {
     console.log(chalk.bold('\nFile Details:'));
@@ -182,13 +182,13 @@ async function showBackupInfo(backupManager, outputManager, options) {
       }
     }
   }
-  console.log(chalk.gray(`\n💡 depvora backup restore --name ${backupName}\n`));
+  console.log(chalk.gray(`\n💡 devcompass backup restore --name ${backupName}\n`));
 }
 
 function showHelp() {
-  console.log(chalk.bold.cyan('\n💾 Depvora Backup Manager\n'));
+  console.log(chalk.bold.cyan('\n💾 DevCompass Backup Manager\n'));
   console.log(chalk.bold('USAGE:'));
-  console.log('  depvora backup <command> [options]\n');
+  console.log('  devcompass backup <command> [options]\n');
   console.log('Commands: list, restore, clean, info\n');
   console.log('Options:');
   console.log(`  ${chalk.cyan('-n, --name <name>')}   Backup name (for restore/info)`);

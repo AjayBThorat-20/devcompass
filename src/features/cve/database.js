@@ -5,7 +5,7 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
-const DB_DIR = path.join(os.homedir(), '.depvora');
+const DB_DIR = path.join(os.homedir(), '.devcompass');
 const DB_PATH = path.join(DB_DIR, 'cve.db');
 const CACHE_VERSION = 5;
 

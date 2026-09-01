@@ -68,7 +68,7 @@ class SnapshotComparator {
   generateReport(comparisonResult) {
     const { summary, added, removed, updated } = comparisonResult;
     const lines = [
-      '# Depvora Snapshot Comparison Report\n',
+      '# DevCompass Snapshot Comparison Report\n',
       `**Snapshot 1:** ${summary.snapshot1.timestamp} (ID: ${summary.snapshot1.id})`,
       `**Snapshot 2:** ${summary.snapshot2.timestamp} (ID: ${summary.snapshot2.id})\n`,
       '## Summary\n',

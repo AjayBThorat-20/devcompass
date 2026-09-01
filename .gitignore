@@ -14,9 +14,9 @@ coverage/
 *.tmp
 .cache/.npmrc
 .npmrc
-.depvora-cache.json
-.depvora-backups/
-depvora-fix-report.json
+.devcompass-cache.json
+.devcompass-backups/
+devcompass-fix-report.json
 # Graph visualization outputs
 dependency-graph.html
 final-test.html
@@ -25,10 +25,10 @@ final-test.html
 test1.html
 test1.json
 test1-shallow.html
-depvora-v310-test/
+devcompass-v310-test/
 
-# Depvora config (contains GitHub token)
-.depvora/
+# DevCompass config (contains GitHub token)
+.devcompass/
 knip.json
 
 # Local scratch fixture projects (manual testing only) — keep ignored, but

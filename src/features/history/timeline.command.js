@@ -16,7 +16,7 @@ async function timelineCommand(options) {
     if (timeline.data.length === 0) {
       spinner.warn('No snapshots found');
       console.log(chalk.yellow(`\nNo snapshots found in the last ${days} days.`));
-      console.log(chalk.gray('Run "depvora analyze" to create snapshots.\n'));
+      console.log(chalk.gray('Run "devcompass analyze" to create snapshots.\n'));
       return;
     }
 
@@ -24,7 +24,7 @@ async function timelineCommand(options) {
     displayTimelineSummary(timeline, options);
 
     if (options.open || options.o || options.output) {
-      const outputPath = options.output || 'depvora-timeline.html';
+      const outputPath = options.output || 'devcompass-timeline.html';
       const chartData = generator.generateChartData(timeline.data);
       const html = createTimelineHTML(timeline, chartData);
       fs.writeFileSync(path.resolve(outputPath), html, 'utf8');
@@ -74,7 +74,7 @@ function createTimelineHTML(timeline, chartData) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Depvora Timeline</title>
+  <title>DevCompass Timeline</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -95,7 +95,7 @@ function createTimelineHTML(timeline, chartData) {
 </head>
 <body>
   <div class="container">
-    <h1>📈 Depvora Timeline</h1>
+    <h1>📈 DevCompass Timeline</h1>
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-label">Total Snapshots</div><div class="stat-value">${summary.totalSnapshots}</div></div>
       <div class="stat-card"><div class="stat-label">Average Health Score</div><div class="stat-value">${summary.averages.healthScore.toFixed(2)}/10</div></div>

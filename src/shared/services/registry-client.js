@@ -6,7 +6,7 @@ const path = require('path');
 const os = require('os');
 const { RETRY } = require('../utils/constants');
 
-const CACHE_DIR = path.join(os.homedir(), '.depvora', 'cache');
+const CACHE_DIR = path.join(os.homedir(), '.devcompass', 'cache');
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_CONCURRENCY = 5;
 const REQUEST_TIMEOUT = 10000;
@@ -64,7 +64,7 @@ function writeToDiskCache(packageName, data) {
 
 function httpsGet(url, retryCount = 0) {
   return new Promise((resolve, reject) => {
-    const request = https.get(url, { timeout: REQUEST_TIMEOUT, headers: { 'Accept': 'application/json', 'User-Agent': 'depvora-cli' } }, (response) => {
+    const request = https.get(url, { timeout: REQUEST_TIMEOUT, headers: { 'Accept': 'application/json', 'User-Agent': 'devcompass-cli' } }, (response) => {
       clearTimeout(hardDeadline);
       if (response.statusCode === 429 || (response.statusCode >= 500 && response.statusCode < 600)) {
         if (retryCount < MAX_RETRIES) { setTimeout(() => httpsGet(url, retryCount + 1).then(resolve).catch(reject), INITIAL_RETRY_DELAY * Math.pow(RETRY.BACKOFF_MULTIPLIER, retryCount)); return; }

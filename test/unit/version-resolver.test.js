@@ -14,7 +14,7 @@ const path = require('node:path');
 const { resolveInstalledVersions } = require('../../src/features/alerts/version-resolver.service');
 
 test('a package with a corrupt installed package.json falls back to the declared version', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'depvora-resolver-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'devcompass-resolver-'));
   const pkgDir = path.join(dir, 'node_modules', 'broken-pkg');
   fs.mkdirSync(pkgDir, { recursive: true });
   fs.writeFileSync(path.join(pkgDir, 'package.json'), '{ not valid json');
@@ -29,7 +29,7 @@ test('a package with a corrupt installed package.json falls back to the declared
 });
 
 test('a genuinely installed package reports its actual installed version', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'depvora-resolver-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'devcompass-resolver-'));
   const pkgDir = path.join(dir, 'node_modules', 'good-pkg');
   fs.mkdirSync(pkgDir, { recursive: true });
   fs.writeFileSync(path.join(pkgDir, 'package.json'), JSON.stringify({ version: '3.1.4' }));

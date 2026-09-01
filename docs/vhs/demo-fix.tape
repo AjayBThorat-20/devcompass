@@ -1,7 +1,7 @@
 # Regenerate: vhs docs/vhs/demo-fix.tape
-# Requires: depvora linked globally, and a fresh demo project at
-# /tmp/depvora-demo-fix with real vulnerable dependencies (axios@0.21.1,
-# lodash@4.17.15, minimist@1.2.5) — re-copy from /tmp/depvora-demo before
+# Requires: devcompass linked globally, and a fresh demo project at
+# /tmp/devcompass-demo-fix with real vulnerable dependencies (axios@0.21.1,
+# lodash@4.17.15, minimist@1.2.5) — re-copy from /tmp/devcompass-demo before
 # each run since `fix` actually mutates package.json/node_modules
 
 Output docs/assets/demo-fix.gif
@@ -16,12 +16,12 @@ Set Padding 20
 Set Margin 0
 
 Hide
-Type "cd /tmp/depvora-demo-fix && clear"
+Type "cd /tmp/devcompass-demo-fix && clear"
 Enter
 Sleep 300ms
 Show
 
-Type "depvora fix"
+Type "devcompass fix"
 Enter
 Sleep 6s
 Type "y"

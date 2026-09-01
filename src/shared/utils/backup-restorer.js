@@ -6,7 +6,7 @@ const path = require('path');
 class BackupRestorer {
   constructor(projectPath) {
     this.projectPath = projectPath;
-    this.backupDir = path.join(projectPath, '.depvora-backups');
+    this.backupDir = path.join(projectPath, '.devcompass-backups');
   }
 
   resolveBackupPath(backupName) {

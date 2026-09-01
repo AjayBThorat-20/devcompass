@@ -30,7 +30,7 @@ class TokenManager {
     }
 
     if (!config) {
-      throw new Error(providerName ? `Provider "${providerName}" not found` : 'No default provider configured. Add one with: depvora llm add');
+      throw new Error(providerName ? `Provider "${providerName}" not found` : 'No default provider configured. Add one with: devcompass llm add');
     }
     if (!config.is_active) throw new Error(`Provider "${config.provider}" is disabled`);
 

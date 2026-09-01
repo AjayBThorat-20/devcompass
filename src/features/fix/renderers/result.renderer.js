@@ -36,8 +36,8 @@ function renderFixResult(executor, beforeScore, afterScore) {
   }
 
   console.log(chalk.bold('Next Steps:\n'));
-  console.log(chalk.cyan('→ Run: ') + chalk.white('depvora analyze'));
-  console.log(chalk.cyan('→ Or open dashboard: ') + chalk.white('depvora graph'));
+  console.log(chalk.cyan('→ Run: ') + chalk.white('devcompass analyze'));
+  console.log(chalk.cyan('→ Or open dashboard: ') + chalk.white('devcompass graph'));
   console.log('');
 }
 

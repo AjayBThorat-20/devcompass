@@ -27,7 +27,7 @@ function setupCancellation() {
 }
 
 // Backed by ai_conversations (persisted per-request, with a real timestamp) rather
-// than an in-memory counter — each `depvora ai ask` is a fresh CLI process, so an
+// than an in-memory counter — each `devcompass ai ask` is a fresh CLI process, so an
 // in-memory-only counter reset to 0 on every single invocation and never actually
 // stopped anyone from blowing past the daily limit across separate commands.
 function getTodaySpend() {
@@ -51,14 +51,14 @@ async function getProvider() {
     const provider = tokenManager.getProvider();
     if (!provider) {
       console.log(chalk.red('\n❌ No AI provider configured'));
-      console.log(chalk.cyan('\nSetup:\n  depvora llm add --provider openai --token YOUR_API_KEY\n'));
+      console.log(chalk.cyan('\nSetup:\n  devcompass llm add --provider openai --token YOUR_API_KEY\n'));
       return null;
     }
     return provider;
   } catch (error) {
     if (error.message.includes('No default provider')) {
       console.log(chalk.red('\n❌ No AI provider configured'));
-      console.log(chalk.cyan('\n  depvora llm add --provider openai --token YOUR_API_KEY\n'));
+      console.log(chalk.cyan('\n  devcompass llm add --provider openai --token YOUR_API_KEY\n'));
     } else {
       console.log(chalk.red('\n❌ AI Provider Error:'), chalk.gray(error.message + '\n'));
     }
@@ -134,7 +134,7 @@ async function askQuestion(question, projectPath = process.cwd(), options = {}) 
 
     if (!hasOutput || !fullResponse.trim()) {
       console.log(chalk.yellow('⚠️  Received empty response from AI provider'));
-      console.log(chalk.gray('  depvora llm test local\n'));
+      console.log(chalk.gray('  devcompass llm test local\n'));
       currentProvider = null;
       return;
     }
@@ -190,7 +190,7 @@ async function startChat(projectPath = process.cwd(), options = {}) {
     const readline = require('readline');
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
-    console.log(chalk.cyan('\n💬 Depvora AI Chat\n'));
+    console.log(chalk.cyan('\n💬 DevCompass AI Chat\n'));
     console.log(chalk.gray('Type your questions. Ctrl+C to exit.\n'));
 
     // A single stable conversationId for the whole chat session — askQuestion

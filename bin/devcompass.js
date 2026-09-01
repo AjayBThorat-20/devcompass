@@ -6,20 +6,20 @@ const packageJson = require('../package.json');
 
 const isLocalInstall = __dirname.includes('node_modules');
 if (isLocalInstall && process.argv.includes('analyze')) {
-  console.log(chalk.yellow('\n⚠️  Depvora is installed locally.'));
-  console.log(chalk.cyan('   npm install -g depvora\n'));
+  console.log(chalk.yellow('\n⚠️  DevCompass is installed locally.'));
+  console.log(chalk.cyan('   npm install -g devcompass\n'));
 }
 
 const program = new Command();
 
 program
-  .name('depvora')
+  .name('devcompass')
   .description('Dependency health checker with AI-powered insights & CVE detection')
   .version(packageJson.version, '-v, --version', 'Display version information')
   .addHelpText('after', `
 ${chalk.gray('Author:')} Ajay Thorat
-${chalk.gray('GitHub:')} ${chalk.cyan('https://github.com/AjayBThorat-20/depvora')}
-${chalk.gray(`New in v${packageJson.version}:`)} 🧭 Renamed from devcompass to Depvora
+${chalk.gray('GitHub:')} ${chalk.cyan('https://github.com/AjayBThorat-20/devcompass')}
+${chalk.gray(`New in v${packageJson.version}:`)} 🔒 Dependency security update (axios, form-data)
   `);
 
 require('../src/cli/commands/analyze.cmd')(program);

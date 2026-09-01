@@ -2,7 +2,7 @@
 
 ## Our Pledge
 
-We as members, contributors, and leaders pledge to make participation in the Depvora community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
+We as members, contributors, and leaders pledge to make participation in the DevCompass community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
 
 We pledge to act and interact in ways that contribute to an open, welcoming, diverse, inclusive, and healthy community.
 
@@ -34,7 +34,7 @@ We pledge to act and interact in ways that contribute to an open, welcoming, div
 ### For Issue Reporting
 
 * **Search first** - Check if your issue already exists before creating a new one
-* **Be specific** - Include Depvora version, Node version, OS, and reproduction steps
+* **Be specific** - Include DevCompass version, Node version, OS, and reproduction steps
 * **Be constructive** - "This doesn't work" is less helpful than "When I run X, I expect Y but get Z"
 * **Show appreciation** - Remember maintainers are volunteering their time
 
@@ -118,7 +118,7 @@ If you have questions about this Code of Conduct, please open an issue or contac
 
 We are committed to providing a welcoming and inspiring community for all. We believe that a diverse community is a stronger community, and we welcome contributors from all backgrounds.
 
-**Thank you for helping make Depvora a welcoming, friendly community for everyone!** 🎉
+**Thank you for helping make DevCompass a welcoming, friendly community for everyone!** 🎉
 
 ---
 

@@ -1,7 +1,7 @@
 # Regenerate: vhs docs/vhs/demo-clean.tape
-# Requires: depvora linked globally, and a demo project at
-# /tmp/depvora-docs-demo that already has a populated .depvora/
-# directory (run `depvora analyze` and `depvora graph` first)
+# Requires: devcompass linked globally, and a demo project at
+# /tmp/devcompass-docs-demo that already has a populated .devcompass/
+# directory (run `devcompass analyze` and `devcompass graph` first)
 
 Output docs/assets/demo-clean.gif
 
@@ -15,15 +15,15 @@ Set Padding 20
 Set Margin 0
 
 Hide
-Type "cd /tmp/depvora-docs-demo && clear"
+Type "cd /tmp/devcompass-docs-demo && clear"
 Enter
 Sleep 300ms
 Show
 
-Type "depvora clean"
+Type "devcompass clean"
 Enter
 Sleep 2s
 
-Type "depvora clean --graphs --force"
+Type "devcompass clean --graphs --force"
 Enter
 Sleep 2s

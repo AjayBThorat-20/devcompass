@@ -35,7 +35,7 @@ async function analyzeUnusedDependencies(projectPath, packageJson = null) {
 
     const dependencies = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
 
-    // Written under .depvora/temp instead of the project root — a bare
+    // Written under .devcompass/temp instead of the project root — a bare
     // "knip.json" there would leak into the scanned project's own repo/git status.
     const outputManager = new OutputManager(projectPath);
     const knipConfigPath = outputManager.getTempPath('knip.json');
