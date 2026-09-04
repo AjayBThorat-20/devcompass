@@ -2,9 +2,10 @@
 
 const chalk = require('chalk');
 const { ConsoleFormatter } = require('../../../core/formatters/console-formatter');
+const { buildDiffEntries } = require('../utils/package-diff');
 const { version } = require('../../../../package.json');
 
-function renderFixPreview(plan, mode = 'safe') {
+function renderFixPreview(plan, mode = 'safe', projectPath = process.cwd()) {
   ConsoleFormatter.header(`DevCompass Fix v${version}`);
 
   const actions = getActionsForMode(plan, mode);
@@ -55,6 +56,42 @@ function renderFixPreview(plan, mode = 'safe') {
   console.log(chalk.yellow(`⚠️  Will skip:     ${skipped.length} fix${skipped.length > 1 ? 'es' : ''}`));
   console.log(chalk.cyan(`📦 Total issues:  ${plan.summary.totalIssues}`));
   console.log('');
+
+  renderPackageJsonDiff(actions, projectPath);
+}
+
+function renderPackageJsonDiff(actions, projectPath) {
+  const { entries, indirect } = buildDiffEntries(actions, projectPath);
+  if (entries.length === 0 && indirect.length === 0) return;
+
+  const line = '━'.repeat(60);
+  console.log(chalk.dim(line));
+  console.log(chalk.bold('📄 package.json diff (applied in place)'));
+  console.log(chalk.dim(line));
+  console.log('');
+
+  if (entries.length > 0) {
+    const byField = entries.reduce((acc, entry) => {
+      (acc[entry.field] = acc[entry.field] || []).push(entry);
+      return acc;
+    }, {});
+
+    Object.entries(byField).forEach(([field, fieldEntries]) => {
+      console.log(chalk.gray(`  "${field}": {`));
+      fieldEntries.forEach(entry => {
+        if (entry.removed) console.log(chalk.red(`-   ${entry.removed},`));
+        if (entry.added) console.log(chalk.green(`+   ${entry.added},`));
+      });
+      console.log(chalk.gray('  }'));
+      console.log('');
+    });
+  }
+
+  if (indirect.length > 0) {
+    console.log(chalk.gray(`  ℹ️  ${indirect.length} more resolved via npm install/uninstall (transitive, not listed directly in package.json):`));
+    console.log(chalk.gray(`     ${indirect.join(', ')}`));
+    console.log('');
+  }
 }
 
 function renderConfirmation() {
@@ -90,4 +127,4 @@ function getRiskLabel(riskLevel) {
   return { safe: chalk.green('Safe'), moderate: chalk.yellow('Moderate'), risky: chalk.red('Risky') }[riskLevel] || chalk.gray('Unknown');
 }
 
-module.exports = { renderFixPreview, renderConfirmation };
+module.exports = { renderFixPreview, renderConfirmation, renderPackageJsonDiff };

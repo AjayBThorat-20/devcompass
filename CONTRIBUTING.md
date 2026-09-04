@@ -38,7 +38,9 @@ src/features/          One directory per feature area:
   cve/                   OSV/NVD clients, CVE caching
   security/              Supply-chain analysis (typosquatting, install scripts)
   quality/               License, dependency, and security quality checks
-  fix/                   Auto-fix services and risk classification
+  fix/                   Auto-fix services and risk classification, incl.
+                          --migrate-syntax codemods (fix/migrations/) and
+                          its own undo trail (`devcompass fix undo`)
   backup/, clean/        Pre-fix backups and rollback/cleanup
   history/               SQLite-backed tracking, snapshots, and comparisons
   graph/                 Dependency graph generation/export/clustering
@@ -95,6 +97,13 @@ Low-risk areas that don't require deep familiarity with the codebase:
   (deprecated/heavy packages → lighter modern replacements) or
   `data/gpl-alternatives.json` (GPL-licensed packages → permissively-licensed
   alternatives)
+- **Codemods** — add a built-in transform to
+  `src/features/fix/migrations/registry.js` for another package's
+  breaking-change syntax, used by `devcompass fix --migrate-syntax`. The
+  registry only needs to cover packages you've personally verified a
+  transform for — anything not listed there already falls back to the
+  configured AI provider, so an entry should be a real, tested rewrite for a
+  specific major-version bump (see the existing `uuid` entry for the shape)
 - **AI prompts** — improve wording/structure in
   `src/features/ai/prompt.templates.js`
 - **Graph layouts** — enhance `src/dashboard/scripts/layouts.js` (tree,

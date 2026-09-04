@@ -1,5 +1,26 @@
 # Migration Guide
 
+## From v4.1.4 → v4.1.5
+
+### What's New
+- **🧬 `fix --migrate-syntax`**: on major-version updates, rewrites source call-sites automatically — a built-in codemod when one's registered, otherwise your configured AI provider — with every touched file snapshotted first
+- **↩️ `fix undo`**: reverts the most recent `--migrate-syntax` run (package.json, package-lock.json, and every rewritten source file) in one command
+- **📄 Live `package.json` diff** in the `fix` preview, showing exactly what each planned action changes before you confirm
+- **🐛 Fixed `fix` planning both a remove and an update for the same package** when it was flagged both unused and security/outdated by different collectors
+
+### Migration Steps
+```bash
+npm install -g devcompass@4.1.5
+```
+
+### What Changed
+- **Added**: `src/features/fix/migrations/` (`registry.js`, `usage-scanner.js`, `ai-migrator.js`), `src/features/fix/services/fix-session.service.js`, `src/features/fix/services/syntax-migrator.service.js`, `src/features/fix/renderers/migration.renderer.js`, `src/features/fix/utils/package-diff.js`
+- **Modified**: `src/cli/commands/fix.cmd.js` (new `fix [action]` argument for `fix undo`, new `--migrate-syntax` flag), `src/features/fix/index.js`, `src/features/fix/planners/fix.planner.js` (unused-vs-update dedupe), `src/features/fix/renderers/preview.renderer.js` (package.json diff)
+
+No breaking changes. No config or usage changes required for existing workflows.
+
+---
+
 ## From v4.1.3 → v4.1.4
 
 ### What's New

@@ -8,7 +8,8 @@ class FixPlanner {
   }
 
   generatePlan() {
-    const { safe, moderate, risky } = categorizeFixes(this.issues);
+    const issues = this.dedupeUnusedVsUpdate(this.issues);
+    const { safe, moderate, risky } = categorizeFixes(issues);
     return {
       safe: this.createFixActions(safe, 'safe'),
       moderate: this.createFixActions(moderate, 'moderate'),
@@ -20,6 +21,17 @@ class FixPlanner {
         riskyCount: risky.length
       }
     };
+  }
+
+  // A package that's unused doesn't need a version update too — removing it
+  // supersedes updating it, and without this the plan queues both a
+  // 'remove' and an 'update' action for the same package (visible as
+  // "removed" immediately followed by "updated" in the fix output, which
+  // just re-installs the package that was supposedly unused).
+  dedupeUnusedVsUpdate(issues) {
+    const unusedNames = new Set(issues.filter(issue => issue.type === 'unused').map(issue => issue.name));
+    if (unusedNames.size === 0) return issues;
+    return issues.filter(issue => !(unusedNames.has(issue.name) && (issue.type === 'security' || issue.type === 'outdated')));
   }
 
   createFixActions(issues, riskLevel) {

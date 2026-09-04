@@ -68,6 +68,8 @@ src/features/<name>/
   *.database.js                  better-sqlite3 schema + queries (singleton), where applicable
   *-loader.js / *-saver.js / *.service.js   business logic on top of the DB
   collectors/ | renderers/       analyze-specific: data gathering vs. output formatting
+  migrations/ | utils/           fix-specific: registry.js/usage-scanner.js/ai-migrator.js
+                                  (--migrate-syntax codemods), package-diff.js
 
 src/dashboard/            static HTML/CSS/JS template for `graph`/`timeline` output
   index.html                 template with {{GRAPH_DATA}} / {{CLUSTERING_CODE}} placeholders
@@ -193,6 +195,36 @@ All are opened in WAL mode with tuned pragmas (`history.database.js`'s
 `optimizeDatabase()` is the most complete example: `synchronous=NORMAL`,
 `cache_size=10000`, 64MB mmap, `foreign_keys=ON`) and close cleanly on
 `SIGINT`/`SIGTERM`/`exit` via a `wal_checkpoint(TRUNCATE)`.
+
+## Fix sessions (`--migrate-syntax` undo trail)
+
+`devcompass backup` only ever snapshots `package.json`/`package-lock.json`
+(`shared/utils/backup-manager.js`), which is enough for a plain `fix` run.
+`devcompass fix --migrate-syntax` additionally rewrites arbitrary source
+files (see below), so it needs a wider, dedicated undo trail rather than
+reusing that system:
+
+1. `features/fix/services/fix-session.service.js`'s `FixSessionManager`
+   starts a session (`.devcompass-backups/fix-sessions/fix-<timestamp>/`) and
+   snapshots `package.json`/`package-lock.json` into it *before* `npm
+   install`/`uninstall` runs.
+2. `features/fix/services/syntax-migrator.service.js` runs after the version
+   bumps land: for every `update` action that crossed a major version, it
+   finds source files referencing that package
+   (`migrations/usage-scanner.js`, a bounded text scan — not a real module
+   resolver), tries a built-in codemod (`migrations/registry.js`), and falls
+   back to the configured AI provider (`migrations/ai-migrator.js`, which
+   sanity-checks the response size before trusting it) when no codemod is
+   registered. Each file about to be rewritten is snapshotted into the same
+   session first.
+3. `finalize()` writes `session.json` (the list of touched files) and a
+   `latest.json` pointer in `fix-sessions/`. `devcompass fix undo` reads
+   `latest.json` and copies every listed file back from the session
+   directory — independent of, and not visible to, `devcompass backup list`.
+
+If nothing was actually rewritten (no major bumps, or every candidate file
+was skipped/errored), the session directory is deleted instead of finalized
+— there's nothing to undo.
 
 ## Dashboard (`graph` / `timeline` output)
 

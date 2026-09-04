@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.5] - 2026-09-05
+
+### Added
+
+- **🧬 `devcompass fix --migrate-syntax`**: for every major-version update in the fix plan, scans the project for source files that `require()`/`import` the updated package and rewrites the call-sites — a built-in codemod when one's registered (`src/features/fix/migrations/registry.js`, currently covers uuid's v3→v8+ deep-import removal), falling back to your configured AI provider (`devcompass llm add`) for everything else. AI rewrites are sanity-checked (rejects empty or wildly resized output) before being trusted to overwrite a file. Nothing is committed — verify with your tests, then `devcompass fix undo` to revert the whole run if needed.
+- **↩️ `devcompass fix undo`**: reverts the most recent `--migrate-syntax` run — `package.json`, `package-lock.json`, and every rewritten source file — from a dedicated session snapshot under `.devcompass-backups/fix-sessions/`, independent of the general `devcompass backup` system (which only ever covers `package.json`/`package-lock.json`).
+- **📄 Live `package.json` diff in `fix`'s preview**: before confirming, `fix` now prints a git-style `+`/`-` diff of exactly what each planned action will change in `package.json`, plus a note on which flagged packages are transitive (resolved via `npm install`/`uninstall`, not a direct `package.json` line).
+
+### Fixed
+
+- **🐛 `fix` could plan to both remove and update the same package**: a package flagged `unused` by one collector and `security`/`outdated` by another (they don't know about each other) queued a `remove` action and an `update` action for the same package — visibly, "removed" immediately followed by re-installing the package that was supposedly unused. The planner now dedupes in favor of `remove`.
+
 ## [4.1.4] - 2026-09-01
 
 ### Fixed

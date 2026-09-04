@@ -1,12 +1,18 @@
 // src/features/fix/index.js
 
+const fs = require('fs');
+const path = require('path');
 const readline = require('readline');
+const chalk = require('chalk');
 const { createFixPlan } = require('./planners/fix.planner');
 const { BackupExecutor } = require('./executors/backup.executor');
 const { FixExecutor } = require('./executors/fix.executor');
 const { renderFixPreview, renderConfirmation } = require('./renderers/preview.renderer');
 const { ProgressRenderer } = require('./renderers/progress.renderer');
 const { renderFixResult } = require('./renderers/result.renderer');
+const { renderMigrationSummary } = require('./renderers/migration.renderer');
+const { migrateSyntax } = require('./services/syntax-migrator.service');
+const { FixSessionManager, restoreLatestSession } = require('./services/fix-session.service');
 const { runAnalyze } = require('../analyze');
 const processManager = require('../../shared/utils/process-manager');
 
@@ -20,7 +26,8 @@ async function runFix(options = {}) {
     batch = false,
     batchMode = null,
     only = null,
-    skip = null
+    skip = null,
+    migrateSyntax: migrateSyntaxEnabled = false
   } = options;
 
   if (batch || batchMode || only || skip) {
@@ -40,7 +47,7 @@ const beforeScore = analysisResult.healthScore;
     }
 
     const plan = createFixPlan(issues);
-    renderFixPreview(plan, mode);
+    renderFixPreview(plan, mode, projectPath);
 
     if (dryRun || preview) {
       console.log('\n🔍 Preview mode enabled\n');
@@ -80,6 +87,18 @@ const beforeScore = analysisResult.healthScore;
       }
     }
 
+    // Snapshotted *before* npm install/uninstall runs, so a --migrate-syntax
+    // undo can restore package.json/package-lock.json to their true pre-fix
+    // state, not the state after the version bump already landed.
+    let fixSession = null;
+    if (migrateSyntaxEnabled) {
+      fixSession = new FixSessionManager(projectPath);
+      fixSession.start({ mode, migrateSyntax: true });
+      fixSession.snapshotFile(path.join(projectPath, 'package.json'));
+      const lockPath = path.join(projectPath, 'package-lock.json');
+      if (fs.existsSync(lockPath)) fixSession.snapshotFile(lockPath);
+    }
+
     const executor = new FixExecutor(projectPath);
     const progress = new ProgressRenderer();
     progress.start(actions.length);
@@ -92,6 +111,31 @@ const beforeScore = analysisResult.healthScore;
     progress.complete();
     await processManager.killAll();
 
+    if (migrateSyntaxEnabled) {
+      const successfulUpdates = new Set(
+        executor.getResults().successful.filter(r => r.action === 'update').map(r => r.package)
+      );
+      const updatedActions = actions.filter(a => a.action === 'update' && successfulUpdates.has(a.package));
+
+      if (updatedActions.length > 0) {
+        console.log('\n🧬 Checking for breaking syntax changes...');
+        const tokenManager = require('../ai/token.manager');
+        const migrationResult = await migrateSyntax(updatedActions, {
+          projectPath,
+          session: fixSession,
+          getAIProvider: () => tokenManager.getProvider()
+        });
+
+        if (migrationResult.migrated.length > 0) {
+          fixSession.finalize();
+          renderMigrationSummary(migrationResult, projectPath, fixSession.sessionId);
+        } else {
+          renderMigrationSummary(migrationResult, projectPath, null);
+          fs.rmSync(fixSession.sessionDir, { recursive: true, force: true });
+        }
+      }
+    }
+
     const afterAnalysis = await runAnalyze({ projectPath, mode: 'silent', silent: true, json: false, saveHistory: false });
     renderFixResult(executor, beforeScore, afterAnalysis.healthScore);
 
@@ -101,6 +145,25 @@ const beforeScore = analysisResult.healthScore;
     await processManager.killAll();
     process.exit(1);
   }
+}
+
+async function runFixUndo(options = {}) {
+  const { projectPath = process.cwd() } = options;
+
+  const result = restoreLatestSession(projectPath);
+  if (!result.success) {
+    console.error(chalk.red(`\n❌ ${result.error}\n`));
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(chalk.bold.green(`\n✔ Reverted fix session ${result.sessionId}\n`));
+  (result.restored || []).forEach(file => console.log(chalk.gray(`  ${file}`)));
+  if ((result.failed || []).length > 0) {
+    console.log(chalk.yellow(`\n⚠️  Could not restore ${result.failed.length} file(s):`));
+    result.failed.forEach(f => console.log(chalk.gray(`  ${f.file}: ${f.error}`)));
+  }
+  console.log(chalk.gray('\nRun `npm install` if package.json/package-lock.json were reverted.\n'));
 }
 
 async function confirmFix() {
@@ -114,4 +177,4 @@ async function confirmFix() {
   });
 }
 
-module.exports = { runFix };
+module.exports = { runFix, runFixUndo };

@@ -21,14 +21,18 @@
 `npm audit` and Dependabot are free, zero-install, and already in your workflow —
 DevCompass isn't trying to replace them. It covers what they structurally don't:
 
-| | npm audit | Dependabot | DevCompass |
-|---|---|---|---|
-| CVE scanning | ✅ | ✅ | ✅ (OSV + NVD) |
-| License conflicts | ❌ | ❌ | ✅ |
-| Unused dependency detection | ❌ | ❌ | ✅ |
-| Historical health trends | ❌ | ❌ | ✅ |
-| AI-suggested alternatives | ❌ | ❌ | ✅ |
-| Safe auto-fix w/ rollback | partial | PR-based | ✅ w/ automatic backup |
+| | npm audit | Dependabot | [OSV-Scanner](https://github.com/google/osv-scanner) | DevCompass |
+|---|---|---|---|---|
+| CVE scanning | ✅ (GitHub Advisory DB) | ✅ | ✅ (OSV) | ✅ (OSV + NVD) |
+| Ecosystem scope | npm only | multi | multi (npm, PyPI, Go, Maven, Cargo, …) | npm only |
+| License conflicts | ❌ | ❌ | partial (deps.dev license lookup, no conflict analysis) | ✅ |
+| Unused dependency detection | ❌ | ❌ | ❌ | ✅ |
+| Historical health trends | ❌ | ❌ | ❌ | ✅ |
+| AI-suggested alternatives | ❌ | ❌ | ❌ | ✅ |
+| Interactive dependency graph | ❌ | ❌ | ❌ | ✅ (Tree/Force/Radial/Conflict/Analytics) |
+| Safe auto-fix w/ rollback | partial | PR-based | experimental (`osv-scanner fix`, no rollback) | ✅ w/ automatic backup |
+
+OSV-Scanner (Google/OpenSSF) is the closest open-source relative — it queries the same [OSV.dev](https://osv.dev) database DevCompass uses, but it's a general-purpose, multi-ecosystem CLI with no npm-specific health scoring, unused-dependency detection, history, or AI layer. Container-focused scanners like [Trivy](https://github.com/aquasecurity/trivy) and [Grype](https://github.com/anchore/grype) go further into OS packages, IaC, and images, but treat npm as just one of many ecosystems rather than the primary target. [Retire.js](https://github.com/RetireJS/retire.js) is npm/JS-specific like DevCompass but scans against its own curated vulnerability feed rather than OSV, and is purely a detector with no health scoring, history, or fix automation.
 
 ---
 
@@ -282,14 +286,23 @@ devcompass fix --all
 
 # Preview only (no changes)
 devcompass fix --dry-run
+
+# Also rewrite source call-sites broken by a major-version update
+devcompass fix --migrate-syntax
+
+# Undo the most recent --migrate-syntax run
+devcompass fix undo
 ```
 
 **Safety Features:**
 - Automatic backup before changes
 - Risk classification (safe/moderate/risky)
 - Interactive preview and confirmation
+- Live `package.json` diff in the preview, before you confirm
 - Health score tracking (before → after)
-- Rollback support
+- Rollback support (`devcompass fix undo` for `--migrate-syntax`, `devcompass backup restore` otherwise)
+
+**`--migrate-syntax`:** for any fix action that crosses a major version, scans the project for files that `require()`/`import` the updated package and rewrites the call-sites — a built-in codemod when one's registered, otherwise your configured AI provider (`devcompass llm add`). Every file it touches is snapshotted first, so nothing is committed automatically: review the changes, run your tests, and either keep them or run `devcompass fix undo` to revert the whole run.
 
 <p align="center">
   <img src="docs/assets/demo-fix.gif" alt="devcompass fix previewing, backing up, and applying safe fixes" width="760">
@@ -862,7 +875,7 @@ npx devcompass analyze
 **Old version installed**
 ```bash
 npm update -g devcompass
-devcompass --version  # Should show 4.1.4
+devcompass --version  # Should show 4.1.5
 ```
 
 **No analysis cache found**
@@ -920,6 +933,12 @@ devcompass llm test local
 ---
 
 ## 📈 Version History
+
+### v4.1.5 (2026-09-05) - Syntax-Aware Fixes
+- 🧬 `fix --migrate-syntax` rewrites source call-sites broken by a major-version update — a built-in codemod when one's registered, otherwise your configured AI provider — with every touched file snapshotted first
+- ↩️ `fix undo` reverts the most recent `--migrate-syntax` run in one command
+- 📄 `fix`'s preview now shows a live `package.json` diff of exactly what each action will change
+- 🐛 Fixed `fix` planning both a remove and an update for the same package when it was flagged both unused and security/outdated
 
 ### v4.1.4 (2026-09-01) - Security Fixes & Honest Incomplete-Scan Reporting
 - 🔒 Fixed a GitHub token redirect leak and a dashboard XSS
@@ -1111,7 +1130,7 @@ If DevCompass helps your project, please consider giving it a star! ⭐
 
 **Made with ❤️ by [Ajay Thorat](https://github.com/AjayBThorat-20)**
 
-*DevCompass v4.1.4 - Professional Dependency Intelligence Platform* 🧭✨
+*DevCompass v4.1.5 - Professional Dependency Intelligence Platform* 🧭✨
 
 [Get Started](#-quick-start) · [Documentation](#-complete-command-reference) · [Contributing](#-contributing)
 
