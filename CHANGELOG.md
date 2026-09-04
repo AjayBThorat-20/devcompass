@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.6] - 2026-09-05
+
+### Fixed
+
+- **`engines.node` understated the real requirement**: said `>=14.0.0`, but `commander@^14` requires Node `>=20`; installs on Node 14-19 got no warning and then crashed at runtime. Now `>=20.0.0`, matching what CI actually tests. `llms.txt` had the same wrong claim, also corrected.
+- **`main` pointed at a nonexistent `src/index.js`**: harmless for CLI usage (the bin entrypoint doesn't use it) but broke `require('devcompass')` and misrepresented the package on npm. Removed — this is a CLI-only tool with no public programmatic API.
+
+### Changed
+
+- Added `prepublishOnly` script to run the test suite before every `npm publish`.
+- Removed `.npmignore`, which duplicated (and could drift from) the `files` allowlist already in `package.json`.
+
 ## [4.1.5] - 2026-09-05
 
 ### Added
