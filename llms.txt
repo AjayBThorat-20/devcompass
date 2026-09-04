@@ -2,7 +2,7 @@
 
 > CLI tool that scans Node.js/npm project dependencies for CVE vulnerabilities (via OSV + NVD), license conflicts, unused packages, and outdated versions, then can safely auto-fix them with automatic backup and rollback. Free and open source (MIT). Optional AI-powered recommendations via OpenAI, Anthropic, Google, or a fully local/free Ollama model.
 
-DevCompass is a complement to `npm audit` and Dependabot for teams that also want license-conflict detection, unused-dependency detection, a historical health score with trend tracking, interactive dependency graphs, and safe automated fixes — in one CLI, with no GitHub integration required. Install with `npm install -g devcompass`, then run `devcompass analyze`. It does not replace `npm audit`/Dependabot; it covers what they don't. See the [npm package page](https://www.npmjs.com/package/devcompass) for the current published version. Node.js >= 14 required. Scope is npm/Node.js only (not multi-ecosystem).
+DevCompass is a complement to `npm audit` and Dependabot for teams that also want license-conflict detection, unused-dependency detection, a historical health score with trend tracking, interactive dependency graphs, and safe automated fixes — in one CLI, with no GitHub integration required. Install with `npm install -g devcompass`, then run `devcompass analyze`. It does not replace `npm audit`/Dependabot; it covers what they don't. See the [npm package page](https://www.npmjs.com/package/devcompass) for the current published version. Node.js >= 20 required. Scope is npm/Node.js only (not multi-ecosystem).
 
 ## Why DevCompass vs. alternatives
 
