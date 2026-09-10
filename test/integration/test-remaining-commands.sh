@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# DevCompass v4.1.3 - Extended Test Suite (FIXED)
+# DevCompass - Extended Test Suite (FIXED)
 # Tests all remaining commands not covered in basic tests
 
 set -e
@@ -64,7 +64,7 @@ test_command() {
 }
 
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  DevCompass v4.1.3 - Extended Command Test Suite          ║"
+echo "║  DevCompass - Extended Command Test Suite          ║"
 echo "║  Testing ALL remaining commands                            ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""

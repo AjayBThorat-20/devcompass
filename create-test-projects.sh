@@ -25,8 +25,11 @@ mkdir -p "$TEST_DIR"
 
 # Only clear the scratch fixture dirs this script owns (project*, debug-missing,
 # etc.) — the old `rm -rf "$TEST_DIR"` wiped the entire test/ tree, including
-# test/unit/, the checked-in automated test suite CI actually runs.
-find "$TEST_DIR" -mindepth 1 -maxdepth 1 ! -name 'unit' -exec rm -rf {} +
+# test/unit/ and test/integration/, the checked-in automated test suites CI
+# actually runs (test/integration/test-complete-suite.sh calls this script
+# itself, then immediately tries to run scripts this find would otherwise
+# have just deleted).
+find "$TEST_DIR" -mindepth 1 -maxdepth 1 ! -name 'unit' ! -name 'integration' -exec rm -rf {} +
 
 echo -e "${CYAN}📁 Created test directory: $TEST_DIR${NC}"
 echo ""

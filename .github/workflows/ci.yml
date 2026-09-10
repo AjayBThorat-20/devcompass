@@ -11,9 +11,11 @@ jobs:
     # Catches the two failure modes behind the npm/GitHub version desync
     # this repo has hit before: bumping package.json to a version that's
     # already published (a no-op release nobody notices failed) or reusing
-    # a version that already has a git tag (a duplicate release). Runs on
-    # every PR/push to main, not just release commits, so it's a required
-    # check rather than something that can be skipped.
+    # a version that already has a git tag (a duplicate release). Only
+    # enforced when this push/PR actually changes package.json's version —
+    # package.json legitimately sits at the last-released version for most
+    # commits between releases, so checking unconditionally on every push
+    # would fail on ordinary work, not just an actual version mistake.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,11 +32,28 @@ jobs:
       - name: Verify package.json version isn't already published or tagged
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          NPM_VERSION=$(npm view devcompass version 2>/dev/null || echo "0.0.0")
-          echo "package.json version: $PACKAGE_VERSION"
-          echo "npm registry version:  $NPM_VERSION"
 
-          if git rev-parse -q --verify "refs/tags/v$PACKAGE_VERSION" >/dev/null; then
+          BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
+          PREV_VERSION=""
+          if [ -n "$BASE_SHA" ] && [ "$BASE_SHA" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BASE_SHA" 2>/dev/null; then
+            PREV_VERSION=$(git show "$BASE_SHA:package.json" 2>/dev/null | node -e "
+              let d = '';
+              process.stdin.on('data', c => d += c);
+              process.stdin.on('end', () => { try { console.log(JSON.parse(d).version || ''); } catch (e) { console.log(''); } });
+            ")
+          fi
+
+          if [ "$PACKAGE_VERSION" = "$PREV_VERSION" ]; then
+            echo "package.json version unchanged ($PACKAGE_VERSION) — nothing to check."
+            exit 0
+          fi
+
+          echo "package.json version changed: ${PREV_VERSION:-<none>} -> $PACKAGE_VERSION"
+
+          NPM_VERSION=$(npm view devcompass version 2>/dev/null || echo "0.0.0")
+          echo "npm registry version: $NPM_VERSION"
+
+          if git rev-parse -q --verify "refs/tags/v$PACKAGE_VERSION" >/dev/null 2>&1; then
             echo "::error::git tag v$PACKAGE_VERSION already exists — bump package.json to a new version."
             exit 1
           fi
