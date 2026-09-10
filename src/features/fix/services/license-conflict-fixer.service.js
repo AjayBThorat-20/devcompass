@@ -1,6 +1,6 @@
 // src/features/fix/services/license-conflict-fixer.service.js
 
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const chalk = require('chalk');
 const dynamicLicense = require('../../quality/dynamic-license.service');
 const { sanitizePackageName } = require('../../../shared/utils/package-sanitizer');
@@ -26,10 +26,10 @@ class LicenseConflictFixer {
           const safeAlternative = sanitizePackageName(alternative);
 
           try {
-            execSync(`npm uninstall ${safePackageName}`, { stdio: 'pipe', cwd: this.projectPath });
+            execFileSync('npm', ['uninstall', safePackageName], { stdio: 'pipe', cwd: this.projectPath });
           } catch (error) { /* ignore uninstall errors */ }
 
-          execSync(`npm install ${safeAlternative}`, { stdio: 'pipe', cwd: this.projectPath });
+          execFileSync('npm', ['install', safeAlternative], { stdio: 'pipe', cwd: this.projectPath });
         }
 
         this.fixes.push({

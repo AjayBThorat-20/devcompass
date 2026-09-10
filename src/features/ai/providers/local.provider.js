@@ -6,7 +6,7 @@ const axios = require('axios');
 class LocalProvider extends BaseProvider {
   constructor(config = {}) {
     super(config);
-    this.baseURL = config.baseURL || config.base_url || 'http://localhost:11434';
+    this.baseURL = this.resolveBaseURL(config.baseURL || config.base_url, 'http://localhost:11434');
     this.model = config.model || 'llama2';
   }
 

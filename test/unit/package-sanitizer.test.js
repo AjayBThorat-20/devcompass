@@ -16,7 +16,7 @@ test('sanitizePackageName accepts valid npm package names', () => {
 });
 
 test('sanitizePackageName rejects shell metacharacters', () => {
-  for (const name of ['lodash; rm -rf /', '$(whoami)', '../../etc/passwd', '', 'pkg && echo pwned', 'pkg|ls', 'pkg`ls`', 'pkg\ninjected']) {
+  for (const name of ['lodash; rm -rf /', '$(whoami)', '../../etc/passwd', '', 'pkg && echo pwned', 'pkg|ls', 'pkg`ls`', 'pkg\ninjected', 'pkg\0injected', 'pkg\rinjected']) {
     assert.throws(() => sanitizePackageName(name), /Invalid package name/);
   }
 });

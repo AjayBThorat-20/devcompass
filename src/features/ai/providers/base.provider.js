@@ -57,6 +57,25 @@ class BaseProvider {
     if (typeof this._getDecryptedKey === 'function') return this._getDecryptedKey();
     throw new Error('No API key resolver configured for this provider instance');
   }
+
+  // A configured base URL (custom proxy/gateway) is only restricted to
+  // http/https here — the local Ollama provider legitimately needs
+  // http://localhost, so this can't also block private/loopback hosts.
+  // It exists to stop a stored config value like "file:///etc/passwd" or
+  // "gopher://..." from ever reaching axios, not to fully sandbox the request.
+  resolveBaseURL(configured, fallback) {
+    if (!configured) return fallback;
+    let parsed;
+    try {
+      parsed = new URL(configured);
+    } catch (error) {
+      throw new Error(`Invalid AI provider base URL: ${configured}`);
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error(`AI provider base URL must use http:// or https:// (got "${parsed.protocol}"): ${configured}`);
+    }
+    return configured;
+  }
 }
 
 module.exports = BaseProvider;

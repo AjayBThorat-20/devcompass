@@ -2,12 +2,12 @@
 
 const chalk = require('chalk');
 const ora = require('ora');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const { promisify } = require('util');
 const { sanitizePackageName, sanitizeVersion } = require('../../../shared/utils/package-sanitizer');
 const { BackupExecutor } = require('../executors/backup.executor');
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 class BatchExecutor {
   constructor(projectPath) {
@@ -145,7 +145,7 @@ class BatchExecutor {
   async executeSecurityBatch(fixes, results) {
     const spinner = ora('Running npm audit fix...').start();
     try {
-      await execAsync('npm audit fix', { cwd: this.projectPath, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
+      await execFileAsync('npm', ['audit', 'fix'], { cwd: this.projectPath, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
       spinner.succeed('Security vulnerabilities fixed');
       results.successful++;
       results.fixes.push({ type: 'security', action: 'npm audit fix' });
@@ -166,7 +166,7 @@ class BatchExecutor {
       const safeName = sanitizePackageName(name);
       const safeVersion = sanitizeVersion(version);
       const spinner = ora(`Updating ${name} to ${version}`).start();
-      await execAsync(`npm install ${safeName}@${safeVersion}`, { cwd: this.projectPath, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
+      await execFileAsync('npm', ['install', `${safeName}@${safeVersion}`], { cwd: this.projectPath, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
       spinner.succeed(`Updated ${name} to ${version}`);
       results.successful++;
       results.fixes.push(buildFixEntry());
@@ -200,11 +200,11 @@ class BatchExecutor {
 
   async executeUnusedBatch(fixes, results) {
     if (!Array.isArray(fixes) || fixes.length === 0) return;
-    const packageNames = fixes.map(sanitizePackageName).join(' ');
+    const packageNames = fixes.map(sanitizePackageName);
     const spinner = ora(`Removing ${fixes.length} unused package(s)...`).start();
 
     try {
-      await execAsync(`npm uninstall ${packageNames}`, { cwd: this.projectPath, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
+      await execFileAsync('npm', ['uninstall', ...packageNames], { cwd: this.projectPath, timeout: 60000, maxBuffer: 10 * 1024 * 1024 });
       spinner.succeed(`Removed ${fixes.length} unused package(s)`);
       results.successful += fixes.length;
       results.fixes.push({ type: 'unused', packages: fixes });

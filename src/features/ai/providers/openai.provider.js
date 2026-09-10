@@ -6,7 +6,7 @@ const axios = require('axios');
 class OpenAIProvider extends BaseProvider {
   constructor(config = {}) {
     super(config);
-    this.baseURL = config.baseURL || 'https://api.openai.com/v1';
+    this.baseURL = this.resolveBaseURL(config.baseURL, 'https://api.openai.com/v1');
     this.model = config.model || 'gpt-4o-mini';
     this.pricing = {
       'gpt-4o-mini': { input: 0.15 / 1000000, output: 0.60 / 1000000 },

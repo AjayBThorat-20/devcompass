@@ -1,6 +1,6 @@
 // src/features/fix/services/quality-fixer.service.js
 
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const dynamicQuality = require('../../quality/dynamic-quality.service');
 const { sanitizePackageName } = require('../../../shared/utils/package-sanitizer');
 
@@ -37,10 +37,10 @@ class QualityFixer {
           const safeAlternative = sanitizePackageName(alternative.recommended);
 
           try {
-            execSync(`npm uninstall ${safePackageName}`, { stdio: 'pipe', cwd: this.projectPath });
+            execFileSync('npm', ['uninstall', safePackageName], { stdio: 'pipe', cwd: this.projectPath });
           } catch (error) { /* ignore uninstall errors */ }
 
-          execSync(`npm install ${safeAlternative}`, { stdio: 'pipe', cwd: this.projectPath });
+          execFileSync('npm', ['install', safeAlternative], { stdio: 'pipe', cwd: this.projectPath });
         }
 
         this.fixes.push({ package: packageName, action: 'replaced', replacement: alternative.recommended, reason: alternative.reason, status: pkg.status });

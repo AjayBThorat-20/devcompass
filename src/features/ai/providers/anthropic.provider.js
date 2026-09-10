@@ -6,7 +6,7 @@ const axios = require('axios');
 class AnthropicProvider extends BaseProvider {
   constructor(config = {}) {
     super(config);
-    this.baseURL = config.baseURL || 'https://api.anthropic.com/v1';
+    this.baseURL = this.resolveBaseURL(config.baseURL, 'https://api.anthropic.com/v1');
     this.model = config.model || 'claude-sonnet-4-20250514';
     this.pricing = {
       'claude-sonnet-4-20250514': { input: 3.00 / 1000000, output: 15.00 / 1000000 },

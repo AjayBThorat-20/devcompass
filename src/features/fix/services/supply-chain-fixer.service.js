@@ -1,6 +1,6 @@
 // src/features/fix/services/supply-chain-fixer.service.js
 
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const dynamicSecurity = require('../../quality/dynamic-security.service');
 const { sanitizePackageName } = require('../../../shared/utils/package-sanitizer');
 
@@ -21,10 +21,10 @@ class SupplyChainFixer {
 
         if (check) {
           if (!dryRun) {
-            execSync(`npm uninstall ${sanitizePackageName(packageName)}`, { stdio: 'pipe', cwd: this.projectPath });
+            execFileSync('npm', ['uninstall', sanitizePackageName(packageName)], { stdio: 'pipe', cwd: this.projectPath });
             if (warning.correctPackage) {
               try {
-                execSync(`npm install ${sanitizePackageName(warning.correctPackage)}`, { stdio: 'pipe', cwd: this.projectPath });
+                execFileSync('npm', ['install', sanitizePackageName(warning.correctPackage)], { stdio: 'pipe', cwd: this.projectPath });
               } catch (error) { /* ignore — removal already succeeded */ }
             }
           }
@@ -38,7 +38,7 @@ class SupplyChainFixer {
       }
 
       if (warning.type === 'vulnerability') {
-        if (!dryRun) execSync('npm audit fix', { stdio: 'pipe', cwd: this.projectPath });
+        if (!dryRun) execFileSync('npm', ['audit', 'fix'], { stdio: 'pipe', cwd: this.projectPath });
 
         this.fixes.push({ package: packageName, action: 'updated', reason: 'Security vulnerability fixed', severity: warning.severity });
         return { success: true, action: 'updated', metadata: { package: packageName, severity: warning.severity } };

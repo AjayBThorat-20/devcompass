@@ -6,7 +6,7 @@ const axios = require('axios');
 class GoogleProvider extends BaseProvider {
   constructor(config = {}) {
     super(config);
-    this.baseURL = config.baseURL || 'https://generativelanguage.googleapis.com/v1beta';
+    this.baseURL = this.resolveBaseURL(config.baseURL, 'https://generativelanguage.googleapis.com/v1beta');
     this.model = config.model || 'gemini-2.0-flash-exp';
     this.pricing = {
       'gemini-2.0-flash-exp': { input: 0, output: 0 },
