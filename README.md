@@ -3,6 +3,8 @@
 > **Professional dependency health checker with AI-powered insights, real-time CVE detection, and comprehensive project analysis**
 
 [![CI](https://github.com/AjayBThorat-20/devcompass/actions/workflows/ci.yml/badge.svg)](https://github.com/AjayBThorat-20/devcompass/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/AjayBThorat-20/devcompass/actions/workflows/codeql.yml/badge.svg)](https://github.com/AjayBThorat-20/devcompass/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/AjayBThorat-20/devcompass/badge)](https://securityscorecards.dev/viewer/?uri=github.com/AjayBThorat-20/devcompass)
 [![npm version](https://img.shields.io/npm/v/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![npm downloads](https://img.shields.io/npm/dm/devcompass.svg)](https://www.npmjs.com/package/devcompass)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -1076,6 +1078,17 @@ Contributions are welcome! Here's how you can help:
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide, including "good
 first issue" areas and the PR checklist.
+
+### Testing & Coverage
+
+`npm test` runs the unit suite (`test/unit/`, `node --test`); `npm run
+test:coverage` runs the same suite under [c8](https://github.com/bcoe/c8) and
+enforces a 60% line-coverage floor. `npm run test:integration` runs the
+broader CLI smoke/scenario scripts under `test/integration/` against the
+fixture projects in `test/`. CI runs unit tests with coverage on every
+push/PR (see the CI badge above); there's no public coverage badge yet since
+that needs a Codecov/Coveralls account — `npm run test:coverage` locally is
+the source of truth in the meantime.
 
 ### Code Contributions
 
