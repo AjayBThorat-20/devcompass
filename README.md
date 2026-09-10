@@ -958,6 +958,16 @@ devcompass llm test local
 
 ## 📈 Version History
 
+### v4.1.7 (2026-09-11) - Security Hardening, CI Gates & Test Consolidation
+- 🔒 Hardened the remaining `execSync`/`exec` template-literal call sites to `execFile(Sync)` with argv arrays, and validated AI provider `baseURL` config as http(s) before use
+- ✅ Added a CI version-guard job (blocks a version bump that's already tagged/published), a tag-triggered `release.yml`, and CodeQL/OpenSSF Scorecard workflows for independent security scanning
+- 🧪 Consolidated all 6 root-level test shell scripts into `test/integration/`, wired the 3 previously-orphaned ones into the suite, and added `c8`-based coverage (`npm run test:coverage`)
+- 📖 README now documents the exact AI request payload with a concrete example, instead of just "dependency metadata"
+
+### v4.1.6 (2026-09-05) - npm Package Metadata Fixes
+- 🐛 Fixed `engines.node` (said `>=14.0.0`, but `commander@^14` requires `>=20`) and removed `main` pointing at a nonexistent `src/index.js`
+- 🧹 Added a `prepublishOnly` test gate and removed `.npmignore`, which duplicated (and could drift from) the `files` allowlist
+
 ### v4.1.5 (2026-09-05) - Syntax-Aware Fixes
 - 🧬 `fix --migrate-syntax` rewrites source call-sites broken by a major-version update — a built-in codemod when one's registered, otherwise your configured AI provider — with every touched file snapshotted first
 - ↩️ `fix undo` reverts the most recent `--migrate-syntax` run in one command
