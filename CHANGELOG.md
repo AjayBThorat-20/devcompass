@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.7] - 2026-09-11
+
+### Security
+
+- **Hardened the remaining `execSync`/`exec` template-literal call sites** (`npm.executor.js`, `batch-executor.service.js`, and the quality/license/supply-chain fixer services) to `execFile(Sync)` with argv arrays. These were already safe in practice — every call site ran input through `sanitizePackageName`/`sanitizeVersion` first — but nothing structurally prevented a future call site from skipping that. Shell interpretation is now impossible by construction.
+- **AI provider `baseURL` config is now validated as http(s)** before use (`BaseProvider.resolveBaseURL`) — a stored proxy/gateway URL using `file:`/`gopher:`/etc. would previously have gone straight to `axios.post()` unchanged.
+- Added regression coverage that was missing for prior fixes: `async-executor.test.js` (the shell:true removal had no test), `ai-provider-baseurl-protocol.test.js`, and a couple of adversarial payloads (null byte, carriage return) added to the existing package-sanitizer test.
+
+### Added
+
+- **CI version-guard job**: fails a PR/push if `package.json`'s version already has a git tag or isn't strictly greater than what's published on npm.
+- **`release.yml`**: publishing now happens by pushing a `vX.Y.Z` tag, gated on the tag matching `package.json`'s version.
+- **CodeQL and OpenSSF Scorecard workflows**: independent, automated scanning/trust signals rather than self-review, both linked as README badges.
+- **Test coverage**: `c8`-based `npm run test:coverage` script with a 60% line floor, wired into CI in place of the undecorated `npm test` run.
+- **README AI Integration Guide** now documents the exact request payload AI features send, with a concrete example, instead of just "dependency metadata."
+
+### Changed
+
+- Consolidated all 6 root-level test shell scripts into `test/integration/` and wired the 3 that were previously orphaned (`test-all-phases.sh`, `test-production-scenarios.sh`, `test-stress.sh`) into `test-complete-suite.sh` so they actually run as part of `npm run test:integration`. Fixed 2 stale assertions in `test-all-phases.sh` (a project-root cache-file path that moved to `~/.devcompass/cache/`, and a database-index-count threshold that no longer matched the simplified schema) and a `.gitignore` gap that had accidentally excluded `test/integration/` from tracking.
+
 ## [4.1.6] - 2026-09-05
 
 ### Fixed
