@@ -958,6 +958,9 @@ devcompass llm test local
 
 ## 📈 Version History
 
+### v4.1.8 (2026-09-11) - README Sync
+- 📖 Fixed this Version History section, which was missing v4.1.6/v4.1.7 (npm's displayed README is frozen at publish time, so this needed a real release to actually show up on the npm package page)
+
 ### v4.1.7 (2026-09-11) - Security Hardening, CI Gates & Test Consolidation
 - 🔒 Hardened the remaining `execSync`/`exec` template-literal call sites to `execFile(Sync)` with argv arrays, and validated AI provider `baseURL` config as http(s) before use
 - ✅ Added a CI version-guard job (blocks a version bump that's already tagged/published), a tag-triggered `release.yml`, and CodeQL/OpenSSF Scorecard workflows for independent security scanning

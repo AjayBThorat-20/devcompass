@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.8] - 2026-09-11
+
+### Fixed
+
+- **README's "Version History" section was missing v4.1.6 and v4.1.7**: that section is hand-maintained separately from this CHANGELOG and had drifted out of sync (a gap that predated this release — v4.1.6 was already missing before today). Since npmjs.com renders whatever README was inside the published tarball at publish time, this required an actual release to fix, not just a GitHub push. No functional changes in this version.
+
 ## [4.1.7] - 2026-09-11
 
 ### Security
