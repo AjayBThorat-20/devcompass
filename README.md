@@ -67,7 +67,7 @@ Yes. The core tool — CVE scanning, health scoring, auto-fix, graphs, history �
 [OSV](https://osv.dev) (Open Source Vulnerabilities) is the primary, no-API-key-required source. [NVD](https://nvd.nist.gov) (NIST's National Vulnerability Database) is an optional secondary source for CVSS severity scores, enabled with a free API key.
 
 **Does DevCompass send my code anywhere?**
-Dependency names and versions are sent to OSV (and NVD, if configured) to look up known vulnerabilities — that's how any CVE scanner works. Your source code is never uploaded. AI features send dependency metadata (not source code) to whichever provider you configure; using `devcompass llm add --provider local` (Ollama) keeps everything on your machine.
+Dependency names and versions are sent to OSV (and NVD, if configured) to look up known vulnerabilities — that's how any CVE scanner works. Your source code is never uploaded. AI features send dependency metadata (not source code) to whichever provider you configure; using `devcompass llm add --provider local` (Ollama) keeps everything on your machine. See [exactly what's in that payload](#-what-ai-features-actually-send) below.
 
 **Can I use DevCompass without an OpenAI API key?**
 Yes. AI features work with OpenAI, Anthropic, Google, or a fully free/local Ollama model — see the [AI Integration Guide](#-ai-integration-guide). Every other feature (CVE scanning, health scoring, auto-fix, graphs, history) works with no AI provider configured at all.
@@ -690,6 +690,28 @@ Every `devcompass analyze` automatically:
 ---
 
 ## 🤖 AI Integration Guide
+
+### 🔍 What AI Features Actually Send
+
+Every AI feature (`devcompass analyze --ai`, `devcompass ai ask`, `devcompass ai recommend`, etc.) sends one HTTP request to whichever provider you configured, containing a system prompt plus a single user message built from your project's own analysis results. Nothing else — not your source code, not file contents, not your filesystem path. Here's the actual request body, field for field (from `src/features/ai/prompt.templates.js` and `ai.command.js`):
+
+```json
+{
+  "model": "gpt-4o-mini",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are DevCompass AI. Answer in 2-4 sentences MAX. ..."
+    },
+    {
+      "role": "user",
+      "content": "PROJECT: my-app v1.4.2\nHealth Score: 7.5/10\nTotal Issues: 6\n\nOUTDATED:\n- lodash: 4.17.15 -> 4.17.21\n\nSECURITY ISSUES:\n- axios: HIGH\n\nDEPRECATED:\n- request: Package is deprecated\n\nTOP ISSUES:\n- [HIGH] axios: Known vulnerability (CVE-2023-XXXX)\n\nUSER QUESTION: What should I update first?"
+    }
+  ]
+}
+```
+
+That's the entire payload: your **package name + version**, a **health score** (a number DevCompass computes locally), and up to 10 entries each of **outdated/security/deprecated/top-issue package names** with their version numbers, severities, and short messages — plus whatever question you typed. In an ongoing `devcompass ai chat` session, the last 10 messages of that conversation are also included so the model has context across turns. None of it includes file paths, file contents, environment variables, or credentials. Using `devcompass llm add --provider local` (Ollama) keeps this request on your own machine instead of sending it to a third party at all.
 
 ### Quick Start with FREE Local AI
 
