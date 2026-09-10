@@ -1,0 +1,35 @@
+name: OpenSSF Scorecard
+
+# A third-party, automatically-computed trust signal (supply-chain/security
+# hygiene practices) as a check on this project's own self-reported claims —
+# published to the OpenSSF Scorecard public dataset and exposable as a
+# README badge once the first run completes.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 4 * * 3' # weekly, Wednesday 04:23 UTC
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: ossf/scorecard-action@v2
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif

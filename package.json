@@ -15,7 +15,8 @@
   ],
   "scripts": {
     "test": "node --test test/unit/",
-    "test:integration": "bash test-complete-suite.sh",
+    "test:coverage": "c8 --reporter=text --reporter=lcov --check-coverage --lines 60 node --test test/unit/",
+    "test:integration": "bash test/integration/test-complete-suite.sh",
     "prepublishOnly": "npm test"
   },
   "keywords": [
@@ -86,5 +87,8 @@
   "bugs": {
     "url": "https://github.com/AjayBThorat-20/devcompass/issues"
   },
-  "homepage": "https://github.com/AjayBThorat-20/devcompass#readme"
+  "homepage": "https://github.com/AjayBThorat-20/devcompass#readme",
+  "devDependencies": {
+    "c8": "^12.0.0"
+  }
 }
