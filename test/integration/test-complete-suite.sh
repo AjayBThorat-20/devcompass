@@ -1,13 +1,17 @@
 #!/bin/bash
 
-# DevCompass v4.1.3 - Complete Test Suite Runner
-# Runs all test scripts in sequence
+# DevCompass - Complete Test Suite Runner
+# Runs all integration test scripts in sequence.
+# Invoke from the repo root (the fixture-project paths inside these scripts
+# are relative to the repo root, not to this script's own location).
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  DevCompass v4.1.3 - Complete Test Suite                  ║"
-echo "║  Running ALL test scripts                                 ║"
+echo "║  DevCompass - Complete Test Suite                          ║"
+echo "║  Running ALL test scripts                                  ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -41,9 +45,15 @@ run_test_script() {
   echo ""
 }
 
-# Run all test scripts
-run_test_script "Basic Commands Test" "./test-all-commands.sh"
-run_test_script "Extended Commands Test" "./test-remaining-commands.sh"
+# Run all test scripts. Every script here assumes it's invoked with cwd set
+# to the repo root (they reference fixture projects as e.g. "test/project1-
+# simple"), so they're addressed via $SCRIPT_DIR rather than a plain relative
+# "./name.sh" even though they live alongside this file.
+run_test_script "Basic Commands Test" "$SCRIPT_DIR/test-all-commands.sh"
+run_test_script "Extended Commands Test" "$SCRIPT_DIR/test-remaining-commands.sh"
+run_test_script "Comprehensive Phase Regression Test" "$SCRIPT_DIR/test-all-phases.sh"
+run_test_script "Production Scenarios Test" "$SCRIPT_DIR/test-production-scenarios.sh"
+run_test_script "Stress Test" "$SCRIPT_DIR/test-stress.sh"
 
 # Final summary
 echo "╔════════════════════════════════════════════════════════════╗"
@@ -58,7 +68,7 @@ echo ""
 if [ $FAILED_SCRIPTS -eq 0 ]; then
   echo "╔════════════════════════════════════════════════════════════╗"
   echo "║  🎉 ALL TEST SUITES PASSED! 🎉                            ║"
-  echo "║  DevCompass v4.1.3 is fully tested and working!           ║"
+  echo "║  DevCompass is fully tested and working!                  ║"
   echo "╚════════════════════════════════════════════════════════════╝"
   exit 0
 else

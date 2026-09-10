@@ -31,10 +31,12 @@ devcompass-v310-test/
 .devcompass/
 knip.json
 
-# Local scratch fixture projects (manual testing only) — keep ignored, but
-# track the hand-written automated test suite under test/unit/ so CI can run it
+# Local scratch fixture projects (project1-simple/, etc. — generated on demand
+# by create-test-projects.sh) stay ignored, but the hand-written test suite
+# under test/unit/ and test/integration/ is tracked so CI can run it
 test/*
 !test/unit/
+!test/integration/
 
 # Internal growth/roadmap notes — not for the public repo
 plan/

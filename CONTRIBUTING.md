@@ -65,11 +65,12 @@ the dashboard's HTML templating — see
 npm test          # unit tests (node --test test/unit/)
 ```
 
-There are also broader manual smoke-test scripts at the repo root
-(`test-all-commands.sh`, `test-production-scenarios.sh`, etc.) that exercise
-the CLI end-to-end against the fixture projects in `test/`. These aren't part
-of `npm test` — run them directly if you're touching CLI wiring, output
-rendering, or anything that spans multiple commands.
+There are also broader manual smoke-test scripts under `test/integration/`
+(`test-all-commands.sh`, `test-production-scenarios.sh`, etc., run together
+via `npm run test:integration`) that exercise the CLI end-to-end against the
+fixture projects in `test/`. These aren't part of `npm test` — run them
+directly if you're touching CLI wiring, output rendering, or anything that
+spans multiple commands.
 
 ## Making changes
 
