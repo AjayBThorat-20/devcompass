@@ -1,0 +1,43 @@
+# Reference list of intended repository labels.
+#
+# GitHub does not read this file automatically — it does not create or sync
+# labels by itself. This is documentation of the label set the project uses;
+# create these manually at https://github.com/AjayBThorat-20/devcompass/labels
+# (or via `gh label create`) until a labeler workflow is added.
+
+labels:
+  - name: bug
+    description: Something isn't working
+    color: d73a4a
+
+  - name: false-positive
+    description: A check flagged something that isn't actually a problem (or missed one)
+    color: e4a805
+
+  - name: enhancement
+    description: New feature or improvement
+    color: a2eeef
+
+  - name: good first issue
+    description: Good for newcomers
+    color: 7057ff
+
+  - name: help wanted
+    description: Extra attention is needed
+    color: 008672
+
+  - name: docs
+    description: Documentation only changes
+    color: 0075ca
+
+  - name: security
+    description: Security-related issue or report
+    color: b60205
+
+  - name: breaking-change
+    description: Changes that break backward compatibility
+    color: e11d21
+
+  - name: windows
+    description: Windows-specific issue
+    color: c5def5
