@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.9] - 2026-10-06
+
+### Fixed
+
+- **Crash on Node 24**: `better-sqlite3` 11.x crashed natively at process exit on Node 24 (`Statement::~Statement`). Upgraded to 12.11.1, which officially supports Node 20–26. Not 13.x, which requires Node ≥22 and would contradict the `engines` range below.
+- **`engines.node` allowed Node versions that crash**: it said `>=20.0.0`, but `uuid@14` is ESM-only and DevCompass loads it with `require()`, which only works from Node 20.19.0 / 22.12.0 (`require(esm)`); `knip` declares the same range. On Node 20.0–20.18, 21, or 22.0–22.11 installs succeeded and then crashed with `ERR_REQUIRE_ESM`. Now `^20.19.0 || >=22.12.0`. `llms.txt` updated to match.
+- **`npm test` failed on Node 22+**: `node --test test/unit/` stopped treating a directory as something to search for tests in Node 22, and instead tried to load it as a module. The `test`/`test:coverage` scripts (and therefore `prepublishOnly`) now pass an explicit `test/unit/*.test.js` glob, which works on Node 20 through 24.
+
+### Security
+
+- `axios` 1.19.0 → 1.20.0, `brace-expansion` 5.0.9 → 5.0.12, and `smol-toml` 1.8.0 → 1.9.0 for newly published advisories (lockfile-only; no range changes).
+
 ## [4.1.8] - 2026-09-11
 
 ### Fixed
