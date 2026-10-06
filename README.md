@@ -958,6 +958,12 @@ devcompass llm test local
 
 ## 📈 Version History
 
+### v4.1.9 (2026-10-06) - Node 24 Support
+- 🐛 Fixed a native crash on Node 24 (`better-sqlite3` 11 → 12)
+- 🐛 `engines.node` is now `^20.19.0 || >=22.12.0` — older 20.x/22.x releases can't `require()` the ESM-only `uuid@14` and crashed with `ERR_REQUIRE_ESM`
+- 🧪 `npm test` works on Node 22+ again (explicit `test/unit/*.test.js` glob)
+- 🔒 Patched `axios`, `brace-expansion`, and `smol-toml` advisories
+
 ### v4.1.8 (2026-09-11) - README Sync
 - 📖 Fixed this Version History section, which was missing v4.1.6/v4.1.7 (npm's displayed README is frozen at publish time, so this needed a real release to actually show up on the npm package page)
 
