@@ -14,20 +14,14 @@ coverage/
 *.tmp
 .cache/.npmrc
 .npmrc
-.devcompass-cache.json
 .devcompass-backups/
 devcompass-fix-report.json
 # Graph visualization outputs
 dependency-graph.html
-final-test.html
 *.graph.html
 *.graph.json
-test1.html
-test1.json
-test1-shallow.html
-devcompass-v310-test/
 
-# DevCompass config (contains GitHub token)
+# DevCompass config (tokens are stored in ~/.devcompass, not here)
 .devcompass/
 knip.json
 
@@ -37,6 +31,7 @@ knip.json
 test/*
 !test/unit/
 !test/integration/
+!test/create-test-projects.sh
 
 # Internal growth/roadmap notes — not for the public repo
 plan/
