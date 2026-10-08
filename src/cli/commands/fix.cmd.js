@@ -12,10 +12,6 @@ module.exports = function registerFixCommand(program) {
     .option('--dry-run', 'Show what would be fixed without making changes')
     .option('--dry', 'Alias for --dry-run')
     .option('--preview', 'Preview fixes without applying')
-    .option('--batch', 'Interactive batch mode')
-    .option('--batch-mode <mode>', 'Preset batch mode: critical, high, all')
-    .option('--only <categories>', 'Fix only specific categories')
-    .option('--skip <categories>', 'Skip specific categories')
     .option('--verbose', 'Show detailed output')
     .option('--migrate-syntax', 'On major-version fixes, also rewrite source call-sites (built-in codemods, falling back to your configured AI provider) — nothing is committed; verify with your tests, or run `devcompass fix undo`')
     .action(async (action, options) => {
@@ -37,10 +33,6 @@ module.exports = function registerFixCommand(program) {
           skipConfirm: options.yes,
           dryRun: options.dryRun || options.dry || options.preview,
           preview: options.preview,
-          batch: options.batch,
-          batchMode: options.batchMode,
-          only: options.only,
-          skip: options.skip,
           verbose: options.verbose,
           migrateSyntax: options.migrateSyntax
         });

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+
+- `analyze --ai` and `--ai-provider`: this only ever returned a fixed template sentence, never called a model. Use `devcompass ai recommend` instead. `analyze --json`'s `metadata` no longer carries the always-`null` `aiInsight` field.
+- `fix --batch`, `--batch-mode`, `--only`, `--skip`: these only ever printed "Batch mode features are not yet available". `--dry`/`--preview` still work as aliases for `--dry-run`.
+- The unused, unreachable `outdated.collector.js`, `npm-audit.collector.js`, `recommendation.service.js`, and the batch-fix service files (`batch-executor`, `batch-selector`, `supply-chain-fixer`, `license-conflict-fixer`, `quality-fixer`), plus the `data/batch-categories.json` and `data/priorities.json` files only they read. The supply-chain fixer would have "fixed" a flagged typosquat by uninstalling it and installing the look-alike it matched against.
+- The local-install warning in `devcompass.js` ("DevCompass is installed locally — npm install -g devcompass"), which fired for global installs and `npx` too and discouraged pinning DevCompass as a devDependency, the actually-recommended setup for teams/CI.
+
 ## [4.1.9] - 2026-10-06
 
 ### Fixed

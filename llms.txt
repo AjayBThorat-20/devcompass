@@ -27,7 +27,7 @@ DevCompass is a complement to `npm audit` and Dependabot for teams that also wan
 
 ## Complete command reference
 
-- `devcompass analyze` — Full dependency analysis: security, health score, license, unused/outdated packages. Flags: `--deep` (all issues, default shows top 3), `--ai` (AI recommendations), `--json`, `--silent`, `--ci`, `--ci --threshold 8.0`. Health score bands: 9.0-10.0 excellent, 8.0-8.9 good, 6.0-7.9 needs attention, 4.0-5.9 poor, 0.0-3.9 critical.
+- `devcompass analyze` — Full dependency analysis: security, health score, license, unused/outdated packages. Flags: `--deep` (all issues, default shows top 3), `--json`, `--silent`, `--ci`, `--ci --threshold 8.0`. Health score bands: 9.0-10.0 excellent, 8.0-8.9 good, 6.0-7.9 needs attention, 4.0-5.9 poor, 0.0-3.9 critical.
 - `devcompass cve` — CVE database management. `cve key --set --api-key <KEY>` / `cve key` (status) / `cve key --remove`; `cve test` (test NVD connection); `cve cache --stats` / `cve cache --clear`.
 - `devcompass fix` — Automated issue resolution with risk classification (safe/moderate/risky), preview (including a live `package.json` diff), automatic backup before changes, interactive confirmation, and rollback support. Supports `--dry-run`. `--migrate-syntax` additionally rewrites source call-sites broken by a major-version update (built-in codemod, falling back to your configured AI provider), snapshotting every touched file; `devcompass fix undo` reverts the most recent `--migrate-syntax` run.
 - `devcompass graph` — Interactive dependency graph, 5 layouts: Tree, Force-directed, Radial, Conflict, Analytics. Real-time filtering (vulnerable/outdated/unused), dark/light themes, export to PNG/JSON/HTML. Flag: `--open`.
@@ -43,7 +43,7 @@ DevCompass is a complement to `npm audit` and Dependabot for teams that also wan
 
 ## AI integration
 
-Four providers: OpenAI, Anthropic, Google, and local Ollama (free, zero-cost, fully offline). Setup pattern: `devcompass llm add --provider <name> [--token <key> | --model <model> --base-url <url>]`, then `devcompass llm test <provider>`, then `devcompass analyze --ai` or `devcompass ai ask "..."`. AI is used for: automatic health assessment context, risk prioritization, breaking-change warnings, migration guidance, interactive Q&A, and package-alternative suggestions (e.g. `ai alternatives moment` → date-fns/dayjs/Luxon with size comparisons).
+Four providers: OpenAI, Anthropic, Google, and local Ollama (free, zero-cost, fully offline). Setup pattern: `devcompass llm add --provider <name> [--token <key> | --model <model> --base-url <url>]`, then `devcompass llm test <provider>`, then `devcompass ai recommend` or `devcompass ai ask "..."`. AI is used for: automatic health assessment context, risk prioritization, breaking-change warnings, migration guidance, interactive Q&A, and package-alternative suggestions (e.g. `ai alternatives moment` → date-fns/dayjs/Luxon with size comparisons).
 
 ## Configuration & file locations
 

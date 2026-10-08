@@ -43,12 +43,6 @@ function renderDeepOutput(issues, metadata) {
   console.log(`Risky Fixes: ${stats.riskyFixes}`);
   console.log('');
 
-  if (metadata.aiInsight) {
-    ConsoleFormatter.section('🤖 AI Analysis');
-    console.log(metadata.aiInsight);
-    console.log('');
-  }
-
   ConsoleFormatter.actions([
     { icon: '✔', label: 'Fix safe issues', command: 'devcompass fix' },
     { icon: '⚠️', label: 'Fix all issues', command: 'devcompass fix --all' },

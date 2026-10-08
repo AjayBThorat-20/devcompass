@@ -4,12 +4,6 @@ const { Command } = require('commander');
 const chalk = require('chalk');
 const packageJson = require('../package.json');
 
-const isLocalInstall = __dirname.includes('node_modules');
-if (isLocalInstall && process.argv.includes('analyze')) {
-  console.log(chalk.yellow('\n⚠️  DevCompass is installed locally.'));
-  console.log(chalk.cyan('   npm install -g devcompass\n'));
-}
-
 const program = new Command();
 
 program

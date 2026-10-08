@@ -26,7 +26,6 @@ async function runAnalyze(options = {}) {
     mode = 'default',
     projectPath = process.cwd(),
     json = false,
-    aiEnabled = false,
     saveHistory = true,
     ci = false,
     silent = false,
@@ -122,8 +121,7 @@ async function runAnalyze(options = {}) {
       securityScanIncomplete: !!securityData?.incomplete,
       ecosystemScanIncomplete: !!(shouldRunEcosystem && ecosystemData?.incomplete),
       healthScore,
-      totalDependencies,
-      aiInsight: aiEnabled ? await generateAIInsight(allIssues) : null
+      totalDependencies
     };
 
     saveAnalysisCache({
@@ -174,13 +172,6 @@ async function runAnalyze(options = {}) {
     if (ci) process.exit(1);
     throw error;
   }
-}
-
-async function generateAIInsight(issues) {
-  if (!issues || issues.length === 0) return 'Your project has no detected issues.';
-  const critical = issues.filter(i => i.severity === 'CRITICAL' || i.severity === 'HIGH');
-  if (critical.length === 0) return 'Your project has minor issues that can be addressed over time.';
-  return `Your main risk comes from ${critical.length} high-severity issue(s). Fixing ${critical[0].name} will significantly improve security.`;
 }
 
 module.exports = { runAnalyze };
