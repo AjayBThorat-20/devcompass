@@ -11,18 +11,26 @@ class IssueCollector {
   addCVEIssues(cveData) {
     if (!Array.isArray(cveData)) return;
     cveData.forEach(vuln => {
+      const advisoryId = vuln.id || vuln.cve;
+      // Prefer a full list when the collector provides one; otherwise the
+      // single advisory id this entry carries.
+      const advisoryIds = Array.isArray(vuln.advisoryIds) && vuln.advisoryIds.length > 0
+        ? vuln.advisoryIds
+        : (advisoryId ? [advisoryId] : []);
       this.pending.push({
         name: vuln.package || vuln.name,
         version: vuln.version,
         type: 'security',
         severity: this.mapCVESeverity(vuln.severity),
+        confidence: 'high',
+        advisoryIds,
         score: vuln.cvss || vuln.score || 0,
         message: vuln.summary || vuln.title || 'Security vulnerability',
         risk: vuln.risk || vuln.description,
         fix: vuln.fixVersion ? `Update to ${vuln.fixVersion}` : 'Update to latest',
         safeFix: this.isSafeUpdate(vuln),
         source: vuln.source || 'CVE',
-        metadata: { cve: vuln.id || vuln.cve, cvss: vuln.cvss || vuln.score, references: vuln.references }
+        metadata: { cve: advisoryId, cvss: vuln.cvss || vuln.score, references: vuln.references }
       });
     });
   }
@@ -36,6 +44,7 @@ class IssueCollector {
         version: license.version,
         type: 'license',
         severity: this.mapLicenseRisk(license.riskLevel),
+        confidence: 'high',
         score: this.getLicenseScore(license.riskLevel),
         message: `${license.license} license`,
         risk: license.risk,
@@ -56,6 +65,7 @@ class IssueCollector {
         version: pkg.version,
         type: 'quality',
         severity: this.mapQualitySeverity(pkg.status),
+        confidence: 'medium',
         score: 10 - (pkg.healthScore || 5),
         message: this.getQualityMessage(pkg.status),
         risk: pkg.deprecated ? 'Package is deprecated' : `Last updated ${pkg.ageMonths} months ago`,
@@ -78,6 +88,7 @@ class IssueCollector {
           version: w.version,
           type: 'security',
           severity: 'HIGH',
+          confidence: 'medium',
           score: 8,
           message: 'Possible typosquatting',
           risk: w.warning || w.description || `Similar to ${w.similarTo || w.correctPackage}`,
@@ -92,6 +103,7 @@ class IssueCollector {
           version: w.version,
           type: 'security',
           severity: this.mapCVESeverity(w.severity),
+          confidence: 'medium',
           score: 6,
           message: 'Suspicious install script detected',
           risk: w.description || w.reason,
@@ -106,6 +118,7 @@ class IssueCollector {
           version: w.version,
           type: 'security',
           severity: this.mapCVESeverity(w.severity),
+          confidence: 'high',
           score: 7,
           message: w.description || 'Security vulnerability',
           risk: w.risk,
@@ -126,6 +139,7 @@ class IssueCollector {
         version: pkg.current,
         type: 'outdated',
         severity: this.mapOutdatedSeverity(pkg),
+        confidence: 'high',
         score: this.getOutdatedScore(pkg),
         message: `Outdated: ${pkg.current} → ${pkg.latest}`,
         risk: this.getOutdatedRisk(pkg),
@@ -147,6 +161,7 @@ class IssueCollector {
         version: null,
         type: 'unused',
         severity: 'LOW',
+        confidence: 'low',
         score: 2,
         message: 'Unused dependency',
         risk: 'Package is not being used',
@@ -166,6 +181,7 @@ class IssueCollector {
         version: alert.affected !== '*' ? alert.affected : null,
         type: 'quality',
         severity: this.mapCVESeverity(alert.severity),
+        confidence: 'medium',
         score: 6,
         message: alert.title || 'Known package issue',
         risk: alert.title,
@@ -185,6 +201,7 @@ class IssueCollector {
         version: null,
         type: 'quality',
         severity: this.mapCVESeverity(warning.severity),
+        confidence: 'low',
         score: 3,
         message: warning.title || 'Predictive warning',
         risk: warning.description,
@@ -267,12 +284,16 @@ class IssueCollector {
     let bestRank = getSeverityWeight(best.severity);
     const sources = new Set();
     const fixes = new Set();
-    let advisoryCount = 0;
+    // Every advisory id survives the merge, not just the first one — a
+    // package can have several distinct GHSA/CVE advisories merged into one
+    // finding.
+    const advisoryIds = new Set();
 
     for (const entry of entries) {
       if (entry.source) sources.add(entry.source);
       if (entry.fix) fixes.add(entry.fix);
-      if (entry.metadata && entry.metadata.cve) advisoryCount++;
+      (entry.advisoryIds || []).forEach(id => advisoryIds.add(id));
+      if (entry.metadata?.cve) advisoryIds.add(entry.metadata.cve);
 
       const rank = getSeverityWeight(entry.severity);
       if (rank > bestRank) {
@@ -288,6 +309,7 @@ class IssueCollector {
       || 'Run npm audit fix';
 
     const sourceList = Array.from(sources);
+    const advisoryIdList = Array.from(advisoryIds);
     const message = entries.length > 1
       ? `Security vulnerability detected (confirmed by ${sourceList.join(' + ')})`
       : (best.message || 'Security vulnerability detected');
@@ -300,14 +322,21 @@ class IssueCollector {
     // whenever one exists in the group, independent of which entry "won".
     const cveEntry = entries.find(e => e.metadata && e.metadata.cve && typeof e.score === 'number' && e.score > 0);
 
+    let risk = best.risk || `${best.severity} security vulnerability`;
+    if (advisoryIdList.length > 1) {
+      risk += ` (${advisoryIdList.length} advisories: ${advisoryIdList.slice(0, 5).join(', ')}${advisoryIdList.length > 5 ? ', ...' : ''})`;
+    }
+
     return this.finalizeEntry({
       name,
       version,
       type: 'security',
       severity: best.severity,
+      confidence: this.highestConfidence(entries),
+      advisoryIds: advisoryIdList,
       score: cveEntry ? cveEntry.score : best.score,
       message,
-      risk: best.risk || `${best.severity} security vulnerability`,
+      risk,
       fix: preferredFix,
       safeFix: entries.some(e => e.safeFix),
       source: sourceList.join('+') || 'Security',
@@ -333,8 +362,21 @@ class IssueCollector {
       ...best,
       name,
       version,
+      confidence: this.highestConfidence(entries),
       source: Array.from(sources).join('+') || best.source
     });
+  }
+
+  // The merged finding is at least as trustworthy as its most-trustworthy
+  // contributing source — a heuristic entry merged with a confirmed one
+  // shouldn't drag the confirmed one's confidence down.
+  highestConfidence(entries) {
+    const rank = { high: 3, medium: 2, low: 1 };
+    let best = null;
+    for (const entry of entries) {
+      if ((rank[entry.confidence] || 0) > (rank[best] || 0)) best = entry.confidence;
+    }
+    return best || 'medium';
   }
 
   resolveVersion(group) {

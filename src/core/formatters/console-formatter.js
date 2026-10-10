@@ -1,6 +1,7 @@
 // src/core/formatters/console-formatter.js
 
 const chalk = require('chalk');
+const { getSeverityIcon, getSeverityTerminalColor } = require('../utils/severity');
 
 class ConsoleFormatter {
   static header(title, subtitle = '') {
@@ -36,12 +37,14 @@ class ConsoleFormatter {
 
   static summary(stats) {
     const items = [
-      { label: '🔴 Critical', value: stats.critical, color: 'red' },
-      { label: '🟠 High', value: stats.high, color: 'yellow' },
-      { label: '🟡 Medium', value: stats.medium, color: 'blue' },
-      { label: '⚪ Low', value: stats.low, color: 'gray' }
+      { key: 'CRITICAL', label: 'Critical', value: stats.critical },
+      { key: 'HIGH', label: 'High', value: stats.high },
+      { key: 'MEDIUM', label: 'Medium', value: stats.medium },
+      { key: 'LOW', label: 'Low', value: stats.low }
     ];
-    items.forEach(item => { if (item.value > 0) console.log(chalk[item.color](`${item.label}: ${item.value}`)); });
+    items.forEach(item => {
+      if (item.value > 0) console.log(chalk[getSeverityTerminalColor(item.key)](`${getSeverityIcon(item.key)} ${item.label}: ${item.value}`));
+    });
     if (stats.total === 0) console.log(chalk.green('✅ No issues found'));
   }
 
@@ -94,11 +97,11 @@ class ConsoleFormatter {
   }
 
   static getSeverityIcon(severity) {
-    return { CRITICAL: '🔴', HIGH: '🟠', MEDIUM: '🟡', LOW: '⚪' }[severity] || '⚠️';
+    return getSeverityIcon(severity);
   }
 
   static getSeverityColor(severity) {
-    return { CRITICAL: 'red', HIGH: 'yellow', MEDIUM: 'blue', LOW: 'gray' }[severity] || 'white';
+    return getSeverityTerminalColor(severity);
   }
 }
 

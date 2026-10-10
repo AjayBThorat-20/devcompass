@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Every finding now carries a `ruleId` (e.g. `vuln`, `typosquat`, `outdated/major`, `unused`), a `confidence` (`high`/`medium`/`low` — heuristics like unused/typosquat are never `high`), and the full list of `advisoryIds` it merged (previously only the first GHSA/CVE id was kept, though a count was computed and silently discarded). A finding's `id` is now `<ruleId>:<package>@<version>[:<advisoryId>]` instead of `<package>@<version>`, so two different findings for the same package no longer share an id.
+- `analyze --json`'s `metadata` has a `scanIncomplete` object with an entry per collector, alongside the existing `cveScanIncomplete`/`securityScanIncomplete`/... flags.
+- A weekly CI job runs `analyze` against five well-known open-source projects (express, lodash, chalk, execa, yargs) and flags likely false positives — typosquat or unused flags on real, popular packages — before a user reports them. Informational only.
+
+### Changed
+
+- The four separate severity/priority tables (`severity.js`, `issue.model.js`, `data/priorities.json`, and the inline tables in `console-formatter.js`) are down to one, `core/utils/severity.js`; everything else imports from it. They had already drifted out of sync with each other.
+- Collectors run from one registry (`src/features/analyze/collectors/index.js`) instead of a hardcoded list in `analyze`'s core — a new check is one collector file plus one entry, and its "scan incomplete" message comes from that entry.
+- Test coverage is now measured over every file in `src/` (except the browser dashboard) rather than only the files a test happens to load, which had been inflating the number. The honest figure is ~29%, so the CI floor is 25% instead of the previous, misleading 60%.
+
 ### Removed
 
 - `analyze --ai` and `--ai-provider`: this only ever returned a fixed template sentence, never called a model. Use `devcompass ai recommend` instead. `analyze --json`'s `metadata` no longer carries the always-`null` `aiInsight` field.

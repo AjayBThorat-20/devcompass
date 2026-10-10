@@ -15,7 +15,7 @@
   ],
   "scripts": {
     "test": "node --test test/unit/*.test.js",
-    "test:coverage": "c8 --reporter=text --reporter=lcov --check-coverage --lines 60 node --test test/unit/*.test.js",
+    "test:coverage": "c8 --all --src src --include \"src/**\" --exclude \"src/dashboard/**\" --reporter=text --reporter=lcov --check-coverage --lines 25 node --test test/unit/*.test.js",
     "test:integration": "bash test/integration/test-complete-suite.sh",
     "prepublishOnly": "npm test"
   },
