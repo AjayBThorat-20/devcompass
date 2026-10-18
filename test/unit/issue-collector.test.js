@@ -108,3 +108,47 @@ test('merging only low-confidence findings stays low instead of being inflated t
   const issue = collector.getAll().find(i => i.name === 'request');
   assert.equal(issue.confidence, 'low');
 });
+
+// An ecosystem vulnerability alert was always typed 'quality', so it never
+// merged with a same-package CVE finding (typed 'security') — the same
+// vulnerability appeared twice in the report and was penalized twice.
+test("an ecosystem alert with type 'vulnerability' becomes a security issue and merges with the CVE finding for the same package", () => {
+  const collector = createIssueCollector();
+
+  collector.addCVEIssues([
+    { package: 'minimist', version: '1.2.5', severity: 'high', source: 'OSV' }
+  ]);
+  collector.addEcosystemIssues([
+    { package: 'minimist', type: 'vulnerability', affected: '<=1.2.5', severity: 'high', title: 'Prototype pollution', source: 'Ecosystem' }
+  ]);
+
+  const issues = collector.getAll().filter(i => i.name === 'minimist');
+  assert.equal(issues.length, 1, 'the ecosystem alert must merge with the CVE finding, not appear as a separate quality issue');
+  assert.equal(issues[0].type, 'security');
+});
+
+// alert.affected is the vulnerable *range* ("<=1.2.5"), not the installed
+// version — it must never be used as the finding's version, and falls back
+// to whatever setInstalledVersions() resolved for that package.
+test('an ecosystem alert never uses the advisory range as the version; it falls back to the installed version', () => {
+  const collector = createIssueCollector();
+  collector.setInstalledVersions({ 'left-pad': '1.3.0' });
+
+  collector.addEcosystemIssues([
+    { package: 'left-pad', type: 'vulnerability', affected: '<=1.2.5', severity: 'high', title: 'Some issue', source: 'Ecosystem' }
+  ]);
+
+  const issue = collector.getAll().find(i => i.name === 'left-pad');
+  assert.equal(issue.version, '1.3.0');
+  assert.equal(issue.metadata.affectedRange, '<=1.2.5');
+});
+
+test('an ecosystem alert whose fix is free text is not turned into "Update to <text>"', () => {
+  const collector = createIssueCollector();
+  collector.addEcosystemIssues([
+    { package: 'request', type: 'maintenance', affected: '*', severity: 'low', title: 'Deprecated', fix: 'Consider alternatives', source: 'Ecosystem' }
+  ]);
+  const issue = collector.getAll().find(i => i.name === 'request');
+  assert.equal(issue.fix, 'Consider alternatives');
+  assert.equal(issue.safeFix, false);
+});

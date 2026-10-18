@@ -104,6 +104,9 @@ function collapsePerPackage(vulns) {
     risk: entry.ids.slice(0, 5).join(', ') + (entry.ids.length > 5 ? `, +${entry.ids.length - 5} more` : ''),
     source: entry.source,
     id: entry.ids[0],
+    // Every merged advisory id, not just the first (id is kept for anything
+    // reading .id directly).
+    advisoryIds: entry.ids,
     advisoryCount: entry.ids.length,
     fixVersion: entry.fixVersion
   }));

@@ -1,5 +1,6 @@
 // src/core/services/issue-collector.js
 
+const semver = require('semver');
 const { createIssue } = require('../models/issue.model');
 const { getSeverityWeight } = require('../utils/severity');
 
@@ -178,17 +179,22 @@ class IssueCollector {
     ecosystemData.forEach(alert => {
       this.pending.push({
         name: alert.package,
-        version: alert.affected !== '*' ? alert.affected : null,
-        type: 'quality',
+        version: null, // alert.affected is the vulnerable *range*, not the installed version
+        // A vulnerability alert must merge with the CVE finding for the same
+        // package (type 'security'), not be counted a second time as quality.
+        type: alert.type === 'vulnerability' ? 'security' : 'quality',
         severity: this.mapCVESeverity(alert.severity),
         confidence: 'medium',
         score: 6,
         message: alert.title || 'Known package issue',
         risk: alert.title,
-        fix: alert.fix && alert.fix !== 'No fix available' ? `Update to ${alert.fix}` : 'Review manually',
-        safeFix: !!(alert.fix && alert.fix !== 'No fix available'),
+        // Only prefix "Update to" when alert.fix is an actual version — it can
+        // also be free text like "Consider alternatives if maintenance has
+        // stopped", which "Update to" in front of turns into nonsense.
+        fix: alert.fix && semver.valid(alert.fix) ? `Update to ${alert.fix}` : (alert.fix || 'Review manually'),
+        safeFix: !!(alert.fix && semver.valid(alert.fix)),
         source: alert.source || 'Ecosystem',
-        metadata: { type: alert.type }
+        metadata: { type: alert.type, affectedRange: alert.affected }
       });
     });
   }
@@ -388,10 +394,21 @@ class IssueCollector {
     return 'unknown';
   }
 
+  // name -> installed version (from node_modules), used when a collector
+  // didn't report one (npm audit findings, typosquat/unused checks, ...).
+  setInstalledVersions(map) {
+    this.installedVersions = map || {};
+  }
+
+  getPendingNames() {
+    return [...new Set(this.pending.filter(e => e && e.name).map(e => e.name))];
+  }
+
   finalizeEntry(entry) {
+    const known = entry.version && entry.version !== 'unknown' && entry.version !== '*';
     return {
       ...entry,
-      version: entry.version || 'unknown'
+      version: known ? entry.version : (this.installedVersions?.[entry.name] || 'unknown')
     };
   }
 
