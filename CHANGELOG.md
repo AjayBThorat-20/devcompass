@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `devcompass clean` has a `-p, --path <path>` option, like every other command — it could only ever operate on the current directory.
 - Every finding now carries a `ruleId` (e.g. `vuln`, `typosquat`, `outdated/major`, `unused`), a `confidence` (`high`/`medium`/`low` — heuristics like unused/typosquat are never `high`), and the full list of `advisoryIds` it merged (previously only the first GHSA/CVE id was kept, though a count was computed and silently discarded). A finding's `id` is now `<ruleId>:<package>@<version>[:<advisoryId>]` instead of `<package>@<version>`, so two different findings for the same package no longer share an id.
 - `analyze --json`'s `metadata` has a `scanIncomplete` object with an entry per collector, alongside the existing `cveScanIncomplete`/`securityScanIncomplete`/... flags.
 - A weekly CI job runs `analyze` against five well-known open-source projects (express, lodash, chalk, execa, yargs) and flags likely false positives — typosquat or unused flags on real, popular packages — before a user reports them. Informational only.
@@ -28,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`analyze` writes nothing to the project directory anymore.** It used to create six `.devcompass/` subfolders on every run, write its cache there, write a temporary `knip.json`, and **append `.devcompass/` to the project's `.gitignore`** (creating one if there wasn't any). The analysis cache now lives in `~/.devcompass/cache/`, keyed by a hash of the project path; the knip config goes to the OS temp directory and is deleted afterwards. Commands that do write into the project (`graph`, `fix`'s backups) now create only the folder they need and print a one-line `.gitignore` tip instead of editing the file.
+- **`--ci --json` output is valid JSON again.** The "CI Check Passed/Failed" line went to stdout after the JSON, so `analyze --ci --json > out.json` produced an unparseable file. It now goes to stderr, and the CLI sets the exit code from the result instead of `runAnalyze()` calling `process.exit()` mid-write (which could also cut off large piped output).
+- **`clean --backups` cleaned nothing.** It emptied `<project>/.devcompass/backups/`, a folder nothing ever writes to, and reported success; backups live in `<project>/.devcompass-backups/`. `--cache` now also reaches `~/.devcompass/cache/`.
+- A failed "outdated" check (e.g. npm-check-updates couldn't run) is now reported as incomplete instead of silently looking like "everything is up to date". A project with no dependencies skips the outdated and unused checks entirely, with no network calls.
 - **The same vulnerability was counted twice.** An ecosystem alert typed `vulnerability` was filed as a *quality* finding, so it never merged with the matching CVE finding for that package — it appeared twice in the report and lowered the health score twice. It is now a security finding and merges, keeping every advisory id from both sources.
 - **A finding's version is always the installed one**, never an advisory's vulnerable range (e.g. `qs@<=6.15.3`) or `unknown`. Findings whose collector didn't report a version (npm audit, unused, quality) now get it from `node_modules`.
 - **NVD enrichment practically never matched.** OSV identifies npm advisories by GHSA id, but NVD only accepts CVE ids; the CVE id is now taken from the OSV record's `aliases`, and the NVD lookup is skipped when there isn't one.

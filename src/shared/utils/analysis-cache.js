@@ -2,19 +2,34 @@
 
 const fs = require('fs');
 const path = require('path');
-const OutputManager = require('./output-manager');
+const os = require('os');
+const crypto = require('crypto');
 const { version } = require('../../../package.json');
 
+// `analyze` is documented as read-only, so its cache never lives inside the
+// scanned project — it's keyed by a hash of the project path and stored
+// alongside the registry/OSV cache in the user's home directory instead.
+const CACHE_DIR = path.join(os.homedir(), '.devcompass', 'cache');
+
+function projectHash(projectPath) {
+  return crypto.createHash('sha256').update(path.resolve(projectPath)).digest('hex').slice(0, 16);
+}
+
+function ensureCacheDir() {
+  try { if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true }); } catch (error) { /* silent */ }
+}
+
 function getCachePath(projectPath = process.cwd()) {
-  return new OutputManager(projectPath).getCachePath('analysis-cache.json');
+  return path.join(CACHE_DIR, `${projectHash(projectPath)}-analysis-cache.json`);
 }
 
 function getTempCachePath(projectPath = process.cwd()) {
-  return new OutputManager(projectPath).getTempPath('analysis-cache.json.tmp');
+  return path.join(CACHE_DIR, `${projectHash(projectPath)}-analysis-cache.json.tmp`);
 }
 
 function saveAnalysisCache(data, projectPath = process.cwd()) {
   try {
+    ensureCacheDir();
     const cacheFile = getCachePath(projectPath);
     const cacheTempFile = getTempCachePath(projectPath);
     const cacheData = { ...data, version, savedAt: new Date().toISOString() };
@@ -55,4 +70,19 @@ function loadAnalysisCache(projectPath = process.cwd()) {
   }
 }
 
-module.exports = { saveAnalysisCache, loadAnalysisCache, getCachePath };
+// Used by `devcompass clean --cache`, which clears every project's analysis
+// cache from the shared home-directory location, not just the current one.
+function clearAllAnalysisCaches() {
+  try {
+    if (!fs.existsSync(CACHE_DIR)) return 0;
+    let count = 0;
+    fs.readdirSync(CACHE_DIR).forEach(file => {
+      if (file.endsWith('-analysis-cache.json') || file.endsWith('-analysis-cache.json.tmp')) {
+        try { fs.unlinkSync(path.join(CACHE_DIR, file)); count++; } catch (error) { /* ignore */ }
+      }
+    });
+    return count;
+  } catch (error) { return 0; }
+}
+
+module.exports = { saveAnalysisCache, loadAnalysisCache, getCachePath, clearAllAnalysisCaches };

@@ -7,6 +7,8 @@ const ora = require('ora');
 const GraphGenerator = require('./graph.generator');
 const GraphExporter = require('./graph.exporter');
 const OutputManager = require('../../shared/utils/output-manager');
+const { printGitignoreTipIfNeeded } = require('../../shared/utils/output-manager');
+const { getCachePath: getAnalysisCachePath } = require('../../shared/utils/analysis-cache');
 
 async function graphCommand(options = {}) {
   const {
@@ -65,7 +67,7 @@ async function graphCommand(options = {}) {
     const generator = new GraphGenerator(projectPath);
     let analysisResults = null;
 
-    const cacheFile = outputManager.getCachePath('analysis-cache.json');
+    const cacheFile = getAnalysisCachePath(projectPath);
     if (fs.existsSync(cacheFile)) {
       try {
         const { runAnalyze } = require('../analyze');
@@ -108,6 +110,7 @@ async function graphCommand(options = {}) {
 
     if (result.success) {
       exportSpinner.succeed(`Graph exported: ${chalk.cyan(outputManager.getRelativePath(result.path))}`);
+      if (!path.isAbsolute(output)) printGitignoreTipIfNeeded(projectPath);
       displaySummary(graphData, result, !!analysisResults, options, outputManager);
 
       if (result.format === 'HTML' && shouldOpen) {

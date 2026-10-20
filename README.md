@@ -597,7 +597,7 @@ devcompass config --remove-github-token
 
 #### `clean` - Clean Output Directories
 
-Manage the `.devcompass/` output directory in the current project (cache, backups, generated graphs, reports, exports, and temp files).
+Manage what DevCompass has stored: the project's `.devcompass/` output directory (generated graphs, reports, exports, temp files), its `.devcompass-backups/` folder, and the cache in `~/.devcompass/cache/`. `analyze` itself never writes into your project — only commands that produce a file (`graph`, `fix`'s backups) do.
 
 ```bash
 # Show a summary of what's stored, with cleanup options
@@ -606,9 +606,12 @@ devcompass clean
 # Clean everything
 devcompass clean --all
 
+# Another project than the current directory
+devcompass clean -p ../my-app --all
+
 # Clean one category at a time
-devcompass clean --cache      # Cached analysis results
-devcompass clean --backups    # Internal .devcompass/backups/ (rarely populated — see note below)
+devcompass clean --cache      # Cached analysis and registry results in ~/.devcompass/cache/ (all projects)
+devcompass clean --backups    # The project's .devcompass-backups/ (what fix creates)
 devcompass clean --temp       # Temporary files
 devcompass clean --graphs     # Generated dependency-graph HTML files
 devcompass clean --reports    # Generated reports
@@ -619,7 +622,7 @@ devcompass clean --graphs --force
 
 Running `devcompass clean` with no flags never deletes anything — it prints a summary (file counts and size per category) and the list of available flags; you always pass an explicit category (or `--all`) to actually clean something, plus `--force` to skip the "Continue? (y/N)" prompt.
 
-> **Note:** `--backups` here only clears the `.devcompass/backups/` directory tracked by this command's own output manager. The `package.json`/`package-lock.json` backups that `fix` and `backup restore` actually create and use live in `<project>/.devcompass-backups/` (a separate directory) — manage those with `devcompass backup clean`, not `devcompass clean --backups`.
+> **Note:** `--backups` deletes every backup in `.devcompass-backups/`, the ones `fix` creates and `backup restore` uses. To keep the newest few instead, use `devcompass backup clean --keep 3`.
 
 <p align="center">
   <img src="docs/assets/demo-clean.gif" alt="devcompass clean summary followed by devcompass clean --graphs --force" width="760">

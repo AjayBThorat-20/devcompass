@@ -9,8 +9,24 @@ const { analyzeUnusedDependencies } = require('./unused-deps.collector');
 
 const execAsync = promisify(exec);
 
+// A failed outdated check must not look like "everything is up to date".
+function incompleteResult(reason) {
+  const result = [];
+  result.incomplete = true;
+  result.incompleteReason = reason;
+  return result;
+}
+
 async function collectOutdatedData(projectPath, packageJson = null) {
   try {
+    if (!packageJson) {
+      const packageJsonPath = path.join(projectPath, 'package.json');
+      if (!fs.existsSync(packageJsonPath)) return [];
+      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    }
+    const declared = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
+    if (Object.keys(declared).length === 0) return [];
+
     // npm-check-updates compares package.json's declared ranges against the npm
     // registry — it doesn't read package-lock.json at all. Gating on the
     // lockfile's existence meant any yarn/pnpm project (no package-lock.json)
@@ -30,14 +46,9 @@ async function collectOutdatedData(projectPath, packageJson = null) {
         try { JSON.parse(line); jsonLine = line; break; } catch (e) { continue; }
       }
     }
-    if (!jsonLine) return [];
+    if (!jsonLine) return incompleteResult('npm-check-updates returned no result');
 
     const outdated = JSON.parse(jsonLine);
-    if (!packageJson) {
-      const packageJsonPath = path.join(projectPath, 'package.json');
-      if (!fs.existsSync(packageJsonPath)) return [];
-      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    }
 
     return Object.entries(outdated).map(([name, latest]) => {
       const current = packageJson.dependencies?.[name] || packageJson.devDependencies?.[name];
@@ -46,7 +57,7 @@ async function collectOutdatedData(projectPath, packageJson = null) {
     });
   } catch (error) {
     if (process.env.DEBUG) console.error('Outdated collection failed:', error.message);
-    return [];
+    return incompleteResult(`could not check for newer versions (${error.message.split('\n')[0]})`);
   }
 }
 
