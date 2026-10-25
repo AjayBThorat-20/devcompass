@@ -49,3 +49,39 @@ test('correctly classifies used vs. unused dependencies', async () => {
 
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+// The fallback used to shell out to `grep`, which Windows doesn't have by
+// default — every dependency then looked "used". It is a JavaScript scan now.
+test('the fallback works without grep on PATH', async () => {
+  const dir = makeProject("const lodash = require('lodash');\n");
+  const originalPath = process.env.PATH;
+  process.env.PATH = '';
+  try {
+    const unused = await fallbackUnusedCheck(dir, { lodash: '1.0.0', chalk: '1.0.0' });
+    assert.deepEqual(unused, ['chalk']);
+  } finally {
+    process.env.PATH = originalPath;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a package referenced only from config files or stylesheets is not reported unused', async () => {
+  const dir = makeProject("console.log('app');\n");
+  fs.writeFileSync(path.join(dir, '.babelrc'), JSON.stringify({ presets: ['@babel/preset-env'] }));
+  fs.writeFileSync(path.join(dir, 'postcss.config.js'), 'module.exports = { plugins: { tailwindcss: {}, autoprefixer: {} } };\n');
+  fs.writeFileSync(path.join(dir, 'src', 'styles.scss'), "@import 'bootstrap/scss/bootstrap';\n");
+
+  const unused = await fallbackUnusedCheck(dir, {
+    '@babel/preset-env': '1.0.0', tailwindcss: '1.0.0', autoprefixer: '1.0.0', bootstrap: '1.0.0', express: '1.0.0'
+  });
+  assert.deepEqual(unused, ['express']);
+
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('a subpath import counts as using the package; a matching substring or variable name does not', async () => {
+  const dir = makeProject("const debounce = require('lodash/debounce');\nconst items = []; const ms = 5;\n");
+  const unused = await fallbackUnusedCheck(dir, { lodash: '1.0.0', ms: '1.0.0' });
+  assert.deepEqual(unused, ['ms']);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
