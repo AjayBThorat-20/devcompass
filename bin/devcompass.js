@@ -29,6 +29,7 @@ require('../src/cli/commands/llm.cmd')(program);
 require('../src/cli/commands/ai.cmd')(program);
 require('../src/cli/commands/config.cmd')(program);
 require('../src/cli/commands/clean.cmd')(program);
+require('../src/cli/commands/why.cmd')(program);
 
 if (process.argv.length === 2) {
   (async () => {

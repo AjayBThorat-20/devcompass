@@ -313,6 +313,19 @@ devcompass fix undo
 
 ### Visualization
 
+#### `why` - Why Is This Package Installed?
+
+Show every path from your project to an installed package — useful when a vulnerable or outdated package is a transitive dependency you never declared.
+
+```bash
+devcompass why qs
+# qs@6.7.0 (2 paths)
+#   my-app → express@4.17.1 → body-parser@1.19.0 → qs@6.7.0
+#   my-app → express@4.17.1 → qs@6.7.0
+```
+
+It reads `package-lock.json` only (npm; pnpm/yarn/bun lockfiles aren't supported yet), so it works before `npm install` has run. Each installed version of the package is listed separately.
+
 #### `graph` - Dependency Graph Visualization
 
 Generate interactive dependency graphs with multiple layouts and filters.

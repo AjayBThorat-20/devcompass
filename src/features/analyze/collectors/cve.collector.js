@@ -19,9 +19,11 @@ function resolveNearestFix(fixedVersions, installedVersion) {
   return pool[0].version;
 }
 
-async function collectCVEData(projectPath, packageJson = null) {
+async function collectCVEData(projectPath, packageJson = null, graph = null) {
   try {
-    const result = await vulnerabilityChecker.checkProject(projectPath, packageJson);
+    // With a lockfile graph, this checks every installed name@version in the
+    // tree, not just the direct dependencies.
+    const result = await vulnerabilityChecker.checkProject(projectPath, packageJson, { graph });
     const rawVulns = result.vulnerabilities || [];
 
     const issues = rawVulns.length === 0 ? [] : collapsePerPackage(rawVulns);

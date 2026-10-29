@@ -1,63 +1,92 @@
 // src/features/analyze/collectors/dependency.collector.js
 
-const { exec } = require('child_process');
-const { promisify } = require('util');
 const path = require('path');
 const fs = require('fs');
+const semver = require('semver');
+const registryClient = require('../../../shared/services/registry-client');
 const SemverValidator = require('../../../shared/utils/semver-validator');
 const { analyzeUnusedDependencies } = require('./unused-deps.collector');
 
-const execAsync = promisify(exec);
-
-// A failed outdated check must not look like "everything is up to date".
-function incompleteResult(reason) {
-  const result = [];
-  result.incomplete = true;
-  result.incompleteReason = reason;
-  return result;
+// A range this can't meaningfully compare against a registry version:
+// git/file/link/workspace protocols, tags ("latest"), and "*".
+function isComparableRange(range) {
+  if (typeof range !== 'string' || range.trim() === '') return false;
+  if (/^(git|git\+|https?:|file:|link:|workspace:|npm:|github:)/i.test(range)) return false;
+  if (range === '*' || range === 'latest' || range === 'next') return false;
+  return semver.validRange(range) !== null;
 }
 
 async function collectOutdatedData(projectPath, packageJson = null) {
+  const packageJsonPath = path.join(projectPath, 'package.json');
   try {
     if (!packageJson) {
-      const packageJsonPath = path.join(projectPath, 'package.json');
       if (!fs.existsSync(packageJsonPath)) return [];
-      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
     }
+
     const declared = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
-    if (Object.keys(declared).length === 0) return [];
+    const names = Object.keys(declared).filter(name => isComparableRange(declared[name]));
+    if (names.length === 0) return [];
 
-    // npm-check-updates compares package.json's declared ranges against the npm
-    // registry — it doesn't read package-lock.json at all. Gating on the
-    // lockfile's existence meant any yarn/pnpm project (no package-lock.json)
-    // or a freshly-cloned npm project (not yet `npm install`ed) silently got
-    // zero "outdated" findings, indistinguishable from being fully up to date.
-    const { stdout } = await execAsync('npx npm-check-updates --jsonUpgraded', {
-      cwd: projectPath,
-      encoding: 'utf8',
-      timeout: 30000,
-      maxBuffer: 10 * 1024 * 1024
-    });
+    // The npm registry client this project already ships, rather than
+    // npm-check-updates (6 MB, its own network stack, and run through npx) —
+    // "is there a newer version" only needs the published versions plus
+    // semver, and this client already has the 24h disk cache and retries.
+    const registryData = await registryClient.fetchBatch(names);
 
-    const lines = stdout.split('\n').filter(line => line.trim());
-    let jsonLine = null;
-    for (const line of lines) {
-      if (line.startsWith('{') && line.endsWith('}')) {
-        try { JSON.parse(line); jsonLine = line; break; } catch (e) { continue; }
-      }
+    if (registryData.size === 0) {
+      // Asked about packages and heard nothing back: a network/registry
+      // failure, not "everything is up to date".
+      const result = [];
+      result.incomplete = true;
+      result.incompleteReason = 'Could not reach the npm registry for any dependency';
+      return result;
     }
-    if (!jsonLine) return incompleteResult('npm-check-updates returned no result');
 
-    const outdated = JSON.parse(jsonLine);
+    const outdated = [];
+    for (const name of names) {
+      const data = registryData.get(name);
+      const latest = data?.version;
+      if (!latest || !semver.valid(latest)) continue;
 
-    return Object.entries(outdated).map(([name, latest]) => {
-      const current = packageJson.dependencies?.[name] || packageJson.devDependencies?.[name];
-      const cleanCurrent = typeof current === 'string' ? current.replace(/^[\^~]/, '') : current;
-      return { name, current: cleanCurrent, latest, wanted: latest, updateType: SemverValidator.getUpdateType(cleanCurrent, latest) };
-    });
+      const declaredRange = declared[name];
+      const current = declaredRange.replace(/^[\^~>=<\s]+/, '');
+      const currentCoerced = semver.coerce(current);
+      if (!currentCoerced) continue;
+
+      if (!semver.gt(latest, currentCoerced)) continue;
+
+      // What the declared range would actually install today (what `npm
+      // update` would move to) — distinct from latest when the range pins a
+      // major. A cache entry from before `versions` was kept only knows
+      // latest, so it can only tell "latest is in range" from "it isn't".
+      const available = Array.isArray(data.versions) && data.versions.length > 0 ? data.versions : [latest, currentCoerced.version];
+      outdated.push({
+        name,
+        current,
+        latest,
+        wanted: semver.maxSatisfying(available, declaredRange) || current,
+        updateType: SemverValidator.getUpdateType(current, latest)
+      });
+    }
+
+    // Some packages resolved and some didn't (private/unpublished names, or
+    // partial registry failure) — report what we have, but don't let it read
+    // as a clean bill of health for the ones we never heard about.
+    if (registryData.size < names.length) {
+      outdated.incomplete = true;
+      outdated.incompleteReason = `Could not check ${names.length - registryData.size} of ${names.length} dependencies against the registry`;
+    }
+
+    return outdated;
   } catch (error) {
     if (process.env.DEBUG) console.error('Outdated collection failed:', error.message);
-    return incompleteResult(`could not check for newer versions (${error.message.split('\n')[0]})`);
+    // An empty array here is indistinguishable from "everything is up to
+    // date" — mark it incomplete so the report says so instead.
+    const result = [];
+    result.incomplete = true;
+    result.incompleteReason = error.message;
+    return result;
   }
 }
 
@@ -70,4 +99,4 @@ async function collectUnusedData(projectPath, packageJson = null) {
   }
 }
 
-module.exports = { collectOutdatedData, collectUnusedData };
+module.exports = { collectOutdatedData, collectUnusedData, isComparableRange };
