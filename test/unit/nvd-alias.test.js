@@ -10,6 +10,12 @@ const nvdClient = require('../../src/features/cve/nvd.client');
 const osvClient = require('../../src/features/cve/osv.client');
 const cacheManager = require('../../src/features/cve/cache.manager');
 const vulnerabilityChecker = require('../../src/features/cve/vulnerability-checker');
+const exploitRisk = require('../../src/features/cve/exploit-risk.service');
+
+// A CVE alias now also reaches the CISA KEV / FIRST EPSS lookup; keep these
+// tests off the network.
+exploitRisk.getKevSet = async () => new Set();
+exploitRisk.getEpssScores = async () => new Map();
 
 const packageJson = { dependencies: { 'devcompass-nvd-alias-test-pkg': '^1.0.0' } };
 
