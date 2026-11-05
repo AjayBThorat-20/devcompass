@@ -2,7 +2,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const { execSync } = require('child_process');
+const { runNpm } = require('../../shared/utils/run-npm');
 
 const securityData = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../../../data/popular-packages.json'), 'utf8')
@@ -84,25 +84,21 @@ async function runNpmAudit(projectPath) {
   const hasLockfile = fs.existsSync(path.join(projectPath, 'package-lock.json'));
 
   try {
-    const output = execSync('npm audit --json', {
-      cwd: projectPath,
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'ignore'],
-      timeout: 30000,
-      maxBuffer: 10 * 1024 * 1024
-    });
+    // Same helper as fix's npm calls: no shell, npm.cmd resolved on Windows.
+    const output = runNpm(['audit', '--json'], { cwd: projectPath, timeout: 30000 });
     return parseAuditData(JSON.parse(output));
   } catch (error) {
+    // npm audit exits non-zero whenever it finds vulnerabilities — its
+    // normal behavior, not a failed run — so stdout still carries the report.
     if (error.stdout) {
       try {
-        const stdoutText = Buffer.isBuffer(error.stdout) ? error.stdout.toString('utf-8') : error.stdout;
-        return parseAuditData(JSON.parse(stdoutText));
+        return parseAuditData(JSON.parse(error.stdout));
       } catch (parseError) {
         if (process.env.DEBUG) console.error('[dynamic-security] failed to parse npm audit error output:', parseError.message);
         return { vulnerabilities: [], summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 }, incomplete: hasLockfile };
       }
     }
-    if (process.env.DEBUG) console.error('[dynamic-security] npm audit execSync failed with no stdout:', error.message);
+    if (process.env.DEBUG) console.error('[dynamic-security] npm audit failed:', error.message);
     return { vulnerabilities: [], summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 }, incomplete: hasLockfile };
   }
 }
