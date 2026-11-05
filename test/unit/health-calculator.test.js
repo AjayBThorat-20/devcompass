@@ -17,27 +17,45 @@ test('calculate() returns 10.0 for non-array input rather than throwing', () => 
   assert.equal(HealthCalculator.calculate(undefined), 10.0);
 });
 
-test('getPenalty() multiplies severity weight by type weight', () => {
-  // CRITICAL (2.0) * security (1.2) = 2.4
-  assert.equal(HealthCalculator.getPenalty({ severity: 'CRITICAL', type: 'security' }), 2.4);
-  // LOW (0.5) * unused (0.3) = 0.15
-  assert.equal(HealthCalculator.getPenalty({ severity: 'LOW', type: 'unused' }), 0.15);
+test('getPenalty() is severity-only; type weighting comes from the category cap', () => {
+  assert.equal(HealthCalculator.getPenalty({ severity: 'CRITICAL', type: 'security' }), 3.0);
+  assert.equal(HealthCalculator.getPenalty({ severity: 'LOW', type: 'unused' }), 0.3);
 });
 
-test('getPenalty() falls back to a 1.0 multiplier for unknown severity/type', () => {
+test('getPenalty() falls back to a 1.0 penalty for an unknown severity', () => {
   assert.equal(HealthCalculator.getPenalty({ severity: 'NOT_REAL', type: 'also-not-real' }), 1.0);
 });
 
-test('calculate() subtracts the summed penalty from a base of 10', () => {
-  const issues = [
-    { severity: 'HIGH', type: 'security' },  // 1.5 * 1.2 = 1.8
-    { severity: 'LOW', type: 'outdated' }    // 0.5 * 0.5 = 0.25
-  ];
-  assert.equal(HealthCalculator.calculate(issues), 10 - 1.8 - 0.25);
+test('calculate() never lets a CRITICAL vulnerability hide behind a passing score', () => {
+  const issues = [{ severity: 'CRITICAL', type: 'security' }];
+  assert.ok(HealthCalculator.calculate(issues) < 4);
 });
 
-test('calculate() clamps at 0 instead of going negative for many severe issues', () => {
-  const issues = Array.from({ length: 10 }, () => ({ severity: 'CRITICAL', type: 'security' }));
+test('calculate() treats a known-exploited vulnerability as critical, whatever its severity', () => {
+  const issues = [{ severity: 'MEDIUM', type: 'security', metadata: { knownExploited: true } }];
+  assert.ok(HealthCalculator.calculate(issues) < 4);
+});
+
+test('calculate() never lets a HIGH vulnerability hide behind a "Good" score', () => {
+  const issues = [{ severity: 'HIGH', type: 'security' }];
+  assert.ok(HealthCalculator.calculate(issues) < 6);
+});
+
+test('calculate() scores a project with only outdated packages above 7, however many there are', () => {
+  const issues = Array.from({ length: 30 }, () => ({ severity: 'LOW', type: 'outdated' }));
+  assert.ok(HealthCalculator.calculate(issues) > 7);
+});
+
+test('calculate() penalty for one category approaches its cap but never exceeds it', () => {
+  const manyUnused = Array.from({ length: 500 }, () => ({ severity: 'CRITICAL', type: 'unused' }));
+  // unused's cap is 0.5, so the score can never drop below 9.5 from unused findings alone.
+  assert.ok(HealthCalculator.calculate(manyUnused) >= 9.5);
+});
+
+test('calculate() clamps at 0 instead of going negative for many severe issues across every category', () => {
+  const issues = ['security', 'license', 'quality', 'outdated', 'unused'].flatMap(type =>
+    Array.from({ length: 50 }, () => ({ severity: 'CRITICAL', type }))
+  );
   assert.equal(HealthCalculator.calculate(issues), 0);
 });
 

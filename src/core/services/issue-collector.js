@@ -90,6 +90,9 @@ class IssueCollector {
 
     warnings.forEach(w => {
       if (w.type === 'typosquatting') {
+        // Never "Replace with X": the match is a heuristic (name distance +
+        // download counts), not a confirmed attack, and swapping in the
+        // look-alike unreviewed is its own risk.
         this.pending.push({
           name: w.package,
           version: w.version,
@@ -99,25 +102,10 @@ class IssueCollector {
           score: 8,
           message: 'Possible typosquatting',
           risk: w.warning || w.description || `Similar to ${w.similarTo || w.correctPackage}`,
-          fix: (w.similarTo || w.correctPackage) ? `Replace with ${w.similarTo || w.correctPackage}` : 'Remove package',
+          fix: `Review before using — confirm this is the package you meant to install, not "${w.similarTo || w.correctPackage}"`,
           safeFix: false,
           source: 'Typosquat',
           metadata: { similarTo: w.similarTo || w.correctPackage, distance: w.distance }
-        });
-      } else if (w.type === 'install_script') {
-        this.pending.push({
-          name: w.package,
-          version: w.version,
-          type: 'security',
-          severity: this.mapCVESeverity(w.severity),
-          confidence: 'medium',
-          score: 6,
-          message: 'Suspicious install script detected',
-          risk: w.description || w.reason,
-          fix: 'Review the script manually before installing',
-          safeFix: false,
-          source: 'InstallScript',
-          metadata: {}
         });
       } else if (w.type === 'vulnerability') {
         this.pending.push({
@@ -173,7 +161,9 @@ class IssueCollector {
         message: 'Unused dependency',
         risk: 'Package is not being used',
         fix: 'Remove package',
-        safeFix: true,
+        // Detection is a heuristic, so removal is never a safe fix — `fix`
+        // only removes packages with --remove-unused.
+        safeFix: false,
         source: 'Unused',
         metadata: {}
       });
@@ -350,7 +340,11 @@ class IssueCollector {
       message,
       risk,
       fix: preferredFix,
-      safeFix: entries.some(e => e.safeFix),
+      // Judged on the fix actually chosen. A source's own safeFix describes
+      // *its* fix — npm audit's "fixable" means `npm audit fix` can resolve
+      // it, not that the version picked here (e.g. axios 0.21 -> 0.33) is
+      // non-breaking.
+      safeFix: this.isSafeUpdate({ version, fixVersion: (preferredFix.match(/(\d+\.\d+\.\d+)/) || [])[1] }),
       source: sourceList.join('+') || 'Security',
       metadata: cveEntry ? cveEntry.metadata : (best.metadata || {})
     });
@@ -469,14 +463,13 @@ class IssueCollector {
     return latestMajor > currMajor ? `Major version behind (${currMajor} → ${latestMajor})` : 'Minor updates available';
   }
 
+  // Safe only within the caret range: same major for 1.x and up, but the
+  // same minor for 0.x, where a minor bump is a breaking change.
   isSafeUpdate(pkg) {
-    const current = pkg.current || pkg.version;
-    const target = pkg.fixVersion || pkg.latest;
+    const current = semver.coerce(String(pkg.current || pkg.version || ''));
+    const target = semver.coerce(String(pkg.fixVersion || pkg.latest || ''));
     if (!current || !target) return false;
-    const currMajor = parseInt(String(current).split('.')[0], 10);
-    const targetMajor = parseInt(String(target).split('.')[0], 10);
-    if (isNaN(currMajor) || isNaN(targetMajor)) return false;
-    return currMajor === targetMajor;
+    return semver.satisfies(target, `^${current.version}`);
   }
 }
 

@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const chalk = require('chalk');
-const { createFixPlan } = require('./planners/fix.planner');
+const { createFixPlan, selectActions } = require('./planners/fix.planner');
 const { BackupExecutor } = require('./executors/backup.executor');
 const { FixExecutor } = require('./executors/fix.executor');
 const { renderFixPreview, renderConfirmation } = require('./renderers/preview.renderer');
@@ -23,6 +23,9 @@ async function runFix(options = {}) {
     skipConfirm = false,
     dryRun = false,
     preview = false,
+    // Removing a package is always an explicit choice, even with --all:
+    // unused detection is a heuristic.
+    removeUnused = false,
     migrateSyntax: migrateSyntaxEnabled = false
   } = options;
 
@@ -36,24 +39,24 @@ const beforeScore = analysisResult.healthScore;
       return;
     }
 
-    const plan = createFixPlan(issues);
-    renderFixPreview(plan, mode, projectPath);
+    // Only packages declared in package.json can be updated in place; a
+    // vulnerable transitive one becomes a review item instead.
+    const pkg = JSON.parse(fs.readFileSync(path.join(projectPath, 'package.json'), 'utf8'));
+    const directDependencies = new Set(Object.keys({ ...pkg.dependencies, ...pkg.devDependencies, ...pkg.optionalDependencies }));
+    const plan = createFixPlan(issues, { directDependencies, removeUnused });
+    renderFixPreview(plan, mode, projectPath, { removeUnused });
+
+    // Review items are listed in the preview but never executed.
+    const actions = selectActions(plan, mode, { removeUnused }).filter(action => action.action !== 'review');
 
     if (dryRun || preview) {
       console.log('\n🔍 Preview mode enabled\n');
-      const actions = mode === 'all'
-        ? [...plan.safe, ...plan.moderate, ...plan.risky]
-        : plan.safe;
 
       const BatchReporter = require('../../shared/utils/batch-reporter');
       const reporter = new BatchReporter(projectPath);
-      reporter.renderPreview({ operations: actions.map(a => ({ package: a.package || a.name || 'unknown', type: a.type || 'update', from: a.current || null, to: a.latest || null })) });
+      reporter.renderPreview({ operations: actions.map(a => ({ package: a.package || 'unknown', type: a.action, from: a.currentVersion || null, to: a.targetVersion || null })) });
       return;
     }
-
-    const actions = mode === 'all'
-      ? [...plan.safe, ...plan.moderate, ...plan.risky]
-      : plan.safe;
 
     if (actions.length === 0) return;
 

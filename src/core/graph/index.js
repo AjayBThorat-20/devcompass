@@ -150,6 +150,17 @@ function loadNpmGraph(lock) {
   return { packageManager: 'npm', nodes, edges, roots };
 }
 
+// Every installed package that runs code during `npm install` (lockfile
+// v2+ records hasInstallScript per package). Information, not a finding:
+// esbuild, sharp and plenty of other legitimate packages have one, but it's
+// exactly where a compromised release would run its payload.
+function listInstallScripts(graph) {
+  return Array.from(graph?.nodes?.values() || [])
+    .filter(node => node.hasInstallScript)
+    .map(node => ({ package: node.name, version: node.version, direct: node.direct, dev: node.dev }))
+    .sort((a, b) => a.package.localeCompare(b.package) || a.version.localeCompare(b.version));
+}
+
 /**
  * @param {string} projectPath
  * @returns {Promise<{packageManager: string|null, nodes: Map<string, PackageNode>, edges: Array<[string,string]>, roots: string[], incomplete?: boolean, incompleteReason?: string}>}
@@ -196,4 +207,4 @@ async function loadDependencyGraph(projectPath) {
   return loadNpmGraph(lock);
 }
 
-module.exports = { loadDependencyGraph, detectPackageManager, resolveInLockfile };
+module.exports = { loadDependencyGraph, detectPackageManager, resolveInLockfile, listInstallScripts };

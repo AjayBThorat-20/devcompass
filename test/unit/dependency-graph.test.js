@@ -9,7 +9,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { loadDependencyGraph, detectPackageManager, resolveInLockfile } = require('../../src/core/graph');
+const { loadDependencyGraph, listInstallScripts, detectPackageManager, resolveInLockfile } = require('../../src/core/graph');
 
 function makeProject(files) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'devcompass-graph-test-'));
@@ -149,6 +149,22 @@ test('loadDependencyGraph() flags dev dependencies and carries hasInstallScript/
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('listInstallScripts() lists every installed package with an install script, once per version', async () => {
+  const dir = makeFixtureProject();
+  try {
+    const scripts = listInstallScripts(await loadDependencyGraph(dir));
+    assert.deepEqual(scripts.map(s => `${s.package}@${s.version}`), ['better-sqlite3@11.10.0']);
+    assert.equal(scripts[0].direct, false, 'installed at the top level, but not declared in package.json');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('listInstallScripts() returns nothing for a missing or incomplete graph', () => {
+  assert.deepEqual(listInstallScripts(null), []);
+  assert.deepEqual(listInstallScripts({ nodes: new Map(), incomplete: true }), []);
 });
 
 test('loadDependencyGraph() reports incomplete for a lockfileVersion 1 file instead of an empty graph', async () => {

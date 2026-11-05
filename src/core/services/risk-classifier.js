@@ -1,8 +1,15 @@
 // src/core/services/risk-classifier.js
 
 function classifyFixRisk(issue) {
-  if (issue.type === 'unused') return { risk: 'safe', reason: 'Removing unused dependency', breakingChangeProbability: 'low' };
-  if (issue.type === 'security' && issue.safeFix) return { risk: 'safe', reason: 'Patch or minor security update', breakingChangeProbability: 'low' };
+  // Unused detection is heuristic (dynamic requires, CLI-only deps, framework
+  // conventions), so removal always needs a human to confirm it.
+  if (issue.type === 'unused') return { risk: 'risky', reason: 'Unused detection is heuristic; confirm nothing imports it before removing', breakingChangeProbability: 'medium' };
+  // A heuristic security finding (medium/low confidence — e.g. a typosquat
+  // match) must never be "safe" just because safeFix happens to be true;
+  // only concrete advisory/audit data (confidence 'high') can be.
+  if (issue.type === 'security' && issue.safeFix && issue.confidence === 'high') {
+    return { risk: 'safe', reason: 'Patch or minor security update', breakingChangeProbability: 'low' };
+  }
 
   if (issue.type === 'outdated') {
     const updateType = issue.metadata?.updateType;
