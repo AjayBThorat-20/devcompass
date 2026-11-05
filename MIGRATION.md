@@ -1,5 +1,18 @@
 # Migration Guide
 
+## Unreleased
+
+- **`analyze --ai` and `--ai-provider` are gone.** These only ever returned a
+  fixed template sentence — no model was ever called. Use
+  `devcompass ai recommend` (or `ai ask`/`ai alternatives`) instead, which do
+  call your configured provider. If you parse `analyze --json`, its `metadata`
+  no longer includes the always-`null` `aiInsight` field.
+- **`fix --batch`, `--batch-mode <mode>`, `--only <categories>`, and
+  `--skip <categories>` are gone.** They only ever printed "Batch mode
+  features are not yet available" — there is nothing to switch to; use plain
+  `devcompass fix`, `fix --all`, or `fix --yes`. `--dry-run` (and its
+  `--dry`/`--preview` aliases) are unaffected.
+
 ## From v4.1.4 → v4.1.5
 
 ### What's New

@@ -13,8 +13,6 @@ module.exports = function registerAnalyzeCommand(program) {
     .option('--threshold <score>', 'Health score threshold for CI mode (default: 7.0)', '7.0')
     .option('--silent', 'Silent mode - no output')
     .option('--no-history', 'Skip saving snapshot to history database')
-    .option('--ai', 'Get AI-powered insights and recommendations')
-    .option('--ai-provider <provider>', 'AI provider to use (openai, anthropic, google, local)')
     .action(async (options) => {
       try {
         if (options.ci && options.threshold) {
@@ -30,7 +28,6 @@ module.exports = function registerAnalyzeCommand(program) {
           mode: options.deep ? 'deep' : 'default',
           projectPath: options.path,
           json: options.json,
-          aiEnabled: options.ai,
           saveHistory: options.history !== false,
           ci: options.ci,
           ciThreshold: options.ciThreshold !== undefined ? options.ciThreshold : 7.0,

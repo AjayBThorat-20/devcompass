@@ -23,18 +23,8 @@ async function runFix(options = {}) {
     skipConfirm = false,
     dryRun = false,
     preview = false,
-    batch = false,
-    batchMode = null,
-    only = null,
-    skip = null,
     migrateSyntax: migrateSyntaxEnabled = false
   } = options;
-
-  if (batch || batchMode || only || skip) {
-    console.log('\n⚠️  Batch mode features are not yet available');
-    console.log('Use standard fix mode:\n  devcompass fix\n  devcompass fix --all\n  devcompass fix --yes\n');
-    return;
-  }
 
   try {
 const analysisResult = await runAnalyze({ projectPath, mode: 'silent', silent: true, json: false, saveHistory: false });

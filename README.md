@@ -157,8 +157,8 @@ devcompass analyze
 # Get full detailed report
 devcompass analyze --deep
 
-# Get AI-powered recommendations
-devcompass analyze --ai
+# Get AI-powered recommendations (after configuring a provider with `devcompass llm add`)
+devcompass ai recommend
 
 # Generate interactive dependency graph
 devcompass graph --open
@@ -199,9 +199,6 @@ devcompass analyze
 
 # Full detailed report (all issues)
 devcompass analyze --deep
-
-# With AI recommendations
-devcompass analyze --ai
 
 # JSON output for CI/CD
 devcompass analyze --json
@@ -695,7 +692,7 @@ Every `devcompass analyze` automatically:
 
 ### 🔍 What AI Features Actually Send
 
-Every AI feature (`devcompass analyze --ai`, `devcompass ai ask`, `devcompass ai recommend`, etc.) sends one HTTP request to whichever provider you configured, containing a system prompt plus a single user message built from your project's own analysis results. Nothing else — not your source code, not file contents, not your filesystem path. Here's the actual request body, field for field (from `src/features/ai/prompt.templates.js` and `ai.command.js`):
+Every AI feature (`devcompass ai ask`, `devcompass ai recommend`, `devcompass ai alternatives`, `devcompass ai chat`) sends one HTTP request to whichever provider you configured, containing a system prompt plus a single user message built from your project's own analysis results. Nothing else — not your source code, not file contents, not your filesystem path. Here's the actual request body, field for field (from `src/features/ai/prompt.templates.js` and `ai.command.js`):
 
 ```json
 {
@@ -734,7 +731,7 @@ devcompass llm add --provider local --model llama3.2 --base-url http://localhost
 devcompass llm test local
 
 # 6. Use it!
-devcompass analyze --ai
+devcompass ai recommend
 devcompass ai ask "What should I update first?"
 ```
 
@@ -750,7 +747,7 @@ devcompass llm add --provider openai --token sk-YOUR-KEY --model gpt-4o-mini
 devcompass llm test openai
 
 # Use
-devcompass analyze --ai
+devcompass ai recommend
 ```
 
 ### AI Capabilities

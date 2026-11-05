@@ -30,13 +30,6 @@ function renderDefaultOutput(issues, metadata) {
   };
   ConsoleFormatter.summary(stats);
 
-  if (metadata.aiInsight) {
-    console.log('');
-    ConsoleFormatter.section('🤖 AI Insight');
-    console.log(metadata.aiInsight);
-    console.log('');
-  }
-
   if (issues.length > 0) {
     ConsoleFormatter.actions([
       { icon: '✔', label: 'Fix safe issues', command: 'devcompass fix' },
