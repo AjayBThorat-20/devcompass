@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   version-guard:
     # Catches the two failure modes behind the npm/GitHub version desync
@@ -18,13 +21,14 @@ jobs:
     # would fail on ordinary work, not just an actual version mistake.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install dependencies
         run: npm ci
@@ -68,22 +72,36 @@ jobs:
             }
           "
 
-  test-and-audit:
-    runs-on: ubuntu-latest
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        # '20' resolves to the latest 20.x, which satisfies engines' ^20.19.0
+        # (the oldest Node with require(esm), needed for ESM-only uuid@14).
+        node: ['20', '22', '24']
+    runs-on: ${{ matrix.os }}
+    # Windows is expected to fail for now: npm is spawned with
+    # execFileSync('npm'), which can't find npm.cmd on Windows, and the
+    # unused-dependency fallback shells out to grep, which Windows lacks by
+    # default. Informational until both are fixed; then drop this line to
+    # make Windows a real gate.
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          node-version: '20'
+          persist-credentials: false
 
-      - name: Install dependencies
-        run: npm ci
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ matrix.node }}
 
-      - name: Run test suite with coverage
-        run: npm run test:coverage
+      - run: npm ci
+
+      - run: npm run test:coverage
 
       - name: Audit for known vulnerabilities
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '24'
         run: npm audit --audit-level=high
 
   integration-smoke:
@@ -99,11 +117,13 @@ jobs:
     # informational rather than a merge gate for that reason.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          node-version: '20'
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
 
       - name: Install dependencies
         run: npm ci
@@ -115,7 +135,7 @@ jobs:
       # generated on demand rather than committed — a fresh CI checkout
       # doesn't have them until this runs.
       - name: Generate test fixture projects
-        run: bash create-test-projects.sh
+        run: bash test/create-test-projects.sh
 
       - name: Install fixture project dependencies
         run: |
