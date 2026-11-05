@@ -226,6 +226,8 @@ devcompass analyze --ci --threshold 8.0
 - 🟠 **4.0-5.9** - Poor (Many issues)
 - 🔴 **0.0-3.9** - Critical (Urgent action needed)
 
+**How the score is calculated:** each category (security, license, quality, outdated, unused) can take at most a fixed share of the 10 points — security up to 5, license/quality/outdated up to 1.5 each, unused up to 0.5 — and each finding's penalty depends on its severity. A category's penalty approaches its cap as findings pile up but never passes it, so 30 outdated packages can't outweigh one critical vulnerability. Any CRITICAL or known-exploited (CISA KEV) vulnerability caps the score at 3.9, and any HIGH one at 5.9, however clean the rest of the project is.
+
 ---
 
 ### Security Commands
@@ -280,8 +282,11 @@ devcompass fix
 # Skip confirmation
 devcompass fix --yes
 
-# Include all fixes (including risky)
+# Include all fixes (including risky ones) — never removes a package
 devcompass fix --all
+
+# Also uninstall packages flagged as unused (always opt-in)
+devcompass fix --remove-unused
 
 # Preview only (no changes)
 devcompass fix --dry-run
@@ -295,7 +300,10 @@ devcompass fix undo
 
 **Safety Features:**
 - Automatic backup before changes
-- Risk classification (safe/moderate/risky)
+- Risk classification (safe/moderate/risky). Only updates that semver says can't break anything are "safe" — never a major version, and never a 0.x minor bump (0.21 → 0.28), since 0.x minors are breaking
+- Packages are only removed with `--remove-unused`: unused detection is a heuristic (dynamic `require()`s, CLI-only tools, framework conventions)
+- A vulnerable *transitive* dependency is never installed at the top level (that would add a new direct dependency and leave the vulnerable nested copy in place). It's listed under "Needs manual action" with `npm audit fix` and a ready-to-paste `overrides` entry instead
+- A vulnerability with no fixed version to move to is listed for review, never "fixed" by installing `@latest`
 - Interactive preview and confirmation
 - Live `package.json` diff in the preview, before you confirm
 - Health score tracking (before → after)

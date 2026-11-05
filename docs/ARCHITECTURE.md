@@ -102,10 +102,13 @@ end to end:
    same package, and maps everything to `core/models/issue.model.js` `Issue`
    instances via `createIssue()`.
 4. `collector.getAll()` → `core/services/health-calculator.js`
-   `HealthCalculator.calculate(issues)`: starts at `10.0`, subtracts
-   `severityPenalty × typePenalty` per issue (severity: CRITICAL 2.0 / HIGH
-   1.5 / MEDIUM 1.0 / LOW 0.5; type: security 1.2 / license 1.0 / quality 0.8
-   / outdated 0.5 / unused 0.3), clamps to `[0, 10]`.
+   `HealthCalculator.calculate(issues)`: starts at `10.0`; per category,
+   sums a severity penalty per issue (CRITICAL 3.0 / HIGH 2.0 / MEDIUM 1.2 /
+   LOW 0.3) and subtracts `cap × (1 − e^(−sum/cap))`, which approaches the
+   category's cap without exceeding it (security 5 / license 1.5 / quality
+   1.5 / outdated 1.5 / unused 0.5 — they sum to 10). Any CRITICAL or
+   known-exploited security finding then caps the score at 3.9, any HIGH at
+   5.9. Rounded to one decimal.
 5. Cache the result (`shared/utils/analysis-cache.js`, 24h TTL, versioned
    against the installed devcompass version) and render it — `renderers/`
    picks default / `--deep` / `--json` output.

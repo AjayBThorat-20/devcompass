@@ -1,5 +1,6 @@
 // src/features/analyze/renderers/default.renderer.js
 
+const chalk = require('chalk');
 const { ConsoleFormatter } = require('../../../core/formatters/console-formatter');
 const { getTopIssues } = require('../../../core/services/issue-ranker');
 const { version } = require('../../../../package.json');
@@ -29,6 +30,14 @@ function renderDefaultOutput(issues, metadata) {
     low: issues.filter(i => i.severity === 'LOW').length
   };
   ConsoleFormatter.summary(stats);
+
+  if (metadata.installScripts && metadata.installScripts.length > 0) {
+    const scripts = metadata.installScripts;
+    ConsoleFormatter.section('ℹ️  Packages that run code during install', scripts.length);
+    scripts.slice(0, 5).forEach(s => console.log(`   ${s.package}@${s.version}`));
+    if (scripts.length > 5) console.log(`   ...and ${scripts.length - 5} more (see --deep)`);
+    console.log(chalk.gray('   Not a vulnerability by itself — but where a compromised release would run its code.'));
+  }
 
   if (issues.length > 0) {
     ConsoleFormatter.actions([

@@ -46,10 +46,13 @@ class SemverValidator {
     const currentVer = this.coerce(current);
     const latestVer = this.coerce(latest);
     if (!currentVer || !latestVer) return 'unknown';
-    if (semver.major(latestVer) > semver.major(currentVer)) return 'major';
+    if (!semver.gt(latestVer, currentVer)) return 'latest';
+    // Anything outside the caret range is a breaking change under semver:
+    // a major bump, but also a minor bump in 0.x (0.21 -> 0.28) and any
+    // bump in 0.0.x — so `fix` never treats one as a safe update.
+    if (!semver.satisfies(latestVer, `^${currentVer.version}`)) return 'major';
     if (semver.minor(latestVer) > semver.minor(currentVer)) return 'minor';
-    if (semver.patch(latestVer) > semver.patch(currentVer)) return 'patch';
-    return 'latest';
+    return 'patch';
   }
 
   static isPrerelease(version) {

@@ -10,7 +10,7 @@ const fileCache = require('../../shared/utils/file-cache');
 
 const { resolveEnabledCollectors } = require('./collectors');
 const { resolveInstalledVersions } = require('../alerts/version-resolver.service');
-const { loadDependencyGraph } = require('../../core/graph');
+const { loadDependencyGraph, listInstallScripts } = require('../../core/graph');
 
 const { renderDefaultOutput } = require('./renderers/default.renderer');
 const { renderDeepOutput } = require('./renderers/deep.renderer');
@@ -109,7 +109,9 @@ async function runAnalyze(options = {}) {
       outdatedScanIncomplete: !!incompleteById.outdated,
       scanIncomplete: incompleteById,
       healthScore,
-      totalDependencies
+      totalDependencies,
+      // Informational only, never scored (see listInstallScripts).
+      installScripts: listInstallScripts(graph)
     };
 
     saveAnalysisCache({

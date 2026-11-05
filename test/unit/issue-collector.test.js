@@ -152,3 +152,12 @@ test('an ecosystem alert whose fix is free text is not turned into "Update to <t
   assert.equal(issue.fix, 'Consider alternatives');
   assert.equal(issue.safeFix, false);
 });
+
+test('a typosquat finding asks for review, never "Replace with" the look-alike', () => {
+  const collector = createIssueCollector();
+  collector.addSecurityIssues([{ type: 'typosquatting', package: 'expres', version: '1.0.0', correctPackage: 'express', distance: 1 }]);
+  const issue = collector.getAll().find(i => i.name === 'expres');
+  assert.match(issue.fix, /^Review before using/);
+  assert.doesNotMatch(issue.fix, /Replace with/);
+  assert.equal(issue.safeFix, false);
+});

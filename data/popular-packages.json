@@ -114,6 +114,10 @@
     "lint-staged",
     "commitlint",
     "knip",
-    "mysql2"
+    "mysql2",
+    "preact",
+    "vuex",
+    "nuxi",
+    "cuid"
   ]
 }

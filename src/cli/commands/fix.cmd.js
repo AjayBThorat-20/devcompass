@@ -7,7 +7,8 @@ module.exports = function registerFixCommand(program) {
     .command('fix [action]')
     .description('Fix issues automatically with safe defaults (or `fix undo` to revert the last --migrate-syntax run)')
     .option('-p, --path <path>', 'Project path', process.cwd())
-    .option('--all', 'Apply all fixes including risky ones')
+    .option('--all', 'Apply all fixes including risky ones (never removes a package — see --remove-unused)')
+    .option('--remove-unused', 'Also uninstall packages flagged as unused. Detection is a heuristic (dynamic requires, CLI-only deps, framework conventions), so confirm nothing imports them first')
     .option('-y, --yes', 'Skip confirmation prompt', false)
     .option('--dry-run', 'Show what would be fixed without making changes')
     .option('--dry', 'Alias for --dry-run')
@@ -33,6 +34,7 @@ module.exports = function registerFixCommand(program) {
           skipConfirm: options.yes,
           dryRun: options.dryRun || options.dry || options.preview,
           preview: options.preview,
+          removeUnused: !!options.removeUnused,
           verbose: options.verbose,
           migrateSyntax: options.migrateSyntax
         });
