@@ -10,6 +10,16 @@ const TRUSTED_PACKAGES = new Set([
   'jest', 'eslint', 'nodemon', 'rxjs', 'redux', 'socket.io'
 ]);
 
+// npm audit's `via` mixes advisory objects (with a real `.title`) and plain
+// package-name strings (the dependency chain that pulled it in).
+function describeVulnerability(via) {
+  if (!Array.isArray(via)) return 'Security vulnerability detected';
+  const titles = via.filter(v => v && typeof v === 'object' && v.title).map(v => v.title);
+  if (titles.length > 0) return titles.join('; ');
+  const names = via.filter(v => typeof v === 'string');
+  return names.length > 0 ? names.join(', ') : 'Security vulnerability detected';
+}
+
 async function analyzeSupplyChain(projectPath, dependencies = {}) {
   const packages = Object.keys(dependencies || {});
   const emptyResult = { warnings: [], total: 0, summary: { typosquatting: 0, suspiciousScripts: 0, vulnerabilities: 0 } };
@@ -70,7 +80,9 @@ async function analyzeSupplyChain(projectPath, dependencies = {}) {
           package: vuln.package || 'unknown',
           type: 'vulnerability',
           severity,
-          description: Array.isArray(vuln.via) ? vuln.via.filter(v => typeof v === 'string').join(', ') || 'Security vulnerability detected' : 'Security vulnerability detected',
+          // Using only the strings in `via` produced descriptions like
+          // "body-parser, qs" instead of the actual vulnerability title.
+          description: describeVulnerability(vuln.via),
           reason: 'npm audit flagged this package',
           risk: `${severity.toUpperCase()} security vulnerability`,
           action: 'update',
@@ -99,4 +111,4 @@ async function analyzeSupplyChain(projectPath, dependencies = {}) {
   }
 }
 
-module.exports = { analyzeSupplyChain };
+module.exports = { analyzeSupplyChain, describeVulnerability };

@@ -26,6 +26,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The unused, unreachable `outdated.collector.js`, `npm-audit.collector.js`, `recommendation.service.js`, and the batch-fix service files (`batch-executor`, `batch-selector`, `supply-chain-fixer`, `license-conflict-fixer`, `quality-fixer`), plus the `data/batch-categories.json` and `data/priorities.json` files only they read. The supply-chain fixer would have "fixed" a flagged typosquat by uninstalling it and installing the look-alike it matched against.
 - The local-install warning in `devcompass.js` ("DevCompass is installed locally — npm install -g devcompass"), which fired for global installs and `npx` too and discouraged pinning DevCompass as a devDependency, the actually-recommended setup for teams/CI.
 
+### Fixed
+
+- **The same vulnerability was counted twice.** An ecosystem alert typed `vulnerability` was filed as a *quality* finding, so it never merged with the matching CVE finding for that package — it appeared twice in the report and lowered the health score twice. It is now a security finding and merges, keeping every advisory id from both sources.
+- **A finding's version is always the installed one**, never an advisory's vulnerable range (e.g. `qs@<=6.15.3`) or `unknown`. Findings whose collector didn't report a version (npm audit, unused, quality) now get it from `node_modules`.
+- **NVD enrichment practically never matched.** OSV identifies npm advisories by GHSA id, but NVD only accepts CVE ids; the CVE id is now taken from the OSV record's `aliases`, and the NVD lookup is skipped when there isn't one.
+- **npm audit descriptions were lists of package names** (e.g. "body-parser, qs") instead of the advisory's title. They now use the title when npm audit provides one.
+- `cve.collector.js` kept only the first advisory id per package (it counted the rest and discarded them); every advisory id now reaches the finding.
+- An ecosystem alert whose suggested fix is free text no longer reads "Update to Consider alternatives…", and isn't marked as a safe fix.
+
 ## [4.1.9] - 2026-10-06
 
 ### Fixed

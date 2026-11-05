@@ -10,6 +10,7 @@ const fileCache = require('../../shared/utils/file-cache');
 const OutputManager = require('../../shared/utils/output-manager');
 
 const { resolveEnabledCollectors } = require('./collectors');
+const { resolveInstalledVersions } = require('../alerts/version-resolver.service');
 
 const { renderDefaultOutput } = require('./renderers/default.renderer');
 const { renderDeepOutput } = require('./renderers/deep.renderer');
@@ -61,6 +62,11 @@ async function runAnalyze(options = {}) {
       }
       collectorDef.addTo(collector, data);
     });
+
+    // Show the version that is actually installed, never an advisory's
+    // vulnerable range, for findings whose collector didn't report one.
+    const installed = await resolveInstalledVersions(projectPath, Object.fromEntries(collector.getPendingNames().map(n => [n, ''])));
+    collector.setInstalledVersions(Object.fromEntries(Object.values(installed).filter(v => v.version).map(v => [v.name, v.version])));
 
     const allIssues = collector.getAll();
     const healthScore = HealthCalculator.calculate(allIssues);
