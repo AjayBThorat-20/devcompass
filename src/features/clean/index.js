@@ -3,6 +3,8 @@
 const chalk = require('chalk');
 const fs = require('fs');
 const OutputManager = require('../../shared/utils/output-manager');
+const { clearAllAnalysisCaches } = require('../../shared/utils/analysis-cache');
+const { clearCache: clearRegistryCache, getCacheStats: getRegistryCacheStats } = require('../../shared/services/registry-client');
 
 async function cleanCommand(options = {}) {
   const {
@@ -17,8 +19,16 @@ async function cleanCommand(options = {}) {
   } = options;
 
   const outputManager = new OutputManager(projectPath);
+  // Backups live in the separate <project>/.devcompass-backups/ folder
+  // (CL-10), not under <project>/.devcompass/, so "is there anything to
+  // clean" has to check both roots, not just outputManager's.
+  const hasProjectDir = outputManager.exists('root') || outputManager.exists('backups');
 
-  if (!outputManager.exists('root')) {
+  // The analysis cache and the registry/OSV cache both live under
+  // ~/.devcompass/cache/ now (C-11 follow-up), not inside the project, so
+  // --cache/--all must reach them even when this project has no local
+  // .devcompass/ directory at all.
+  if (!hasProjectDir && !all && !cache) {
     console.log(chalk.yellow('\n⚠️  No .devcompass directory found. Nothing to clean.\n'));
     return;
   }
@@ -79,7 +89,18 @@ async function cleanCommand(options = {}) {
 
   let cleaned = 0, errors = 0;
   console.log('');
-  for (const type of toClean) {
+
+  if (all || cache) {
+    const statsBefore = getRegistryCacheStats();
+    const analysisCleared = clearAllAnalysisCaches();
+    clearRegistryCache();
+    if (analysisCleared > 0 || statsBefore.diskCount > 0) {
+      console.log(chalk.green(`✓ Cleared ${analysisCleared} analysis cache file(s) and ${statsBefore.diskCount} registry cache file(s) from ~/.devcompass/cache`));
+      cleaned++;
+    }
+  }
+
+  for (const type of toClean.filter(t => hasProjectDir && outputManager.exists(t))) {
     try {
       const dir = outputManager.getPath(type);
       if (fs.existsSync(dir)) {

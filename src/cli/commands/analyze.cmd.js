@@ -24,7 +24,7 @@ module.exports = function registerAnalyzeCommand(program) {
           options.ciThreshold = threshold;
         }
         const { runAnalyze } = require('../../features/analyze');
-        await runAnalyze({
+        const result = await runAnalyze({
           mode: options.deep ? 'deep' : 'default',
           projectPath: options.path,
           json: options.json,
@@ -33,6 +33,7 @@ module.exports = function registerAnalyzeCommand(program) {
           ciThreshold: options.ciThreshold !== undefined ? options.ciThreshold : 7.0,
           silent: options.silent
         });
+        if (options.ci) process.exitCode = result.exitCode;
       } catch (error) {
         console.error(chalk.red('\n❌ Analysis failed:'), error.message);
         if (process.env.DEBUG) console.error(error.stack);

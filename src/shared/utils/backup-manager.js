@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { printGitignoreTipIfNeeded } = require('./output-manager');
 
 class BackupManager {
   constructor(projectPath) {
@@ -52,6 +53,7 @@ class BackupManager {
       fs.writeFileSync(path.join(backupPath, 'metadata.json'), JSON.stringify({ timestamp: new Date().toISOString(), reason, filesBackedUp: backedUpFiles, projectVersion, devcompassVersion, ...metadata }, null, 2));
 
       await this.cleanOldBackups(5);
+      printGitignoreTipIfNeeded(this.projectPath);
       return backupPath;
     } catch (error) {
       if (process.env.DEBUG) console.error('Failed to create backup:', error.message);

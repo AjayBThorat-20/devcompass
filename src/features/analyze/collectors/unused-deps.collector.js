@@ -1,10 +1,10 @@
 // src/features/analyze/collectors/unused-deps.collector.js
 
+const os = require('os');
 const { exec, execFile } = require('child_process');
 const { promisify } = require('util');
 const path = require('path');
 const fs = require('fs');
-const OutputManager = require('../../../shared/utils/output-manager');
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -34,60 +34,69 @@ async function analyzeUnusedDependencies(projectPath, packageJson = null) {
     }
 
     const dependencies = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
+    if (Object.keys(dependencies).length === 0) return [];
 
-    // Written under .devcompass/temp instead of the project root — a bare
-    // "knip.json" there would leak into the scanned project's own repo/git status.
-    const outputManager = new OutputManager(projectPath);
-    const knipConfigPath = outputManager.getTempPath('knip.json');
+    // The temp knip config lives in the OS temp dir, never inside the scanned
+    // project (analyze must not write there), and is removed afterwards.
+    const knipTempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'devcompass-knip-'));
+    const knipConfigPath = path.join(knipTempDir, 'knip.json');
     try {
-      // skipPackages is not part of knip's config schema; it's applied separately
-      // below (JS-side) and must not be written into the knip.json file itself.
-      const { skipPackages, ...knipSchemaConfig } = knipConfigData;
-      fs.writeFileSync(knipConfigPath, JSON.stringify(knipSchemaConfig, null, 2));
-    } catch (error) {
-      if (process.env.DEBUG) console.error('Could not write knip.json, using fallback detector:', error.message);
-      return fallbackUnusedCheck(projectPath, dependencies);
-    }
-
-    try {
-      // knip exits non-zero whenever it finds issues (its normal/expected behavior,
-      // not an execution failure), so the rejected promise still carries valid
-      // JSON on stdout and must be read from there rather than treated as a failure.
-      let knipOutput;
-      try {
-        ({ stdout: knipOutput } = await execAsync(
-          `npx knip --config ${JSON.stringify(knipConfigPath)} --reporter json`,
-          { cwd: projectPath, encoding: 'utf-8', timeout: 30000 }
-        ));
-      } catch (execError) {
-        if (typeof execError.stdout !== 'string' || !execError.stdout.trim()) throw execError;
-        knipOutput = execError.stdout;
-      }
-
-      const results = JSON.parse(knipOutput);
-      let unused = [];
-
-      if (Array.isArray(results.issues)) {
-        const names = new Set();
-        results.issues.forEach(fileIssue => {
-          [...(fileIssue.dependencies || []), ...(fileIssue.devDependencies || [])].forEach(dep => {
-            if (dep?.name) names.add(dep.name);
-          });
-        });
-        unused = Array.from(names).filter(dep => dependencies[dep]);
-      }
-
-      const skipPackages = knipConfigData.skipPackages || [];
-      unused = unused.filter(pkg => !shouldSkipPackage(pkg, skipPackages));
-
-      return unused;
-    } catch (knipError) {
-      if (process.env.DEBUG) console.error('Knip analysis unavailable, using fallback:', knipError.message);
-      return fallbackUnusedCheck(projectPath, dependencies);
+      return await runKnip(projectPath, dependencies, knipConfigPath);
+    } finally {
+      fs.rmSync(knipTempDir, { recursive: true, force: true });
     }
   } catch (error) {
     if (process.env.DEBUG) console.error('Unused dependencies analysis failed:', error.message);
     return [];
+  }
+}
+
+async function runKnip(projectPath, dependencies, knipConfigPath) {
+  try {
+    // skipPackages is not part of knip's config schema; it's applied separately
+    // below (JS-side) and must not be written into the knip.json file itself.
+    const { skipPackages, ...knipSchemaConfig } = knipConfigData;
+    fs.writeFileSync(knipConfigPath, JSON.stringify(knipSchemaConfig, null, 2));
+  } catch (error) {
+    if (process.env.DEBUG) console.error('Could not write knip.json, using fallback detector:', error.message);
+    return fallbackUnusedCheck(projectPath, dependencies);
+  }
+
+  try {
+    // knip exits non-zero whenever it finds issues (its normal/expected behavior,
+    // not an execution failure), so the rejected promise still carries valid
+    // JSON on stdout and must be read from there rather than treated as a failure.
+    let knipOutput;
+    try {
+      ({ stdout: knipOutput } = await execAsync(
+        `npx knip --config ${JSON.stringify(knipConfigPath)} --reporter json`,
+        { cwd: projectPath, encoding: 'utf-8', timeout: 30000 }
+      ));
+    } catch (execError) {
+      if (typeof execError.stdout !== 'string' || !execError.stdout.trim()) throw execError;
+      knipOutput = execError.stdout;
+    }
+
+    const results = JSON.parse(knipOutput);
+    let unused = [];
+
+    if (Array.isArray(results.issues)) {
+      const names = new Set();
+      results.issues.forEach(fileIssue => {
+        [...(fileIssue.dependencies || []), ...(fileIssue.devDependencies || [])].forEach(dep => {
+          if (dep?.name) names.add(dep.name);
+        });
+      });
+      unused = Array.from(names).filter(dep => dependencies[dep]);
+    }
+
+    const skipPackages = knipConfigData.skipPackages || [];
+    unused = unused.filter(pkg => !shouldSkipPackage(pkg, skipPackages));
+
+    return unused;
+  } catch (knipError) {
+    if (process.env.DEBUG) console.error('Knip analysis unavailable, using fallback:', knipError.message);
+    return fallbackUnusedCheck(projectPath, dependencies);
   }
 }
 

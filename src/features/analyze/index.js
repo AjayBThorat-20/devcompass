@@ -7,7 +7,6 @@ const { HealthCalculator } = require('../../core/services/health-calculator');
 const { saveSnapshot } = require('../../core/services/snapshot-manager');
 const { saveAnalysisCache } = require('../../shared/utils/analysis-cache');
 const fileCache = require('../../shared/utils/file-cache');
-const OutputManager = require('../../shared/utils/output-manager');
 
 const { resolveEnabledCollectors } = require('./collectors');
 const { resolveInstalledVersions } = require('../alerts/version-resolver.service');
@@ -27,9 +26,6 @@ async function runAnalyze(options = {}) {
     ciThreshold = 7.0,
     includeEcosystem = true
   } = options;
-
-  const outputManager = new OutputManager(projectPath);
-  outputManager.ensureDirectories();
 
   const collector = createIssueCollector();
 
@@ -97,6 +93,7 @@ async function runAnalyze(options = {}) {
       predictiveScanIncomplete: !!incompleteById.predictive,
       securityScanIncomplete: !!incompleteById.security,
       ecosystemScanIncomplete: !!incompleteById.ecosystem,
+      outdatedScanIncomplete: !!incompleteById.outdated,
       scanIncomplete: incompleteById,
       healthScore,
       totalDependencies
@@ -132,22 +129,26 @@ async function runAnalyze(options = {}) {
       }
     }
 
+    // The caller sets the exit code: calling process.exit() here could cut
+    // off piped output, and the status line goes to stderr so that
+    // `analyze --ci --json > out.json` stays valid JSON.
+    let exitCode = 0;
     if (ci) {
-      if (healthScore < ciThreshold) {
-        if (!silent) console.error(`\n❌ CI Check Failed: Health score ${healthScore.toFixed(1)} is below threshold ${ciThreshold}\n`);
-        process.exit(1);
-      } else {
-        if (!silent) console.log(`\n✅ CI Check Passed: Health score ${healthScore.toFixed(1)} meets threshold ${ciThreshold}\n`);
-        process.exit(0);
+      const passed = healthScore >= ciThreshold;
+      exitCode = passed ? 0 : 1;
+      if (!silent) {
+        console.error(passed
+          ? `\n✅ CI Check Passed: Health score ${healthScore.toFixed(1)} meets threshold ${ciThreshold}\n`
+          : `\n❌ CI Check Failed: Health score ${healthScore.toFixed(1)} is below threshold ${ciThreshold}\n`);
       }
     }
 
-    return { issues: allIssues, metadata, healthScore };
+    return { issues: allIssues, metadata, healthScore, exitCode };
 
   } catch (error) {
     if (!silent && mode !== 'silent') console.error('Analysis failed:', error.message);
     if (process.env.DEBUG) console.error(error.stack);
-    if (ci) process.exit(1);
+    // The caller (the CLI's catch block, or `fix`) decides how to react.
     throw error;
   }
 }
