@@ -19,7 +19,7 @@ const { collectPredictiveData } = require('./predictive.collector');
  * @property {string} label  used in "<label> scan incomplete" messages
  * @property {boolean} needsNetwork
  * @property {boolean} [usesGitHubApi]  only runs when includeEcosystem is set
- * @property {(ctx: {projectPath: string, packageJson: object}) => Promise<Array>} run
+ * @property {(ctx: {projectPath: string, packageJson: object, graph: object|null}) => Promise<Array>} run
  * @property {(collector: import('../../../core/services/issue-collector').IssueCollector, data: Array) => void} addTo
  * @property {string} incompleteMessage  shown when this collector reports incomplete: true
  */
@@ -28,7 +28,7 @@ const COLLECTORS = [
     id: 'cve',
     label: 'CVE',
     needsNetwork: true,
-    run: (ctx) => collectCVEData(ctx.projectPath, ctx.packageJson),
+    run: (ctx) => collectCVEData(ctx.projectPath, ctx.packageJson, ctx.graph),
     addTo: (collector, data) => collector.addCVEIssues(data),
     incompleteMessage: 'Vulnerability results below may be missing entries — this is not a confirmed clean scan.'
   },

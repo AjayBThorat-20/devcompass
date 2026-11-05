@@ -10,6 +10,7 @@ const fileCache = require('../../shared/utils/file-cache');
 
 const { resolveEnabledCollectors } = require('./collectors');
 const { resolveInstalledVersions } = require('../alerts/version-resolver.service');
+const { loadDependencyGraph } = require('../../core/graph');
 
 const { renderDefaultOutput } = require('./renderers/default.renderer');
 const { renderDeepOutput } = require('./renderers/deep.renderer');
@@ -44,7 +45,19 @@ async function runAnalyze(options = {}) {
 
     // Every enabled collector runs generically — a new check is one
     // collector file plus one entry in collectors/index.js.
-    const ctx = { projectPath, packageJson };
+    // One dependency graph, read once from the lockfile, shared by the
+    // collectors. It reports `incomplete` for pnpm/yarn/bun (and a missing or
+    // lockfileVersion 1 lockfile); collectors then fall back to their
+    // direct-dependency behavior instead of reporting nothing.
+    let graph = null;
+    try {
+      graph = await loadDependencyGraph(projectPath);
+      if (graph.incomplete && process.env.DEBUG) console.error(`Dependency graph unavailable: ${graph.incompleteReason}`);
+    } catch (error) {
+      if (process.env.DEBUG) console.error('Dependency graph failed to build:', error.message);
+    }
+
+    const ctx = { projectPath, packageJson, graph };
     const activeCollectors = resolveEnabledCollectors({ includeEcosystem: shouldRunEcosystem });
     const results = await Promise.allSettled(activeCollectors.map(c => c.run(ctx)));
 

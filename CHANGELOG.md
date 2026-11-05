@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `devcompass why <package>`: shows every path from the project to an installed package, so a vulnerable or outdated transitive dependency like `qs` nested under `express` is traceable back to what pulled it in.
+- A dependency graph built from `package-lock.json` (npm only — pnpm/yarn/bun, a missing lockfile, or a lockfileVersion 1 file report `incomplete` instead of silently returning an empty graph). It correctly distinguishes several installed versions of one package at different nesting depths (e.g. a direct `qs@6.9.0` alongside `express`'s own nested `qs@6.7.0`), and is built from the lockfile alone, so it is complete before `npm install` has run.
 - `devcompass clean` has a `-p, --path <path>` option, like every other command — it could only ever operate on the current directory.
 - Every finding now carries a `ruleId` (e.g. `vuln`, `typosquat`, `outdated/major`, `unused`), a `confidence` (`high`/`medium`/`low` — heuristics like unused/typosquat are never `high`), and the full list of `advisoryIds` it merged (previously only the first GHSA/CVE id was kept, though a count was computed and silently discarded). A finding's `id` is now `<ruleId>:<package>@<version>[:<advisoryId>]` instead of `<package>@<version>`, so two different findings for the same package no longer share an id.
 - `analyze --json`'s `metadata` has a `scanIncomplete` object with an entry per collector, alongside the existing `cveScanIncomplete`/`securityScanIncomplete`/... flags.
@@ -16,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The OSV check now covers the whole dependency tree, not just direct dependencies.** Every installed `name@version` in the lockfile is checked, so a vulnerability in a transitive package is found on its own rather than only when npm audit happens to also flag it (npm audit's results are filtered to HIGH/CRITICAL). On a project whose only dependencies are `express@4.17.1` and `lodash`, this finds 7 vulnerable packages instead of 4. Projects without a usable `package-lock.json` keep the previous direct-dependency check.
+- OSV queries are sent 200 packages per request (4 in flight) instead of all in one request — needed now that whole trees are checked, and one slow or rejected chunk no longer fails every package in the scan.
+- **`npm-check-updates` is gone** (−6.3 MB). The outdated check uses the npm registry client DevCompass already ships, plus `semver`. `wanted` is now the highest published version the declared range allows (e.g. `4.1.2` for `chalk@^4.0.0`); npm-check-updates always reported the latest version, even across a major the range doesn't allow.
 - The four separate severity/priority tables (`severity.js`, `issue.model.js`, `data/priorities.json`, and the inline tables in `console-formatter.js`) are down to one, `core/utils/severity.js`; everything else imports from it. They had already drifted out of sync with each other.
 - Collectors run from one registry (`src/features/analyze/collectors/index.js`) instead of a hardcoded list in `analyze`'s core — a new check is one collector file plus one entry, and its "scan incomplete" message comes from that entry.
 - Test coverage is now measured over every file in `src/` (except the browser dashboard) rather than only the files a test happens to load, which had been inflating the number. The honest figure is ~29%, so the CI floor is 25% instead of the previous, misleading 60%.
@@ -42,6 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **npm audit descriptions were lists of package names** (e.g. "body-parser, qs") instead of the advisory's title. They now use the title when npm audit provides one.
 - `cve.collector.js` kept only the first advisory id per package (it counted the rest and discarded them); every advisory id now reaches the finding.
 - An ecosystem alert whose suggested fix is free text no longer reads "Update to Consider alternatives…", and isn't marked as a safe fix.
+
+### Security
+
+- `follow-redirects` 1.16.0 → 1.16.1 and `zod` 4.3.6 → 4.6.7 for newly published advisories (lockfile-only).
 
 ## [4.1.9] - 2026-10-06
 

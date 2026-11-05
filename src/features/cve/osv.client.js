@@ -7,6 +7,13 @@ const pLimit = require('p-limit');
 const OSV_API = 'https://api.osv.dev/v1';
 const hydrateLimit = pLimit(10);
 const MAX_HYDRATE_IDS = 300;
+// /querybatch takes every package in one POST. That was fine while only
+// direct dependencies were queried (tens of packages), but the whole
+// lockfile tree is hundreds to thousands — and one oversized request that
+// times out fails *every* package in it at once. Chunked so a slow or
+// rejected chunk only costs that chunk.
+const BATCH_CHUNK_SIZE = 200;
+const batchLimit = pLimit(4);
 
 class OSVClient {
   async queryPackage(packageName, version, ecosystem = 'npm') {
@@ -34,6 +41,17 @@ class OSVClient {
   // finding. Each unique id now gets hydrated via GET /v1/vulns/{id} (OSV's
   // documented pattern for batch responses) before parsing.
   async batchQuery(packages, ecosystem = 'npm') {
+    if (!Array.isArray(packages) || packages.length === 0) return [];
+
+    if (packages.length > BATCH_CHUNK_SIZE) {
+      const chunks = [];
+      for (let i = 0; i < packages.length; i += BATCH_CHUNK_SIZE) {
+        chunks.push(packages.slice(i, i + BATCH_CHUNK_SIZE));
+      }
+      const settled = await Promise.all(chunks.map(chunk => batchLimit(() => this.batchQuery(chunk, ecosystem))));
+      return settled.flat();
+    }
+
     try {
       const queries = packages.map(pkg => ({ package: { name: pkg.name, ecosystem }, version: pkg.version }));
       const response = await axios.post(`${OSV_API}/querybatch`, { queries }, {

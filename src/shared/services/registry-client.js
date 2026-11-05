@@ -46,7 +46,9 @@ function isCacheValid(cachePath) {
 function minimizePackageData(data) {
   if (!data) return null;
   const latest = data['dist-tags']?.latest;
-  return { name: data.name, version: latest || data.version, license: data.license, time: { modified: data.time?.modified, [latest || data.version]: data.time?.[latest || data.version] }, deprecated: data.deprecated };
+  // `versions` lets the outdated check work out what a declared range would
+  // actually install (the highest version satisfying it), not just "latest".
+  return { name: data.name, version: latest || data.version, versions: Object.keys(data.versions || {}), license: data.license, time: { modified: data.time?.modified, [latest || data.version]: data.time?.[latest || data.version] }, deprecated: data.deprecated };
 }
 
 function readFromDiskCache(packageName) {
