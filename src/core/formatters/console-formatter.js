@@ -26,7 +26,10 @@ class ConsoleFormatter {
     toShow.forEach((issue, index) => {
       const icon = this.getSeverityIcon(issue.severity);
       const color = this.getSeverityColor(issue.severity);
-      console.log(chalk[color](`${index + 1}. ${icon} ${issue.severity} — ${issue.name}@${issue.version}`));
+      // Confirmed exploited in the wild (CISA KEV) — worth calling out even
+      // among other CRITICAL/HIGH findings that are only severe on paper.
+      const kevTag = issue.metadata?.knownExploited ? ' ' + chalk.bgRed.white(' KNOWN EXPLOITED ') : '';
+      console.log(chalk[color](`${index + 1}. ${icon} ${issue.severity} — ${issue.name}@${issue.version}`) + kevTag);
       console.log(chalk.gray(`   → ${issue.message}`));
       if (issue.risk) console.log(chalk.gray(`   → Risk: ${issue.risk}`));
       console.log(chalk.gray(`   → Fix: ${issue.fix}`));

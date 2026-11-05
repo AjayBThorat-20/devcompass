@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Vulnerabilities are ranked by real-world exploit risk, not just CVSS.** Each CVE is checked against CISA's Known Exploited Vulnerabilities catalog (cached for 24 hours in `~/.devcompass/cache/`, with the last copy reused when CISA can't be reached) and scored with FIRST's EPSS exploitation probability. A known-exploited vulnerability is tagged `KNOWN EXPLOITED` and goes to the top of Top Issues and the security section, even ahead of a CRITICAL nobody is exploiting; EPSS orders findings within the same severity. `analyze --json` findings carry `metadata.knownExploited` and `metadata.epssScore`. If either service is unreachable, the scan still completes without the ranking data.
 - `devcompass why <package>`: shows every path from the project to an installed package, so a vulnerable or outdated transitive dependency like `qs` nested under `express` is traceable back to what pulled it in.
 - A dependency graph built from `package-lock.json` (npm only — pnpm/yarn/bun, a missing lockfile, or a lockfileVersion 1 file report `incomplete` instead of silently returning an empty graph). It correctly distinguishes several installed versions of one package at different nesting depths (e.g. a direct `qs@6.9.0` alongside `express`'s own nested `qs@6.7.0`), and is built from the lockfile alone, so it is complete before `npm install` has run.
 - `devcompass clean` has a `-p, --path <path>` option, like every other command — it could only ever operate on the current directory.
@@ -50,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- `follow-redirects` 1.16.0 → 1.16.1 and `zod` 4.3.6 → 4.6.7 for newly published advisories (lockfile-only).
+- `follow-redirects` 1.16.0 → 1.16.2 and `zod` 4.3.6 → 4.6.7 for newly published advisories (lockfile-only).
 
 ## [4.1.9] - 2026-10-06
 

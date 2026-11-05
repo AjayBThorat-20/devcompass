@@ -70,13 +70,22 @@ function collapsePerPackage(vulns) {
         summary: vuln.summary || vuln.title || 'Security vulnerability',
         ids: [vuln.id].filter(Boolean),
         source: vuln.source || 'OSV',
-        fixVersion: vulnFixVersion
+        fixVersion: vulnFixVersion,
+        // Known-exploited if *any* merged advisory is KEV-listed; the highest
+        // EPSS score among them, since that's the real risk this package
+        // carries.
+        knownExploited: !!vuln.knownExploited,
+        epssScore: typeof vuln.epssScore === 'number' ? vuln.epssScore : null
       });
       continue;
     }
 
     const existing = byPackage.get(pkgName);
     if (vuln.id) existing.ids.push(vuln.id);
+    if (vuln.knownExploited) existing.knownExploited = true;
+    if (typeof vuln.epssScore === 'number' && (existing.epssScore === null || vuln.epssScore > existing.epssScore)) {
+      existing.epssScore = vuln.epssScore;
+    }
 
     // A package needs to move to the highest fix version across all of its
     // vulnerabilities to actually resolve every one of them.
@@ -110,7 +119,9 @@ function collapsePerPackage(vulns) {
     // reading .id directly).
     advisoryIds: entry.ids,
     advisoryCount: entry.ids.length,
-    fixVersion: entry.fixVersion
+    fixVersion: entry.fixVersion,
+    knownExploited: entry.knownExploited,
+    epssScore: entry.epssScore
   }));
 }
 

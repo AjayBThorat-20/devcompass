@@ -11,7 +11,12 @@ class IssueRanker {
     const severityScore = SEVERITY_WEIGHTS[issue.severity] || 0;
     const typeScore = TYPE_WEIGHTS[issue.type] || 0;
     const impactScore = issue.score || 0;
-    return (severityScore * 10) + typeScore + (impactScore / 10);
+    // A vulnerability on CISA's known-exploited list is being used in real
+    // attacks now, so it outranks anything that is only severe on paper.
+    // EPSS (0-1) only breaks ties: at most 5 points, never enough to cross
+    // a severity level (10 points apart).
+    const exploitScore = (issue.metadata?.knownExploited ? 100 : 0) + ((issue.metadata?.epssScore || 0) * 5);
+    return (severityScore * 10) + typeScore + (impactScore / 10) + exploitScore;
   }
 
   getTop(n = 3) {
@@ -25,8 +30,10 @@ class IssueRanker {
   getSafeFixes() { return this.issues.filter(issue => issue.safeFix); }
   getRiskyFixes() { return this.issues.filter(issue => !issue.safeFix); }
 
+  // Each group is most-urgent first, same order as getTop().
   groupByType() {
-    return this.issues.reduce((groups, issue) => {
+    const byPriority = [...this.issues].sort((a, b) => this.calculatePriority(b) - this.calculatePriority(a));
+    return byPriority.reduce((groups, issue) => {
       groups[issue.type] = groups[issue.type] || [];
       groups[issue.type].push(issue);
       return groups;

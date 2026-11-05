@@ -31,7 +31,13 @@ class IssueCollector {
         fix: vuln.fixVersion ? `Update to ${vuln.fixVersion}` : 'Update to latest',
         safeFix: this.isSafeUpdate(vuln),
         source: vuln.source || 'CVE',
-        metadata: { cve: advisoryId, cvss: vuln.cvss || vuln.score, references: vuln.references }
+        metadata: {
+          cve: advisoryId,
+          cvss: vuln.cvss || vuln.score,
+          references: vuln.references,
+          knownExploited: !!vuln.knownExploited,
+          epssScore: vuln.epssScore ?? null
+        }
       });
     });
   }
