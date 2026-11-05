@@ -9,13 +9,7 @@ const { saveAnalysisCache } = require('../../shared/utils/analysis-cache');
 const fileCache = require('../../shared/utils/file-cache');
 const OutputManager = require('../../shared/utils/output-manager');
 
-const { collectCVEData } = require('./collectors/cve.collector');
-const { collectLicenseData } = require('./collectors/license.collector');
-const { collectQualityData } = require('./collectors/quality.collector');
-const { collectSecurityData } = require('./collectors/security.collector');
-const { collectOutdatedData, collectUnusedData } = require('./collectors/dependency.collector');
-const { collectEcosystemData } = require('./collectors/ecosystem.collector');
-const { collectPredictiveData } = require('./collectors/predictive.collector');
+const { resolveEnabledCollectors } = require('./collectors');
 
 const { renderDefaultOutput } = require('./renderers/default.renderer');
 const { renderDeepOutput } = require('./renderers/deep.renderer');
@@ -47,46 +41,26 @@ async function runAnalyze(options = {}) {
 
     const packageJson = fileCache.readJSON(packageJsonPath);
 
-    const collectorTasks = [
-      collectCVEData(projectPath, packageJson),
-      collectLicenseData(projectPath, packageJson),
-      collectQualityData(projectPath, packageJson),
-      collectSecurityData(projectPath, packageJson),
-      collectOutdatedData(projectPath, packageJson),
-      collectUnusedData(projectPath, packageJson)
-    ];
-
     // Ecosystem/predictive checks call GitHub's API; skip in silent/CI runs to keep
     // those paths fast, and let callers opt back in via includeEcosystem.
     const shouldRunEcosystem = includeEcosystem && mode !== 'silent' && !silent;
 
-    if (shouldRunEcosystem) {
-      collectorTasks.push(collectEcosystemData(projectPath, packageJson));
-      collectorTasks.push(collectPredictiveData(projectPath, packageJson));
-    }
+    // Every enabled collector runs generically — a new check is one
+    // collector file plus one entry in collectors/index.js.
+    const ctx = { projectPath, packageJson };
+    const activeCollectors = resolveEnabledCollectors({ includeEcosystem: shouldRunEcosystem });
+    const results = await Promise.allSettled(activeCollectors.map(c => c.run(ctx)));
 
-    const results = await Promise.allSettled(collectorTasks);
-
-    const [cveData, licenseData, qualityData, securityData, outdatedData, unusedData, ecosystemData, predictiveData] =
-      results.map(result => (result.status === 'fulfilled' ? result.value : []));
-
-    if (process.env.DEBUG) {
-      const names = ['CVE', 'License', 'Quality', 'Security', 'Outdated', 'Unused', 'Ecosystem', 'Predictive'];
-      results.forEach((r, i) => {
-        if (r.status === 'rejected') console.error(`${names[i]} collector failed:`, r.reason?.message);
-      });
-    }
-
-    collector.addCVEIssues(cveData);
-    collector.addLicenseIssues(licenseData);
-    collector.addQualityIssues(qualityData);
-    collector.addSecurityIssues(securityData);
-    collector.addOutdatedIssues(outdatedData);
-    collector.addUnusedIssues(unusedData);
-    if (shouldRunEcosystem) {
-      collector.addEcosystemIssues(ecosystemData);
-      collector.addPredictiveIssues(predictiveData);
-    }
+    const dataById = {};
+    results.forEach((result, i) => {
+      const collectorDef = activeCollectors[i];
+      const data = result.status === 'fulfilled' ? result.value : [];
+      dataById[collectorDef.id] = data;
+      if (result.status === 'rejected' && process.env.DEBUG) {
+        console.error(`${collectorDef.label} collector failed:`, result.reason?.message);
+      }
+      collectorDef.addTo(collector, data);
+    });
 
     const allIssues = collector.getAll();
     const healthScore = HealthCalculator.calculate(allIssues);
@@ -95,31 +69,29 @@ async function runAnalyze(options = {}) {
       ...(packageJson.devDependencies || {})
     }).length;
 
-    if (cveData?.incomplete && !silent && mode !== 'silent') {
-      console.error(`\n⚠️  CVE scan incomplete: ${cveData.incompleteReason}. Vulnerability results below may be missing entries — this is not a confirmed clean scan.\n`);
-    }
-
-    if (predictiveData?.incomplete && !silent && mode !== 'silent') {
-      console.error(`\n⚠️  Predictive scan incomplete: ${predictiveData.incompleteReason}. Bug-activity warnings below may be missing entries for those packages.\n`);
-    }
-
-    if (securityData?.incomplete && !silent && mode !== 'silent') {
-      console.error(`\n⚠️  Security scan incomplete: ${securityData.incompleteReason}. Vulnerability/supply-chain warnings below may be missing entries — this is not a confirmed clean scan.\n`);
-    }
-
-    if (shouldRunEcosystem && ecosystemData?.incomplete && !silent && mode !== 'silent') {
-      console.error(`\n⚠️  Ecosystem scan incomplete: ${ecosystemData.incompleteReason}. Ecosystem alerts below may be missing entries.\n`);
-    }
+    // One generic "scan incomplete" announcement per collector, driven by
+    // its own incompleteMessage.
+    const incompleteById = {};
+    activeCollectors.forEach(collectorDef => {
+      const data = dataById[collectorDef.id];
+      incompleteById[collectorDef.id] = !!data?.incomplete;
+      if (data?.incomplete && !silent && mode !== 'silent') {
+        console.error(`\n⚠️  ${collectorDef.label} scan incomplete: ${data.incompleteReason}. ${collectorDef.incompleteMessage}\n`);
+      }
+    });
 
     const metadata = {
       projectName: packageJson.name || 'unknown',
       projectVersion: packageJson.version || '1.0.0',
       projectPath,
       projectInfo: `${packageJson.name || 'unknown'}@${packageJson.version || '1.0.0'}`,
-      cveScanIncomplete: !!cveData?.incomplete,
-      predictiveScanIncomplete: !!predictiveData?.incomplete,
-      securityScanIncomplete: !!securityData?.incomplete,
-      ecosystemScanIncomplete: !!(shouldRunEcosystem && ecosystemData?.incomplete),
+      // Kept under their original names for existing --json consumers;
+      // scanIncomplete has every collector.
+      cveScanIncomplete: !!incompleteById.cve,
+      predictiveScanIncomplete: !!incompleteById.predictive,
+      securityScanIncomplete: !!incompleteById.security,
+      ecosystemScanIncomplete: !!incompleteById.ecosystem,
+      scanIncomplete: incompleteById,
       healthScore,
       totalDependencies
     };

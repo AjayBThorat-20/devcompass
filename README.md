@@ -1099,7 +1099,9 @@ first issue" areas and the PR checklist.
 
 `npm test` runs the unit suite (`test/unit/`, `node --test`); `npm run
 test:coverage` runs the same suite under [c8](https://github.com/bcoe/c8) and
-enforces a 60% line-coverage floor. `npm run test:integration` runs the
+enforces a 25% line-coverage floor, measured over every file in `src/`
+(except the browser dashboard), not just the files a test happens to load.
+`npm run test:integration` runs the
 broader CLI smoke/scenario scripts under `test/integration/` against the
 fixture projects in `test/`. CI runs unit tests with coverage on every
 push/PR (see the CI badge above); there's no public coverage badge yet since
