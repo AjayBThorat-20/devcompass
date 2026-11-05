@@ -1,0 +1,25 @@
+name: Wrong finding
+description: DevCompass flagged something that isn't a problem, or missed something that is
+labels: [false-positive]
+body:
+  - type: input
+    id: package
+    attributes:
+      label: Package and installed version
+      placeholder: preact@10.29.8
+    validations:
+      required: true
+  - type: dropdown
+    id: check
+    attributes:
+      label: Which check
+      options: [Vulnerability, License, Unused, Outdated, Typosquat, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why the finding is wrong
+      description: For "unused", show where the package is imported or loaded.
+    validations:
+      required: true

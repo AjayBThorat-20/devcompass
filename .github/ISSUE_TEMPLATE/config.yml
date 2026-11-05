@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://devcompass.ajaythorat.com
+    about: Guides, CLI reference and FAQ
+  - name: Report a security vulnerability
+    url: https://github.com/AjayBThorat-20/devcompass/security/advisories/new
+    about: Please report security issues privately
