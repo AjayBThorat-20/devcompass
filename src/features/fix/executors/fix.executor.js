@@ -1,6 +1,7 @@
 // src/features/fix/executors/fix.executor.js
 
 const { NPMExecutor } = require('./npm.executor');
+const logger = require('../../../shared/utils/logger').default;
 
 class FixExecutor {
   constructor(projectPath) {
@@ -27,7 +28,7 @@ class FixExecutor {
         try {
           onProgress(action, result.success, result);
         } catch (error) {
-          if (process.env.DEBUG) console.error('Progress callback error:', error.message);
+          logger.debug('Progress callback error:', error.message);
         }
       }
     }

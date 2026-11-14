@@ -6,6 +6,7 @@ const chalk = require('chalk');
 const BackupManager = require('../../shared/utils/backup-manager');
 const BackupRestorer = require('../../shared/utils/backup-restorer');
 const OutputManager = require('../../shared/utils/output-manager');
+const logger = require('../../shared/utils/logger').default;
 
 async function backup(action, options = {}) {
   const projectPath = options.path || process.cwd();
@@ -30,7 +31,7 @@ async function backup(action, options = {}) {
     }
   } catch (error) {
     console.error(chalk.red('\n❌ Backup operation failed:'), error.message);
-    if (process.env.DEBUG) console.error(chalk.dim(error.stack));
+    logger.debug(chalk.dim(error.stack));
     process.exit(1);
   }
 }

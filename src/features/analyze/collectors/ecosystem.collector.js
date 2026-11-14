@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { checkEcosystemAlerts } = require('../../alerts');
+const logger = require('../../../shared/utils/logger').default;
 
 async function collectEcosystemData(projectPath, packageJson = null) {
   try {
@@ -21,7 +22,7 @@ async function collectEcosystemData(projectPath, packageJson = null) {
 
     return await checkEcosystemAlerts(projectPath, dependencies);
   } catch (error) {
-    if (process.env.DEBUG) console.error('Ecosystem collection failed:', error.message);
+    logger.debug('Ecosystem collection failed:', error.message);
     const alerts = [];
     alerts.incomplete = true;
     alerts.incompleteReason = error.message;

@@ -3,10 +3,18 @@
 const axios = require('axios');
 const chalk = require('chalk');
 const pLimit = require('p-limit');
+const logger = require('../../shared/utils/logger').default;
 
 const OSV_API = 'https://api.osv.dev/v1';
 const hydrateLimit = pLimit(10);
 const MAX_HYDRATE_IDS = 300;
+// /querybatch takes every package in one POST. That was fine while only
+// direct dependencies were queried (tens of packages), but AR-01 feeds the
+// whole lockfile tree through here — hundreds to thousands — and one
+// oversized request that times out fails *every* package in it at once.
+// Chunked so a single slow/rejected chunk only costs that chunk.
+const BATCH_CHUNK_SIZE = 200;
+const batchLimit = pLimit(4);
 
 class OSVClient {
   async queryPackage(packageName, version, ecosystem = 'npm') {
@@ -19,7 +27,7 @@ class OSVClient {
       const vulns = (response.data.vulns || []).map(v => this.parseVulnerability(v));
       return { package: packageName, version, vulnerabilities: vulns, source: 'OSV' };
     } catch (error) {
-      if (process.env.DEBUG) console.error(chalk.red(`❌ OSV error for ${packageName}:`), error.message);
+      logger.debug(chalk.red(`❌ OSV error for ${packageName}:`), error.message);
       return { package: packageName, version, vulnerabilities: [], error: error.message };
     }
   }
@@ -34,6 +42,20 @@ class OSVClient {
   // finding. Each unique id now gets hydrated via GET /v1/vulns/{id} (OSV's
   // documented pattern for batch responses) before parsing.
   async batchQuery(packages, ecosystem = 'npm') {
+    if (!Array.isArray(packages) || packages.length === 0) return [];
+
+    // Split into chunks and merge, so one failing chunk doesn't take the
+    // whole scan's results with it. Hydration still happens once, over the
+    // union of ids, so the MAX_HYDRATE_IDS cap keeps its original meaning.
+    if (packages.length > BATCH_CHUNK_SIZE) {
+      const chunks = [];
+      for (let i = 0; i < packages.length; i += BATCH_CHUNK_SIZE) {
+        chunks.push(packages.slice(i, i + BATCH_CHUNK_SIZE));
+      }
+      const settled = await Promise.all(chunks.map(chunk => batchLimit(() => this.batchQuery(chunk, ecosystem))));
+      return settled.flat();
+    }
+
     try {
       const queries = packages.map(pkg => ({ package: { name: pkg.name, ecosystem }, version: pkg.version }));
       const response = await axios.post(`${OSV_API}/querybatch`, { queries }, {
@@ -58,7 +80,7 @@ class OSVClient {
         source: 'OSV'
       }));
     } catch (error) {
-      if (process.env.DEBUG) console.error(chalk.red('❌ OSV batch query failed:'), error.message);
+      logger.debug(chalk.red('❌ OSV batch query failed:'), error.message);
       return packages.map(pkg => ({ package: pkg.name, version: pkg.version, vulnerabilities: [], error: error.message }));
     }
   }
@@ -70,7 +92,7 @@ class OSVClient {
         const response = await axios.get(`${OSV_API}/vulns/${encodeURIComponent(id)}`, { timeout: 10000 });
         details.set(id, response.data);
       } catch (error) {
-        if (process.env.DEBUG) console.error(chalk.red(`❌ OSV detail fetch failed for ${id}:`), error.message);
+        logger.debug(chalk.red(`❌ OSV detail fetch failed for ${id}:`), error.message);
       }
     })));
     return details;

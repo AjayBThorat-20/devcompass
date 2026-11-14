@@ -3,7 +3,7 @@
 module.exports = {
   VERSION: require('../../../package.json').version,
 
-  SEVERITY_LEVELS: { CRITICAL: 'CRITICAL', HIGH: 'HIGH', MEDIUM: 'MEDIUM', LOW: 'LOW', INFO: 'INFO' },
+  // Severity levels live in core/utils/severity.js (CL-07) — not duplicated here.
   ISSUE_TYPES: { CVE: 'cve', LICENSE: 'license', QUALITY: 'quality', SECURITY: 'security', OUTDATED: 'outdated', UNUSED: 'unused', DEPRECATED: 'deprecated' },
   HEALTH_THRESHOLDS: { EXCELLENT: 9.0, GOOD: 7.0, FAIR: 5.0, POOR: 3.0 },
 

@@ -5,6 +5,7 @@ const snapshotLoader = require('./snapshot-loader');
 const snapshotSaver = require('./snapshot-saver');
 const path = require('path');
 const fs = require('fs');
+const logger = require('../../shared/utils/logger').default;
 
 async function saveSnapshot(options = {}) {
   console.log(chalk.yellow('💡 Snapshots are auto-saved when running "devcompass analyze"\n'));
@@ -40,7 +41,7 @@ async function listSnapshots(options = {}) {
     console.log(chalk.gray(`\nTotal: ${snapshots.length} snapshot(s)\n`));
   } catch (error) {
     console.error(chalk.red('\n❌ Failed to list snapshots\n'), chalk.gray(error.message));
-    if (process.env.DEBUG) console.error(chalk.dim(error.stack));
+    logger.debug(chalk.dim(error.stack));
     process.exit(1);
   }
 }
@@ -95,7 +96,7 @@ async function viewSnapshot(snapshotId, options = {}) {
     console.log(chalk.gray('  Delete: devcompass snapshot delete ' + snapshotId + '\n'));
   } catch (error) {
     console.error(chalk.red('\n❌ Failed to view snapshot\n'), chalk.gray(error.message));
-    if (process.env.DEBUG) console.error(chalk.dim(error.stack));
+    logger.debug(chalk.dim(error.stack));
     process.exit(1);
   }
 }
@@ -131,7 +132,7 @@ async function deleteSnapshot(snapshotId, options = {}) {
     console.log(chalk.green('\n✅ Snapshot deleted successfully!\n'));
   } catch (error) {
     console.error(chalk.red('\n❌ Failed to delete snapshot\n'), chalk.gray(error.message));
-    if (process.env.DEBUG) console.error(chalk.dim(error.stack));
+    logger.debug(chalk.dim(error.stack));
     process.exit(1);
   }
 }

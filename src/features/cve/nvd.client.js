@@ -6,6 +6,7 @@ const { db } = require('./database');
 const { decrypt } = require('../../shared/utils/encryption');
 const CircuitBreaker = require('../../shared/utils/circuit-breaker');
 const { RETRY } = require('../../shared/utils/constants');
+const logger = require('../../shared/utils/logger').default;
 
 const NVD_API = 'https://services.nvd.nist.gov/rest/json/cves/2.0';
 const CIRCUIT_MAX_FAILURES = 5;
@@ -28,6 +29,9 @@ class NVDClient {
   }
 
   getAPIKey() {
+    // CL-06: environment first.
+    if (process.env.NVD_API_KEY) return process.env.NVD_API_KEY;
+
     try {
       const now = Date.now();
       if (this._cachedKey && (now - this._keyFetchTime) < this._keyTTL) return this._cachedKey;
@@ -39,7 +43,7 @@ class NVDClient {
       }
       return null;
     } catch (error) {
-      if (process.env.DEBUG) console.error('Error getting NVD API key:', error.message);
+      logger.debug('Error getting NVD API key:', error.message);
       return null;
     }
   }
@@ -99,7 +103,7 @@ class NVDClient {
         weaknesses: cve.weaknesses || []
       };
     } catch (error) {
-      if (process.env.DEBUG) console.error('NVD parse error:', error.message);
+      logger.debug('NVD parse error:', error.message);
       return null;
     }
   }

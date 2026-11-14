@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const chalk = require('chalk');
+const logger = require('./logger').default;
 
 class FixReport {
   constructor() {
@@ -39,7 +40,7 @@ class FixReport {
       fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
       return reportPath;
     } catch (error) {
-      if (process.env.DEBUG) console.error(chalk.red('Failed to save fix report:'), error.message);
+      logger.debug(chalk.red('Failed to save fix report:'), error.message);
       return null;
     }
   }

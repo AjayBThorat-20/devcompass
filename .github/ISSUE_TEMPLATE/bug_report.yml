@@ -1,0 +1,36 @@
+name: Bug report
+description: DevCompass crashed or did something wrong
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: DevCompass version
+      description: Output of `devcompass --version`
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Node version, OS and package manager
+      placeholder: Node 22.12, Windows 11, pnpm 9
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command you ran
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: What you expected, and what happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output (run with DEBUG=1, and remove any tokens)
+      render: text

@@ -29,7 +29,7 @@ mkdir -p "$TEST_DIR"
 # actually runs (test/integration/test-complete-suite.sh calls this script
 # itself, then immediately tries to run scripts this find would otherwise
 # have just deleted).
-find "$TEST_DIR" -mindepth 1 -maxdepth 1 ! -name 'unit' ! -name 'integration' -exec rm -rf {} +
+find "$TEST_DIR" -mindepth 1 -maxdepth 1 ! -name 'unit' ! -name 'integration' ! -name 'create-test-projects.sh' -exec rm -rf {} +
 
 echo -e "${CYAN}📁 Created test directory: $TEST_DIR${NC}"
 echo ""

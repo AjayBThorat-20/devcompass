@@ -5,6 +5,7 @@ const { promisify } = require('util');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const logger = require('../../shared/utils/logger').default;
 
 const execAsync = promisify(exec);
 
@@ -38,7 +39,7 @@ class IssuesAnalyzer {
       const maintenance = this.getMaintenanceStatus(packageName, registryData);
       if (maintenance) issues.push(maintenance);
     } catch (error) {
-      if (process.env.DEBUG) console.error(`[IssuesAnalyzer] Error fetching issues for ${packageName}:`, error.message);
+      logger.debug(`[IssuesAnalyzer] Error fetching issues for ${packageName}:`, error.message);
       failed = true;
     }
 

@@ -2,6 +2,7 @@
 
 const historyDb = require('./history.database');
 const { version } = require('../../../package.json');
+const logger = require('../../shared/utils/logger').default;
 
 class SnapshotSaver {
   saveSnapshot(analysisData, graphData) {
@@ -51,7 +52,7 @@ class SnapshotSaver {
       const snapshotId = saveTransaction();
       return { success: true, snapshotId, duration: `${Date.now() - startTime}ms`, nodes: graphData.nodes?.length || 0, links: graphData.links?.length || 0 };
     } catch (error) {
-      if (process.env.DEBUG) console.error('Snapshot transaction failed:', error.message);
+      logger.debug('Snapshot transaction failed:', error.message);
       throw error;
     }
   }

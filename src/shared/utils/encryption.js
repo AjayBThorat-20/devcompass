@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
+const logger = require('./logger').default;
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -77,7 +78,7 @@ function decrypt(encryptedData) {
       return decrypted;
     } catch (error) { /* try next key */ }
   }
-  if (process.env.DEBUG) console.error('Decryption failed with all known keys');
+  logger.debug('Decryption failed with all known keys');
   return null;
 }
 

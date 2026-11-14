@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const dynamicQuality = require('../../quality/dynamic-quality.service');
+const logger = require('../../../shared/utils/logger').default;
 
 async function collectQualityData(projectPath, packageJson = null) {
   try {
@@ -25,7 +26,7 @@ async function collectQualityData(projectPath, packageJson = null) {
       alternative: pkg.alternative ? { replacement: pkg.alternative.replacement || pkg.alternative, reason: pkg.alternative.reason } : null
     }));
   } catch (error) {
-    if (process.env.DEBUG) console.error('Quality collection failed:', error.message);
+    logger.debug('Quality collection failed:', error.message);
     return [];
   }
 }

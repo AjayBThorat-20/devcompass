@@ -3,6 +3,7 @@
 const vulnerabilityChecker = require('../../cve/vulnerability-checker');
 const semver = require('semver');
 const { normalizeSeverity, getSeverityWeight } = require('../../../core/utils/severity');
+const logger = require('../../../shared/utils/logger').default;
 
 // Picks the version a package needs to move to in order to resolve a
 // vulnerability: the nearest "fixed" version above what's installed, or (if
@@ -19,9 +20,11 @@ function resolveNearestFix(fixedVersions, installedVersion) {
   return pool[0].version;
 }
 
-async function collectCVEData(projectPath, packageJson = null) {
+async function collectCVEData(projectPath, packageJson = null, graph = null) {
   try {
-    const result = await vulnerabilityChecker.checkProject(projectPath, packageJson);
+    // AR-01: with a lockfile graph, this checks every installed
+    // name@version in the tree, not just the direct dependencies.
+    const result = await vulnerabilityChecker.checkProject(projectPath, packageJson, { graph });
     const rawVulns = result.vulnerabilities || [];
 
     const issues = rawVulns.length === 0 ? [] : collapsePerPackage(rawVulns);
@@ -37,7 +40,7 @@ async function collectCVEData(projectPath, packageJson = null) {
 
     return issues;
   } catch (error) {
-    if (process.env.DEBUG) console.error('CVE collection failed:', error.message);
+    logger.debug('CVE collection failed:', error.message);
     const issues = [];
     issues.incomplete = true;
     issues.incompleteReason = error.message;
@@ -68,13 +71,22 @@ function collapsePerPackage(vulns) {
         summary: vuln.summary || vuln.title || 'Security vulnerability',
         ids: [vuln.id].filter(Boolean),
         source: vuln.source || 'OSV',
-        fixVersion: vulnFixVersion
+        fixVersion: vulnFixVersion,
+        // FT-05: true if *any* merged advisory is KEV-listed; the highest
+        // EPSS score among them, since that's the real exploitation risk
+        // this package carries.
+        knownExploited: !!vuln.knownExploited,
+        epssScore: typeof vuln.epssScore === 'number' ? vuln.epssScore : null
       });
       continue;
     }
 
     const existing = byPackage.get(pkgName);
     if (vuln.id) existing.ids.push(vuln.id);
+    if (vuln.knownExploited) existing.knownExploited = true;
+    if (typeof vuln.epssScore === 'number' && (existing.epssScore === null || vuln.epssScore > existing.epssScore)) {
+      existing.epssScore = vuln.epssScore;
+    }
 
     // A package needs to move to the highest fix version across all of its
     // vulnerabilities to actually resolve every one of them.
@@ -104,8 +116,13 @@ function collapsePerPackage(vulns) {
     risk: entry.ids.slice(0, 5).join(', ') + (entry.ids.length > 5 ? `, +${entry.ids.length - 5} more` : ''),
     source: entry.source,
     id: entry.ids[0],
+    // AR-03: every merged advisory id, not just the first (id, kept for
+    // backward compatibility with anything reading .id directly).
+    advisoryIds: entry.ids,
     advisoryCount: entry.ids.length,
-    fixVersion: entry.fixVersion
+    fixVersion: entry.fixVersion,
+    knownExploited: entry.knownExploited,
+    epssScore: entry.epssScore
   }));
 }
 

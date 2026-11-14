@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const logger = require('./logger').default;
 
 class TempCleaner {
   constructor() {
@@ -38,7 +39,7 @@ class TempCleaner {
       if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
       this.tempFiles.delete(filepath);
     } catch (error) {
-      if (process.env.DEBUG) console.error(`Failed to clean temp file: ${filepath}`, error.message);
+      logger.debug(`Failed to clean temp file: ${filepath}`, error.message);
     }
   }
 
@@ -47,7 +48,7 @@ class TempCleaner {
       if (fs.existsSync(dirpath)) fs.rmSync(dirpath, { recursive: true, force: true });
       this.tempDirs.delete(dirpath);
     } catch (error) {
-      if (process.env.DEBUG) console.error(`Failed to clean temp dir: ${dirpath}`, error.message);
+      logger.debug(`Failed to clean temp dir: ${dirpath}`, error.message);
     }
   }
 

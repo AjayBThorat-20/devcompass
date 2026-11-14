@@ -4,6 +4,7 @@ const https = require('https');
 const path = require('path');
 const fs = require('fs');
 const GitHubTokenManager = require('../config/github-token.manager');
+const logger = require('../../shared/utils/logger').default;
 
 let TRACKED_REPOS = {};
 try {
@@ -11,7 +12,7 @@ try {
   const trackedReposData = JSON.parse(fs.readFileSync(trackedReposPath, 'utf8'));
   TRACKED_REPOS = trackedReposData.repositories || {};
 } catch (error) {
-  if (process.env.DEBUG) console.error('Could not load tracked-repos.json:', error.message);
+  logger.debug('Could not load tracked-repos.json:', error.message);
   TRACKED_REPOS = {};
 }
 
@@ -22,7 +23,7 @@ function makeGitHubRequest(requestPath, params = {}) {
       const tokenManager = new GitHubTokenManager();
       token = tokenManager.getToken();
     } catch (error) {
-      if (process.env.DEBUG) console.error('Could not read GitHub token:', error.message);
+      logger.debug('Could not read GitHub token:', error.message);
     }
 
     const queryString = Object.entries(params)
@@ -123,7 +124,7 @@ async function fetchGitHubIssues(packageName) {
     if (!Array.isArray(data)) return { package: packageName, failed: true, error: 'Unexpected GitHub API response shape' };
     return analyzeIssues(data, packageName);
   } catch (error) {
-    if (process.env.DEBUG) console.error(`GitHub API error for ${packageName}:`, error.message);
+    logger.debug(`GitHub API error for ${packageName}:`, error.message);
     return { package: packageName, failed: true, error: error.message };
   }
 }
@@ -239,7 +240,7 @@ async function checkGitHubIssues(packages, options = {}) {
   try {
     return await processBatch(trackedAndInstalled, concurrency, onProgress);
   } catch (error) {
-    if (process.env.DEBUG) console.error('GitHub batch processing error:', error.message);
+    logger.debug('GitHub batch processing error:', error.message);
     return trackedAndInstalled.map(pkg => ({ package: pkg, failed: true, error: error.message }));
   }
 }

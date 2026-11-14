@@ -141,13 +141,19 @@ point is `IssueCollector` — add an `addXIssues()` method there and a
 corresponding `add*Issues()` call in the feature that wires it in (see
 `features/analyze/index.js`), not a bespoke scoring path.
 
-> **Known duplication** (worth knowing before you touch severity/priority
-> logic): there are four independent severity/priority tables in this
-> codebase — `core/utils/severity.js`, the `SEVERITY_WEIGHTS`/`SEVERITY_COLORS`
-> exports in `core/models/issue.model.js`, `data/priorities.json`, and the
-> inline penalty tables in `health-calculator.js`/`issue-ranker.js`. They
-> mostly agree today but aren't derived from one source — if you change
-> severity weighting, check all four.
+> **Resolved duplication** (CL-07): this codebase used to have four
+> independent severity/priority tables — `core/utils/severity.js`, the
+> `SEVERITY_WEIGHTS`/`SEVERITY_COLORS` exports in `core/models/issue.model.js`,
+> `data/priorities.json`, and inline penalty tables in
+> `health-calculator.js`/`issue-ranker.js` — that had already drifted apart
+> (`MEDIUM` was a different color in two of them). `core/utils/severity.js`
+> is now the only source: `issue.model.js` re-exports `SEVERITY_LEVELS` as
+> `SEVERITY_WEIGHTS` instead of defining its own, `console-formatter.js`
+> reads the CLI color/icon palette from it, and `data/priorities.json` (only
+> ever read by the now-deleted, unreferenced `recommendation.service.js`) is
+> gone. `test/unit/severity.test.js` has a regression test that fails if
+> `health-calculator.js` and `issue-ranker.js` ever disagree with it on
+> ordering again.
 
 ## CLI command pattern
 
@@ -273,10 +279,13 @@ runtime:
   dependency detection (entry points, ignore globs, framework skip-list).
 - `tracked-repos.json` — GitHub repo metadata backing
   `features/alerts/github-tracker.service.js` and the predictive collector.
-- `priorities.json` — a fourth severity/priority table (see the duplication
-  note above).
-- `batch-categories.json` — categories for the (not-yet-implemented) batch
-  fix mode.
+
+(`priorities.json` and `batch-categories.json`, and the batch-fix service
+files that read them, were deleted (CL-01/CL-07) — `priorities.json` was a
+severity table only the dead `recommendation.service.js` read, and
+`batch-categories.json` only backed the never-implemented `fix --batch`
+mode, which printed "not yet available" and has been removed along with
+`--batch`/`--batch-mode`/`--only`/`--skip`.)
 
 ## Testing
 

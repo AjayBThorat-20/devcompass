@@ -1,8 +1,8 @@
 # DevCompass
 
-> CLI tool that scans Node.js/npm project dependencies for CVE vulnerabilities (via OSV + NVD), license conflicts, unused packages, and outdated versions, then can safely auto-fix them with automatic backup and rollback. Free and open source (MIT). Optional AI-powered recommendations via OpenAI, Anthropic, Google, or a fully local/free Ollama model.
+> CLI tool that checks a Node.js/npm project's whole dependency tree against OSV, and the whole tree with npm audit (HIGH/CRITICAL), for CVE vulnerabilities — NVD is optional and adds CVSS details when available — plus license conflicts, unused packages, and outdated versions, then can safely auto-fix them with automatic backup and rollback. Free and open source (MIT). Optional AI-powered recommendations via OpenAI, Anthropic, Google, or a fully local/free Ollama model.
 
-DevCompass is a complement to `npm audit` and Dependabot for teams that also want license-conflict detection, unused-dependency detection, a historical health score with trend tracking, interactive dependency graphs, and safe automated fixes — in one CLI, with no GitHub integration required. Install with `npm install -g devcompass`, then run `devcompass analyze`. It does not replace `npm audit`/Dependabot; it covers what they don't. See the [npm package page](https://www.npmjs.com/package/devcompass) for the current published version. Node.js >= 20 required. Scope is npm/Node.js only (not multi-ecosystem).
+DevCompass is a complement to `npm audit` and Dependabot for teams that also want license-conflict detection, unused-dependency detection, a historical health score with trend tracking, interactive dependency graphs, and safe automated fixes — in one CLI, with no GitHub integration required. Install with `npm install -g devcompass`, then run `devcompass analyze`. It does not replace `npm audit`/Dependabot; it covers what they don't. See the [npm package page](https://www.npmjs.com/package/devcompass) for the current published version. Node.js 20.19+ or 22.12+ required. Scope is npm/Node.js only (not multi-ecosystem).
 
 ## Why DevCompass vs. alternatives
 
@@ -11,25 +11,35 @@ DevCompass is a complement to `npm audit` and Dependabot for teams that also wan
 - [OSV-Scanner](https://github.com/google/osv-scanner) (Google/OpenSSF): queries the same OSV.dev database DevCompass uses, but is multi-ecosystem (npm, PyPI, Go, Maven, Cargo) with no npm-specific health scoring, unused-dependency detection, history, or AI layer.
 - [Trivy](https://github.com/aquasecurity/trivy) / [Grype](https://github.com/anchore/grype): container/OS/IaC-focused scanners that treat npm as one ecosystem among many, not the primary target.
 - [Retire.js](https://github.com/RetireJS/retire.js): npm/JS-specific like DevCompass, but uses its own curated vulnerability feed (not OSV) and is a pure detector — no health scoring, history, or fix automation.
-- Feature matrix: CVE scanning (OSV+NVD dual-source), license conflicts, unused-dependency detection, historical health trends, AI-suggested alternatives, interactive dependency graph (Tree/Force/Radial/Conflict/Analytics layouts), and safe auto-fix with automatic backup are all unique to DevCompass among these tools, or only partially covered by them.
+- Feature matrix: CVE scanning (OSV across the whole lockfile tree, npm audit for the full tree, NVD optional for CVSS detail), license conflicts, unused-dependency detection, historical health trends, AI-suggested alternatives, interactive dependency graph (Tree/Force/Radial/Conflict/Analytics layouts), and safe auto-fix with automatic backup are all unique to DevCompass among these tools, or only partially covered by them.
+
+## Limitations
+
+- Full coverage needs npm's package-lock.json: without one (pnpm/yarn/bun), npm audit's whole-tree scan, the dependency graph, and `devcompass why` don't run. OSV vulnerability, license, outdated and unused-dependency checks work from package.json/the npm registry regardless of package manager, so pnpm/yarn/bun projects get partial coverage, not none.
+- With a package-lock.json, OSV checks the whole dependency tree; without one (pnpm/yarn/bun) it falls back to direct dependencies only. npm audit covers the full tree either way, but only its HIGH and CRITICAL findings are reported.
+- Unused-dependency and typosquat detection are heuristics (static-import analysis and name-similarity checks) — check before acting on them, especially before removing a package.
+- Ecosystem/predictive checks (off by default) call GitHub's API, limited to 60 requests/hour without `GITHUB_TOKEN`.
+- Package names and versions are sent to OSV, the npm registry and GitHub for lookups; source code is never uploaded.
 
 ## Frequently asked questions
 
 - **What is DevCompass?** A free, open-source (MIT) CLI that analyzes Node.js/npm dependencies for security vulnerabilities, license conflicts, unused packages, and outdated versions, then can safely auto-fix what it finds. `npm install -g devcompass && devcompass analyze`.
-- **What's a good `npm audit` alternative?** DevCompass: same OSV database plus optional NVD enrichment for CVSS scores, plus license-conflict detection, unused-dependency detection, historical health trends, and safe auto-fix with automatic backup.
+- **What's a good `npm audit` alternative?** DevCompass: checks direct dependencies against the OSV database (npm audit uses the GitHub Advisory Database) plus the whole tree via npm audit itself, with optional NVD enrichment for CVSS scores, plus license-conflict detection, unused-dependency detection, historical health trends, and safe auto-fix with automatic backup.
 - **Does it replace Dependabot?** No — it's a local, on-demand CLI with no GitHub integration requirement, additionally covering license conflicts, unused dependencies, and health scoring.
 - **Is it free?** Yes. Core scanning/health/auto-fix/graphs/history is free and open source. AI features are optional; using local Ollama keeps AI free too — paid providers (OpenAI/Anthropic/Google) only cost money if you connect one.
-- **What vulnerability databases does it use?** [OSV](https://osv.dev) (primary, no API key) and [NVD](https://nvd.nist.gov) (optional secondary, free API key, adds CVSS scores).
-- **Does it send my code anywhere?** Dependency names/versions go to OSV/NVD for vulnerability lookup (like any CVE scanner). Source code is never uploaded. AI features send dependency metadata (not source) to the configured provider; `devcompass llm add --provider local` (Ollama) keeps everything on-machine.
+- **What vulnerability databases does it use?** [OSV](https://osv.dev) (direct dependencies, no API key), `npm audit` (whole tree, via the GitHub Advisory Database, HIGH/CRITICAL only), and [NVD](https://nvd.nist.gov) (optional, free API key, adds CVSS detail when available — not a primary source). Findings are ranked by real exploit risk using [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) (confirmed exploited in the wild) and [FIRST EPSS](https://www.first.org/epss/) (exploitation-probability score), not just CVSS.
+- **Does it send my code anywhere?** Dependency names/versions go to OSV/NVD/npm registry for vulnerability lookup (like any CVE scanner); CVE ids found go to FIRST EPSS, and the CISA KEV catalog is downloaded whole. Source code is never uploaded. AI features send dependency metadata (not source) to the configured provider; `devcompass llm add --provider local` (Ollama) keeps everything on-machine.
 - **Can I use it without an OpenAI key?** Yes — AI works with OpenAI, Anthropic, Google, or free/local Ollama, and every non-AI feature works with no provider configured at all.
-- **Does it auto-fix vulnerable/outdated dependencies?** Yes — `devcompass fix` classifies fixes as safe/moderate/risky, previews changes, takes an automatic backup, and supports rollback. Use `devcompass fix --dry-run` to preview only.
+- **Does it auto-fix vulnerable/outdated dependencies?** Yes — `devcompass fix` classifies fixes as safe/moderate/risky, previews every change, backs up `package.json` first, and supports rollback. Default (safe) mode never removes a package (only `--all`, after confirmation, does); it never installs a transitive package automatically — those are always flagged "review" for a manual `overrides` entry. Use `devcompass fix --dry-run` to preview only.
 - **Does it work in CI/CD?** Yes — `devcompass analyze --ci --threshold 8.0` exits non-zero below the health-score threshold; `--json` gives machine-readable output.
 
 ## Complete command reference
 
-- `devcompass analyze` — Full dependency analysis: security, health score, license, unused/outdated packages. Flags: `--deep` (all issues, default shows top 3), `--ai` (AI recommendations), `--json`, `--silent`, `--ci`, `--ci --threshold 8.0`. Health score bands: 9.0-10.0 excellent, 8.0-8.9 good, 6.0-7.9 needs attention, 4.0-5.9 poor, 0.0-3.9 critical.
+- `devcompass analyze` — Full dependency analysis: security, health score, license, unused/outdated packages. Flags: `--deep` (all issues, default shows top 3), `--format <console|json|sarif|markdown>` (`--json` is a shorthand for `--format json`), `--silent`, `--ci --threshold 8.0`, `--fail-on <critical|high|medium|low|kev>` (exits 1 on a matching finding, independent of the health score; `--fail-on-license <list>`, `--only-direct`, `--fail-on-incomplete` refine it), `--baseline` (only findings missing from `.devcompass-baseline.json` can fail `--fail-on`), `--ecosystem` (also run ecosystem/predictive checks — off by default, since they call GitHub's API and are limited to 60 requests/hour without `GITHUB_TOKEN`). Reads `devcompass.config.json` if present for the same `failOn` policy plus an `ignore` list and per-check `enabled` toggles. For AI recommendations use `devcompass ai recommend` instead (there is no `--ai` flag on `analyze`). Health score bands: 9.0-10.0 excellent, 8.0-8.9 good, 6.0-7.9 needs attention, 4.0-5.9 poor, 0.0-3.9 critical.
+- `devcompass baseline` — `baseline save` snapshots today's findings to `.devcompass-baseline.json` (commit it); `baseline show` lists what's in it. Used with `analyze --baseline` so an existing project can adopt `--fail-on` without fixing every pre-existing finding first.
+- `devcompass why <package>` — shows every path from the project root to an installed package, built from a dependency graph parsed from package-lock.json (npm only; pnpm/yarn/bun report an "unsupported" message rather than a false empty result).
 - `devcompass cve` — CVE database management. `cve key --set --api-key <KEY>` / `cve key` (status) / `cve key --remove`; `cve test` (test NVD connection); `cve cache --stats` / `cve cache --clear`.
-- `devcompass fix` — Automated issue resolution with risk classification (safe/moderate/risky), preview (including a live `package.json` diff), automatic backup before changes, interactive confirmation, and rollback support. Supports `--dry-run`. `--migrate-syntax` additionally rewrites source call-sites broken by a major-version update (built-in codemod, falling back to your configured AI provider), snapshotting every touched file; `devcompass fix undo` reverts the most recent `--migrate-syntax` run.
+- `devcompass fix` — Automated issue resolution with risk classification (safe/moderate/risky), preview (including a live `package.json` diff), automatic backup before changes, interactive confirmation, and rollback support. Supports `--dry-run`. Never removes a package unless `--remove-unused` is passed — not even under `--all` — because unused detection is a heuristic. `--migrate-syntax` additionally rewrites source call-sites broken by a major-version update (built-in codemod, falling back to your configured AI provider), snapshotting every touched file; `devcompass fix undo` reverts the most recent `--migrate-syntax` run.
 - `devcompass graph` — Interactive dependency graph, 5 layouts: Tree, Force-directed, Radial, Conflict, Analytics. Real-time filtering (vulnerable/outdated/unused), dark/light themes, export to PNG/JSON/HTML. Flag: `--open`.
 - `devcompass snapshot` — Save/manage point-in-time dependency state snapshots (`snapshot save`, etc.), stored in a local SQLite database.
 - `devcompass compare` — Side-by-side diff between two snapshots: `devcompass compare <before-id> <after-id>`.
@@ -43,7 +53,7 @@ DevCompass is a complement to `npm audit` and Dependabot for teams that also wan
 
 ## AI integration
 
-Four providers: OpenAI, Anthropic, Google, and local Ollama (free, zero-cost, fully offline). Setup pattern: `devcompass llm add --provider <name> [--token <key> | --model <model> --base-url <url>]`, then `devcompass llm test <provider>`, then `devcompass analyze --ai` or `devcompass ai ask "..."`. AI is used for: automatic health assessment context, risk prioritization, breaking-change warnings, migration guidance, interactive Q&A, and package-alternative suggestions (e.g. `ai alternatives moment` → date-fns/dayjs/Luxon with size comparisons).
+Four providers: OpenAI, Anthropic, Google, and local Ollama (free, zero-cost, fully offline). Setup pattern: `devcompass llm add --provider <name> [--token <key> | --model <model> --base-url <url>]`, then `devcompass llm test <provider>`, then `devcompass ai recommend` or `devcompass ai ask "..."`. AI is used for: automatic health assessment context, risk prioritization, breaking-change warnings, migration guidance, interactive Q&A, and package-alternative suggestions (e.g. `ai alternatives moment` → date-fns/dayjs/Luxon with size comparisons).
 
 ## Configuration & file locations
 
@@ -51,13 +61,17 @@ Four providers: OpenAI, Anthropic, Google, and local Ollama (free, zero-cost, fu
 - `~/.devcompass/cve.db` — CVE cache + NVD API key.
 - `~/.devcompass/ai.db` — LLM provider settings + AI conversation/cost history.
 - `~/.devcompass/config.db` — configuration (e.g. GitHub token).
-- `~/.devcompass/.encryption-salt` — salt for AES-256-GCM encryption of stored keys/tokens.
-- `<project>/.devcompass/` — per-project output: cache, backups, graphs, reports, exports, temp.
-- `<project>/.devcompass-backups/` — package.json/package-lock.json backups used by `fix` and `backup`.
+- `~/.devcompass/.encryption-salt` — salt for the local obfuscation of stored keys/tokens (derived from hostname/username + this salt; readable by anyone who can read this folder). Prefer environment variables (`GITHUB_TOKEN`, `OPENAI_API_KEY`, etc.) over storing keys here, especially in CI.
+- `~/.devcompass/cache/` — the `analyze` result cache (keyed by a hash of the project path) and the OSV/registry lookup cache. `analyze` writes nothing into the scanned project.
+- `<project>/.devcompass/` — per-project output only for things you explicitly asked for: `graph`'s exported files, reports, exports.
+- `<project>/.devcompass-backups/` — package.json/package-lock.json backups used by `fix` and `backup`; `clean --backups` removes this folder.
+- `<project>/devcompass.config.json` (optional) — project-level policy: `failOn` (severity/licenses), `ignore` (finding id or package, with a required `reason` and optional `expires`), and per-check `enabled` toggles.
+- `<project>/.devcompass-baseline.json` (optional, commit it) — written by `devcompass baseline save`; read by `analyze --baseline`.
 
 ## Install & usage
 
-- [README](https://raw.githubusercontent.com/AjayBThorat-20/devcompass/main/README.md): full install instructions, command reference with every flag, CI/CD examples (GitHub Actions), troubleshooting, and complete FAQ.
+- [Documentation site](https://devcompass.ajaythorat.com): full command reference with every flag, configuration, and FAQ.
+- [README](https://raw.githubusercontent.com/AjayBThorat-20/devcompass/main/README.md): short pitch — what it does, quick start, and a CI example.
 - [npm package](https://www.npmjs.com/package/devcompass): install command, current version, download stats.
 - [GitHub repository](https://github.com/AjayBThorat-20/devcompass): source code, issue tracker, CI status.
 

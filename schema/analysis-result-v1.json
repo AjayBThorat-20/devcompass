@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://devcompass.ajaythorat.com/schema/analysis-result-v1.json",
+  "title": "DevCompass analyze --json output",
+  "description": "Schema for `devcompass analyze --json` (schemaVersion 1). A field may be added in a future minor/patch release without a schemaVersion bump; a field being removed, renamed, or changing type/meaning always bumps schemaVersion.",
+  "type": "object",
+  "required": ["schemaVersion", "version", "timestamp", "project", "healthScore", "summary", "issues", "metadata"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "version": { "type": "string", "description": "The devcompass package version that produced this output." },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "project": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "path": { "type": "string" }
+      }
+    },
+    "healthScore": { "type": "number", "minimum": 0, "maximum": 10 },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "total": { "type": "integer" },
+        "critical": { "type": "integer" },
+        "high": { "type": "integer" },
+        "medium": { "type": "integer" },
+        "low": { "type": "integer" },
+        "safeFixes": { "type": "integer" },
+        "riskyFixes": { "type": "integer" }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "ruleId", "name", "type", "severity", "confidence"],
+        "properties": {
+          "id": { "type": "string", "description": "<ruleId>:<package>@<version>[:<advisoryId>] — matches devcompass.config.json's ignore[].id." },
+          "ruleId": { "type": "string", "examples": ["vuln", "typosquat", "license", "outdated/major", "unused"] },
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "type": { "type": "string", "enum": ["security", "license", "quality", "outdated", "unused"] },
+          "severity": { "type": "string", "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"] },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"], "description": "Heuristic checks (unused, typosquat) are never high." },
+          "advisoryIds": { "type": "array", "items": { "type": "string" } },
+          "score": { "type": "number" },
+          "message": { "type": "string" },
+          "risk": { "type": ["string", "null"] },
+          "fix": { "type": ["string", "null"] },
+          "safeFix": { "type": "boolean" },
+          "source": { "type": ["string", "null"] },
+          "metadata": { "type": "object" }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Run-level metadata: scan-completeness flags, install-script list, baseline/policy results when those features are used. See the CLI reference for the full field list — additive fields here don't bump schemaVersion."
+    }
+  }
+}

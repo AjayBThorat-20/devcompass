@@ -1,6 +1,7 @@
 // src/features/alerts/predictive.service.js
 
 const { checkGitHubIssues } = require('./github-tracker.service');
+const logger = require('../../shared/utils/logger').default;
 
 async function generatePredictiveWarnings(packages, options = {}) {
   const { onProgress } = options;
@@ -60,7 +61,7 @@ async function generatePredictiveWarnings(packages, options = {}) {
 
     return warnings;
   } catch (error) {
-    if (process.env.DEBUG) console.error('Error generating predictive warnings:', error.message);
+    logger.debug('Error generating predictive warnings:', error.message);
     warnings.incomplete = true;
     warnings.incompleteReason = error.message;
     return warnings;

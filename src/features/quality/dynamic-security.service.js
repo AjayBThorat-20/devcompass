@@ -2,7 +2,9 @@
 
 const path = require('path');
 const fs = require('fs');
-const { execSync } = require('child_process');
+const axios = require('axios');
+const { runNpm } = require('../../shared/utils/run-npm');
+const logger = require('../../shared/utils/logger').default;
 
 const securityData = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../../../data/popular-packages.json'), 'utf8')
@@ -17,7 +19,7 @@ function checkTyposquatting(packageName) {
 
   for (const official of POPULAR_PACKAGES) {
     if (official === packageName) continue;
-    const distance = levenshteinDistance(packageName, official);
+    const distance = editDistance(packageName, official);
     if (distance === 1) {
       return {
         package: packageName,
@@ -32,47 +34,50 @@ function checkTyposquatting(packageName) {
   return null;
 }
 
-function checkInstallScripts(packageJsonPath) {
-  try {
-    if (!fs.existsSync(packageJsonPath)) return [];
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-    const scripts = packageJson.scripts || {};
-    const suspiciousPatterns = [
-      /curl.*\|.*sh/i,
-      /wget.*\|.*sh/i,
-      /eval\s*\(/i,
-      /exec\s*\(/i,
-      /child_process/i,
-      /http:\/\//i,
-      /https:\/\//i,
-      /bitcoin/i,
-      /mining/i,
-      /keylogger/i
-    ];
+const downloadCountCache = new Map();
 
-    const suspiciousScripts = [];
+// Monthly downloads from npm's download-counts API: 0 when npm has never
+// heard of the package (a 404), null when the count couldn't be fetched.
+// Cached per process; a project only ever has a handful of candidates.
+function fetchDownloadsLastMonth(packageName) {
+  if (downloadCountCache.has(packageName)) return downloadCountCache.get(packageName);
+  const promise = axios.get(`https://api.npmjs.org/downloads/point/last-month/${encodeURIComponent(packageName)}`, {
+    timeout: 5000,
+    validateStatus: status => status === 200 || status === 404
+  })
+    .then(response => (response.status === 404 ? 0 : (typeof response.data?.downloads === 'number' ? response.data.downloads : null)))
+    .catch(() => null);
+  downloadCountCache.set(packageName, promise);
+  return promise;
+}
 
-    for (const [scriptName, scriptContent] of Object.entries(scripts)) {
-      if (!['postinstall', 'preinstall', 'install'].includes(scriptName)) continue;
-      if (typeof scriptContent !== 'string') continue;
+// A name one character away from a popular package is a weak signal on its
+// own: it also matches real, unrelated packages (preact/react, vuex/vue,
+// nuxi/nuxt, cuid/uuid). Download counts separate the two cleanly — typo
+// packages like expres, loadsh and axois get 55-30k downloads a month, all
+// from a far more popular look-alike, while the real ones get hundreds of
+// thousands to millions (Nov 2026 figures).
+const POPULARITY_RATIO_THRESHOLD = 50; // the look-alike must be at least this many times more downloaded
+const RARE_DOWNLOADS_THRESHOLD = 100000; // and the flagged package under this many downloads a month
 
-      for (const pattern of suspiciousPatterns) {
-        if (pattern.test(scriptContent)) {
-          suspiciousScripts.push({
-            script: scriptName,
-            content: scriptContent,
-            pattern: pattern.toString(),
-            severity: 'medium'
-          });
-          break;
-        }
-      }
-    }
-    return suspiciousScripts;
-  } catch (error) {
-    if (process.env.DEBUG) console.error('[dynamic-security] checkInstallScripts failed:', error.message);
-    return [];
-  }
+// null: not a typosquat risk. Otherwise the name match, plus both download
+// counts — or `unverified: true` when they couldn't be fetched, so the
+// caller can report the check as incomplete instead of guessing either way.
+async function checkTyposquattingRisk(packageName) {
+  const match = checkTyposquatting(packageName);
+  if (!match) return null;
+
+  const [downloads, popularDownloads] = await Promise.all([
+    module.exports.fetchDownloadsLastMonth(packageName),
+    module.exports.fetchDownloadsLastMonth(match.similarTo)
+  ]);
+  if (downloads === null || popularDownloads === null) return { ...match, unverified: true };
+
+  const isFarMorePopular = popularDownloads >= Math.max(downloads, 1) * POPULARITY_RATIO_THRESHOLD;
+  const isRare = downloads < RARE_DOWNLOADS_THRESHOLD;
+  if (!isFarMorePopular || !isRare) return null;
+
+  return { ...match, downloads, popularDownloads };
 }
 
 async function runNpmAudit(projectPath) {
@@ -84,25 +89,21 @@ async function runNpmAudit(projectPath) {
   const hasLockfile = fs.existsSync(path.join(projectPath, 'package-lock.json'));
 
   try {
-    const output = execSync('npm audit --json', {
-      cwd: projectPath,
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'ignore'],
-      timeout: 30000,
-      maxBuffer: 10 * 1024 * 1024
-    });
+    // Same helper as fix's npm calls: no shell, npm.cmd resolved on Windows.
+    const output = runNpm(['audit', '--json'], { cwd: projectPath, timeout: 30000 });
     return parseAuditData(JSON.parse(output));
   } catch (error) {
+    // npm audit exits non-zero whenever it finds vulnerabilities — its
+    // normal behavior, not a failed run — so stdout still carries the report.
     if (error.stdout) {
       try {
-        const stdoutText = Buffer.isBuffer(error.stdout) ? error.stdout.toString('utf-8') : error.stdout;
-        return parseAuditData(JSON.parse(stdoutText));
+        return parseAuditData(JSON.parse(error.stdout));
       } catch (parseError) {
-        if (process.env.DEBUG) console.error('[dynamic-security] failed to parse npm audit error output:', parseError.message);
+        logger.debug('[dynamic-security] failed to parse npm audit error output:', parseError.message);
         return { vulnerabilities: [], summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 }, incomplete: hasLockfile };
       }
     }
-    if (process.env.DEBUG) console.error('[dynamic-security] npm audit execSync failed with no stdout:', error.message);
+    logger.debug('[dynamic-security] npm audit failed:', error.message);
     return { vulnerabilities: [], summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 }, incomplete: hasLockfile };
   }
 }
@@ -142,42 +143,17 @@ function parseAuditData(auditData) {
       }
     }
   } catch (error) {
-    if (process.env.DEBUG) console.error('[dynamic-security] parseAuditData failed:', error.message);
+    logger.debug('[dynamic-security] parseAuditData failed:', error.message);
   }
 
   return { vulnerabilities, summary: { total: vulnerabilities.length, critical, high, moderate, low } };
 }
 
-async function analyzeProject(projectPath, dependencyNames = []) {
-  const results = { typosquatting: [], suspiciousScripts: [], vulnerabilities: [], summary: { total: 0, critical: 0, high: 0, moderate: 0, low: 0 } };
-
-  try {
-    const packageJsonPath = path.join(projectPath, 'package.json');
-    if (!fs.existsSync(packageJsonPath)) return results;
-
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-    const dependencies = Array.isArray(dependencyNames) && dependencyNames.length > 0
-      ? dependencyNames
-      : Object.keys({ ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) });
-
-    for (const dep of dependencies) {
-      const typosquat = checkTyposquatting(dep);
-      if (typosquat) results.typosquatting.push(typosquat);
-    }
-
-    results.suspiciousScripts = checkInstallScripts(packageJsonPath);
-
-    const auditResult = await runNpmAudit(projectPath);
-    results.vulnerabilities = auditResult.vulnerabilities || [];
-    results.summary = auditResult.summary || { total: results.vulnerabilities.length, critical: 0, high: 0, moderate: 0, low: 0 };
-  } catch (error) {
-    if (process.env.DEBUG) console.error('[dynamic-security] analyzeProject failed:', error.message);
-  }
-
-  return results;
-}
-
-function levenshteinDistance(str1, str2) {
+// Edit distance where swapping two adjacent characters also counts as one
+// edit (optimal string alignment), not two as in plain Levenshtein — the
+// most common typo, and the one behind real typo packages like loadsh
+// (lodash) and axois (axios).
+function editDistance(str1, str2) {
   const matrix = [];
   for (let i = 0; i <= str2.length; i++) matrix[i] = [i];
   for (let j = 0; j <= str1.length; j++) matrix[0][j] = j;
@@ -186,6 +162,9 @@ function levenshteinDistance(str1, str2) {
       matrix[i][j] = str2[i - 1] === str1[j - 1]
         ? matrix[i - 1][j - 1]
         : Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+      if (i > 1 && j > 1 && str2[i - 1] === str1[j - 2] && str2[i - 2] === str1[j - 1]) {
+        matrix[i][j] = Math.min(matrix[i][j], matrix[i - 2][j - 2] + 1);
+      }
     }
   }
   return matrix[str2.length][str1.length];
@@ -193,10 +172,10 @@ function levenshteinDistance(str1, str2) {
 
 module.exports = {
   checkTyposquatting,
-  checkInstallScripts,
+  checkTyposquattingRisk,
+  fetchDownloadsLastMonth,
   runNpmAudit,
   parseAuditData,
-  analyzeProject,
   POPULAR_PACKAGES,
   WHITELIST
 };

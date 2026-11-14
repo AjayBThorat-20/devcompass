@@ -35,8 +35,8 @@ async function config(options) {
     }
     if (tokenManager.saveToken(token)) {
       console.log(chalk.green('✓'), 'GitHub token saved successfully!');
-      console.log('🔒 Token encrypted with AES-256-GCM');
-      console.log('📁 Stored in:', chalk.dim('~/.devcompass/config.db'));
+      console.log('📁 Stored in:', chalk.dim('~/.devcompass/config.db'), chalk.dim('(obfuscated, not protected from anyone who can read that folder)'));
+      console.log(chalk.dim('   In CI, prefer the GITHUB_TOKEN environment variable — it\'s used first and never written to disk.'));
       console.log('🎉 You can now use DevCompass without rate limits!');
     } else {
       console.log(chalk.red('✗'), 'Failed to save GitHub token');

@@ -1,5 +1,6 @@
 // src/core/utils/errors.js
 
+const logger = require('../../shared/utils/logger').default;
 class DevCompassError extends Error {
   constructor(message, code = 'UNKNOWN_ERROR') { super(message); this.name = 'DevCompassError'; this.code = code; }
 }
@@ -23,11 +24,11 @@ class FixError extends DevCompassError {
 function handleError(error) {
   if (error instanceof DevCompassError) {
     console.error(`\n❌ ${error.message}\n`);
-    if (process.env.DEBUG) console.error(error.stack);
+    logger.debug(error.stack);
     process.exit(1);
   } else {
     console.error('\n❌ An unexpected error occurred:', error.message);
-    if (process.env.DEBUG) console.error(error.stack);
+    logger.debug(error.stack);
     process.exit(1);
   }
 }

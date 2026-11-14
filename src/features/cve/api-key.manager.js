@@ -2,6 +2,7 @@
 
 const { db } = require('./database');
 const encryption = require('../../shared/utils/encryption');
+const logger = require('../../shared/utils/logger').default;
 
 class APIKeyManager {
   setAPIKey(service, apiKey) {
@@ -15,7 +16,7 @@ class APIKeyManager {
       `).run(service, encryptedKey);
       return true;
     } catch (error) {
-      if (process.env.DEBUG) console.error('Error setting API key:', error.message);
+      logger.debug('Error setting API key:', error.message);
       return false;
     }
   }
@@ -25,7 +26,7 @@ class APIKeyManager {
       const result = db.prepare('SELECT api_key FROM api_keys WHERE service = ? AND is_active = 1').get(service);
       return result ? encryption.decrypt(result.api_key) : null;
     } catch (error) {
-      if (process.env.DEBUG) console.error('Error getting API key:', error.message);
+      logger.debug('Error getting API key:', error.message);
       return null;
     }
   }
@@ -35,7 +36,7 @@ class APIKeyManager {
       const result = db.prepare('DELETE FROM api_keys WHERE service = ?').run(service);
       return result.changes > 0;
     } catch (error) {
-      if (process.env.DEBUG) console.error('Error removing API key:', error.message);
+      logger.debug('Error removing API key:', error.message);
       return false;
     }
   }
@@ -44,7 +45,7 @@ class APIKeyManager {
     try {
       return db.prepare('SELECT service, is_active, created_at, updated_at FROM api_keys ORDER BY created_at DESC').all();
     } catch (error) {
-      if (process.env.DEBUG) console.error('Error listing API keys:', error.message);
+      logger.debug('Error listing API keys:', error.message);
       return [];
     }
   }

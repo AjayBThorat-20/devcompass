@@ -7,6 +7,9 @@ const ora = require('ora');
 const GraphGenerator = require('./graph.generator');
 const GraphExporter = require('./graph.exporter');
 const OutputManager = require('../../shared/utils/output-manager');
+const { printGitignoreTipIfNeeded } = require('../../shared/utils/output-manager');
+const { getCachePath: getAnalysisCachePath } = require('../../shared/utils/analysis-cache');
+const logger = require('../../shared/utils/logger').default;
 
 async function graphCommand(options = {}) {
   const {
@@ -65,14 +68,14 @@ async function graphCommand(options = {}) {
     const generator = new GraphGenerator(projectPath);
     let analysisResults = null;
 
-    const cacheFile = outputManager.getCachePath('analysis-cache.json');
+    const cacheFile = getAnalysisCachePath(projectPath);
     if (fs.existsSync(cacheFile)) {
       try {
         const { runAnalyze } = require('../analyze');
         analysisResults = await runAnalyze({ projectPath, silent: true, mode: 'silent', saveHistory: false });
         if (analysisResults) generator.setAnalysisResults(analysisResults);
       } catch (error) {
-        if (process.env.DEBUG) console.log(chalk.dim(`[DEBUG] Analysis enrichment skipped: ${error.message}`));
+        logger.debug(chalk.dim(`[DEBUG] Analysis enrichment skipped: ${error.message}`));
       }
     }
 
@@ -108,6 +111,7 @@ async function graphCommand(options = {}) {
 
     if (result.success) {
       exportSpinner.succeed(`Graph exported: ${chalk.cyan(outputManager.getRelativePath(result.path))}`);
+      if (!path.isAbsolute(output)) printGitignoreTipIfNeeded(projectPath);
       displaySummary(graphData, result, !!analysisResults, options, outputManager);
 
       if (result.format === 'HTML' && shouldOpen) {
@@ -127,7 +131,7 @@ async function graphCommand(options = {}) {
   } catch (error) {
     spinner.fail('Graph generation failed');
     console.error(chalk.red('\n✗ Error:'), error.message);
-    if (process.env.DEBUG) console.error(chalk.gray(error.stack));
+    logger.debug(chalk.gray(error.stack));
     process.exit(1);
   }
 }

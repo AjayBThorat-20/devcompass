@@ -4,6 +4,7 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const logger = require('../../shared/utils/logger').default;
 
 class HistoryDatabase {
   constructor() {
@@ -17,7 +18,7 @@ class HistoryDatabase {
     if (this.db) return this.db;
     const isNewDb = !fs.existsSync(this.dbPath);
     try {
-      this.db = new Database(this.dbPath, { verbose: process.env.DEBUG ? console.log : null });
+      this.db = new Database(this.dbPath, { verbose: process.env.DEBUG ? (msg) => logger.debug(msg) : null });
       if (isNewDb) this.initialize();
       this.optimizeDatabase();
       return this.db;
@@ -36,7 +37,7 @@ class HistoryDatabase {
       this.db.pragma('mmap_size = 67108864');
       this.db.pragma('foreign_keys = ON');
     } catch (error) {
-      if (process.env.DEBUG) console.error('Database optimization failed:', error.message);
+      logger.debug('Database optimization failed:', error.message);
     }
   }
 
@@ -89,7 +90,7 @@ class HistoryDatabase {
   close() {
     if (this.db) {
       try { this.db.exec('PRAGMA wal_checkpoint(TRUNCATE);'); this.db.close(); }
-      catch (error) { if (process.env.DEBUG) console.error('Error closing database:', error.message); }
+      catch (error) { logger.debug('Error closing database:', error.message); }
       finally { this.db = null; }
     }
   }

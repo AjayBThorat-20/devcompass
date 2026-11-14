@@ -6,6 +6,7 @@ const comparator = require('./snapshot-comparator');
 const loader = require('./snapshot-loader');
 const fs = require('fs');
 const path = require('path');
+const logger = require('../../shared/utils/logger').default;
 
 async function compareCommand(options) {
   const id1 = options._[1];
@@ -54,7 +55,7 @@ async function compareCommand(options) {
   } catch (error) {
     spinner.fail('Comparison failed');
     console.error(chalk.red('❌ Error:'), error.message);
-    if (process.env.DEBUG) console.error(chalk.dim(error.stack));
+    logger.debug(chalk.dim(error.stack));
     process.exit(1);
   }
 }

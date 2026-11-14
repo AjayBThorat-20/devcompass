@@ -1,0 +1,84 @@
+name: Weekly real-project scan
+
+# CI-06: runs `analyze` against real, well-known open-source projects on a
+# schedule so false positives (a popular package flagged as a typosquat, a
+# genuinely-imported package flagged unused, a wrong version) surface before
+# a user reports them. Informational only — never blocks a PR or release.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Monday 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - repo: expressjs/express
+            name: express
+          - repo: lodash/lodash
+            name: lodash
+          - repo: chalk/chalk
+            name: chalk
+          - repo: sindresorhus/execa
+            name: execa
+          - repo: yargs/yargs
+            name: yargs
+    steps:
+      - name: Checkout devcompass
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          path: devcompass
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+
+      - name: Install devcompass and link it onto PATH
+        working-directory: devcompass
+        run: |
+          npm ci
+          npm link
+
+      - name: Clone ${{ matrix.project.repo }}
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: ${{ matrix.project.repo }}
+          path: target
+          persist-credentials: false
+
+      - name: Install target project dependencies
+        working-directory: target
+        run: npm install --no-audit --no-fund || echo "::warning::npm install failed for ${{ matrix.project.repo }} — analyze will run against whatever did resolve"
+
+      - name: Run devcompass analyze
+        working-directory: target
+        run: |
+          devcompass analyze --deep --json > "../${{ matrix.project.name }}-analysis.json" || echo "::warning::analyze exited non-zero for ${{ matrix.project.repo }} (see the uploaded report)"
+
+      - name: Upload report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: devcompass-report-${{ matrix.project.name }}
+          path: ${{ matrix.project.name }}-analysis.json
+          retention-days: 30
+
+      - name: Flag likely false positives for manual review
+        working-directory: devcompass
+        run: |
+          node -e "
+            const report = require('../${{ matrix.project.name }}-analysis.json');
+            const typosquats = report.issues.filter(i => i.ruleId === 'typosquat');
+            const unused = report.issues.filter(i => i.ruleId === 'unused');
+            const unknownVersions = report.issues.filter(i => i.version === 'unknown');
+            if (typosquats.length) console.log('::warning::' + typosquats.length + ' typosquat flag(s) on ${{ matrix.project.repo }} — review: ' + typosquats.map(i => i.name).join(', '));
+            if (unused.length) console.log('::notice::' + unused.length + ' unused-dependency flag(s) on ${{ matrix.project.repo }} — verify these are genuinely unused: ' + unused.map(i => i.name).join(', '));
+            if (unknownVersions.length) console.log('::warning::' + unknownVersions.length + ' finding(s) on ${{ matrix.project.repo }} have an unknown version instead of the installed one: ' + unknownVersions.map(i => i.name).join(', '));
+          "

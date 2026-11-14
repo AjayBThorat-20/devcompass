@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const dynamicLicense = require('../../quality/dynamic-license.service');
+const logger = require('../../../shared/utils/logger').default;
 
 async function collectLicenseData(projectPath, packageJson = null) {
   try {
@@ -39,7 +40,7 @@ async function collectLicenseData(projectPath, packageJson = null) {
         alternative: a.alternative ? { replacement: a.alternative.replacement, reason: a.alternative.reason } : null
       }));
   } catch (error) {
-    if (process.env.DEBUG) console.error('License collection failed:', error.message);
+    logger.debug('License collection failed:', error.message);
     return [];
   }
 }
@@ -52,7 +53,7 @@ function resolveInstalledVersion(projectPath, packageName, declaredVersion) {
       if (installedPackageJson.version) return installedPackageJson.version;
     }
   } catch (error) {
-    if (process.env.DEBUG) console.error(`Could not resolve installed version for ${packageName}:`, error.message);
+    logger.debug(`Could not resolve installed version for ${packageName}:`, error.message);
   }
 
   if (typeof declaredVersion === 'string') {

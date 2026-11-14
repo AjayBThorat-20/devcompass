@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { loadAnalysisCache } = require('../../shared/utils/analysis-cache');
+const logger = require('../../shared/utils/logger').default;
 
 const MAX_CONTEXT_TOKENS = 6000;
 
@@ -17,7 +18,7 @@ async function buildContext(projectPath) {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     return { project: { name: packageJson.name || 'unknown', version: packageJson.version || '1.0.0', path: projectPath }, analysis: { healthScore: 8.0, totalIssues: 0, outdatedPackages: [], majorVersionRisks: [], securityIssues: [], deprecatedPackages: [], topIssues: [] } };
   } catch (error) {
-    if (process.env.DEBUG) console.error('Context builder failed:', error.message);
+    logger.debug('Context builder failed:', error.message);
     return buildEmptyContext(projectPath);
   }
 }

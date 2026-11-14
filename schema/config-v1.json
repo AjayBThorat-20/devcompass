@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://devcompass.ajaythorat.com/schema/config-v1.json",
+  "title": "DevCompass project config",
+  "description": "Schema for devcompass.config.json, a project-level config file for the devcompass CLI. Unknown keys are an error.",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "failOn": {
+      "type": "object",
+      "description": "Policy gate used when `devcompass analyze` gets no --fail-on / --fail-on-license flag (a flag always wins).",
+      "properties": {
+        "severity": {
+          "type": ["string", "null"],
+          "enum": ["critical", "high", "medium", "low", "kev", null],
+          "description": "Exit 1 when any finding is at or above this severity; \"kev\" matches only vulnerabilities on CISA's Known Exploited Vulnerabilities list."
+        },
+        "licenses": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "SPDX license ids that fail the run when any installed package uses them, e.g. \"AGPL-3.0\" (also covers -only, -or-later and +). A package dual-licensed with an allowed alternative (\"MIT OR GPL-3.0\") passes."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ignore": {
+      "type": "array",
+      "description": "Findings to suppress (removed before scoring and policy gates). Every entry needs a reason so accepted risks stay visible.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "One specific finding id, as shown in `analyze --json`, e.g. \"vuln:lodash@4.17.15:GHSA-xxxx-xxxx-xxxx\"." },
+          "package": { "type": "string", "description": "Every finding for this package." },
+          "rule": { "type": "string", "description": "With \"package\": only findings of this type or rule id, e.g. \"unused\", \"license\", \"outdated/major\"." },
+          "reason": { "type": "string", "description": "Why this is an accepted risk. Required." },
+          "expires": { "type": "string", "format": "date", "description": "ISO date after which this ignore stops applying and the finding comes back." }
+        },
+        "required": ["reason"],
+        "anyOf": [{ "required": ["id"] }, { "required": ["package"] }],
+        "additionalProperties": false
+      }
+    },
+    "checks": {
+      "type": "object",
+      "description": "Turn individual checks on or off. ecosystem and predictive are off by default (they call GitHub's API); the rest are on.",
+      "propertyNames": {
+        "enum": ["cve", "license", "quality", "security", "outdated", "unused", "ecosystem", "predictive"]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

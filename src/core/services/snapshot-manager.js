@@ -1,6 +1,7 @@
 // src/core/services/snapshot-manager.js
 
 const snapshotSaver = require('../../features/history/snapshot-saver');
+const logger = require('../../shared/utils/logger').default;
 
 async function saveSnapshot(data) {
   try {
@@ -36,7 +37,7 @@ async function saveSnapshot(data) {
     const result = snapshotSaver.saveSnapshot(analysisData, graphData);
     return { success: true, snapshotId: result.snapshotId, duration: result.duration };
   } catch (error) {
-    if (process.env.DEBUG) console.error('Snapshot save failed:', error.message);
+    logger.debug('Snapshot save failed:', error.message);
     return { success: false, error: error.message };
   }
 }

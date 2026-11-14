@@ -1,12 +1,12 @@
 // src/features/analyze/collectors/unused-deps.collector.js
 
-const { exec, execFile } = require('child_process');
+const os = require('os');
+const { execFile } = require('child_process');
 const { promisify } = require('util');
 const path = require('path');
 const fs = require('fs');
-const OutputManager = require('../../../shared/utils/output-manager');
+const logger = require('../../../shared/utils/logger').default;
 
-const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
 
 let knipConfigData = null;
@@ -15,7 +15,7 @@ try {
     fs.readFileSync(path.join(__dirname, '../../../../data/knip-config.json'), 'utf8')
   );
 } catch (error) {
-  if (process.env.DEBUG) console.error('Could not load knip-config.json:', error.message);
+  logger.debug('Could not load knip-config.json:', error.message);
   knipConfigData = { skipPackages: [] };
 }
 
@@ -23,6 +23,12 @@ try {
 // "eslint" must not also swallow "eslint-plugin-unicorn", nor "next" swallow "next-auth".
 function shouldSkipPackage(pkg, skipPackages) {
   return skipPackages.some(skip => pkg === skip || pkg.startsWith(`${skip}/`));
+}
+
+// knip doesn't export its own package.json entry cleanly, so its CLI is
+// resolved from its main entry point (knip/dist/index.js -> knip/bin/knip.js).
+function resolveKnipBin() {
+  return path.join(path.dirname(require.resolve('knip')), '..', 'bin', 'knip.js');
 }
 
 async function analyzeUnusedDependencies(projectPath, packageJson = null) {
@@ -34,73 +40,149 @@ async function analyzeUnusedDependencies(projectPath, packageJson = null) {
     }
 
     const dependencies = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
+    if (Object.keys(dependencies).length === 0) return [];
 
-    // Written under .devcompass/temp instead of the project root — a bare
-    // "knip.json" there would leak into the scanned project's own repo/git status.
-    const outputManager = new OutputManager(projectPath);
-    const knipConfigPath = outputManager.getTempPath('knip.json');
+    // The temp knip config lives in the OS temp dir, never inside the scanned
+    // project (analyze must not write there), and is removed afterwards.
+    const knipTempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'devcompass-knip-'));
+    const knipConfigPath = path.join(knipTempDir, 'knip.json');
     try {
-      // skipPackages is not part of knip's config schema; it's applied separately
-      // below (JS-side) and must not be written into the knip.json file itself.
-      const { skipPackages, ...knipSchemaConfig } = knipConfigData;
-      fs.writeFileSync(knipConfigPath, JSON.stringify(knipSchemaConfig, null, 2));
-    } catch (error) {
-      if (process.env.DEBUG) console.error('Could not write knip.json, using fallback detector:', error.message);
-      return fallbackUnusedCheck(projectPath, dependencies);
-    }
-
-    try {
-      // knip exits non-zero whenever it finds issues (its normal/expected behavior,
-      // not an execution failure), so the rejected promise still carries valid
-      // JSON on stdout and must be read from there rather than treated as a failure.
-      let knipOutput;
-      try {
-        ({ stdout: knipOutput } = await execAsync(
-          `npx knip --config ${JSON.stringify(knipConfigPath)} --reporter json`,
-          { cwd: projectPath, encoding: 'utf-8', timeout: 30000 }
-        ));
-      } catch (execError) {
-        if (typeof execError.stdout !== 'string' || !execError.stdout.trim()) throw execError;
-        knipOutput = execError.stdout;
-      }
-
-      const results = JSON.parse(knipOutput);
-      let unused = [];
-
-      if (Array.isArray(results.issues)) {
-        const names = new Set();
-        results.issues.forEach(fileIssue => {
-          [...(fileIssue.dependencies || []), ...(fileIssue.devDependencies || [])].forEach(dep => {
-            if (dep?.name) names.add(dep.name);
-          });
-        });
-        unused = Array.from(names).filter(dep => dependencies[dep]);
-      }
-
-      const skipPackages = knipConfigData.skipPackages || [];
-      unused = unused.filter(pkg => !shouldSkipPackage(pkg, skipPackages));
-
-      return unused;
-    } catch (knipError) {
-      if (process.env.DEBUG) console.error('Knip analysis unavailable, using fallback:', knipError.message);
-      return fallbackUnusedCheck(projectPath, dependencies);
+      return await runKnip(projectPath, dependencies, knipConfigPath);
+    } finally {
+      fs.rmSync(knipTempDir, { recursive: true, force: true });
     }
   } catch (error) {
-    if (process.env.DEBUG) console.error('Unused dependencies analysis failed:', error.message);
+    logger.debug('Unused dependencies analysis failed:', error.message);
     return [];
   }
 }
 
-async function checkDependencyUsage(dep, candidatePaths) {
+async function runKnip(projectPath, dependencies, knipConfigPath) {
   try {
-    // execFile (no shell) so a crafted dependency name in the scanned project's
-    // own package.json can't break out of the command and run arbitrary shell code.
-    await execFileAsync('grep', ['-r', '-l', '--', dep, ...candidatePaths], { encoding: 'utf-8', timeout: 5000 });
-    return { dep, used: true }; // exit 0: at least one match found, so the dependency is used
-  } catch (grepError) {
-    if (grepError.code === 1) return { dep, used: false }; // exit 1: no match anywhere
-    return { dep, used: true }; // any other exit code/signal is inconclusive — don't flag it as unused
+    // skipPackages is not part of knip's config schema; it's applied separately
+    // below (JS-side) and must not be written into the knip.json file itself.
+    const { skipPackages, ...knipSchemaConfig } = knipConfigData;
+    fs.writeFileSync(knipConfigPath, JSON.stringify(knipSchemaConfig, null, 2));
+  } catch (error) {
+    logger.debug('Could not write knip.json, using fallback detector:', error.message);
+    return fallbackUnusedCheck(projectPath, dependencies);
   }
+
+  try {
+    // knip exits non-zero whenever it finds issues (its normal/expected behavior,
+    // not an execution failure), so the rejected promise still carries valid
+    // JSON on stdout and must be read from there rather than treated as a failure.
+    //
+    // Run the copy of knip DevCompass itself installed, with the current Node
+    // binary, instead of `npx knip` — npx resolves against the *scanned*
+    // project, not DevCompass's own install, so it could silently download
+    // and run a different version over the network. This also works on
+    // Windows, where spawning a bare command name needs a shell but running
+    // a .js file with process.execPath doesn't.
+    let knipOutput;
+    try {
+      ({ stdout: knipOutput } = await execFileAsync(
+        process.execPath,
+        [resolveKnipBin(), '--config', knipConfigPath, '--reporter', 'json'],
+        { cwd: projectPath, encoding: 'utf-8', timeout: 60000 }
+      ));
+    } catch (execError) {
+      if (typeof execError.stdout !== 'string' || !execError.stdout.trim()) throw execError;
+      knipOutput = execError.stdout;
+    }
+
+    const results = JSON.parse(knipOutput);
+    let unused = [];
+
+    if (Array.isArray(results.issues)) {
+      const names = new Set();
+      results.issues.forEach(fileIssue => {
+        [...(fileIssue.dependencies || []), ...(fileIssue.devDependencies || [])].forEach(dep => {
+          if (dep?.name) names.add(dep.name);
+        });
+      });
+      unused = Array.from(names).filter(dep => dependencies[dep]);
+    }
+
+    const skipPackages = knipConfigData.skipPackages || [];
+    unused = unused.filter(pkg => !shouldSkipPackage(pkg, skipPackages));
+
+    return unused;
+  } catch (knipError) {
+    logger.debug('Knip analysis unavailable, using fallback:', knipError.message);
+    return fallbackUnusedCheck(projectPath, dependencies);
+  }
+}
+
+const CODE_FILE_PATTERN = /\.(js|jsx|mjs|cjs|ts|tsx|mts|cts|vue|svelte)$/i;
+// Other files under src/ that can reference a package by name: stylesheets
+// (@import 'bootstrap/...'), HTML, and JSON config.
+const TEXT_FILE_PATTERN = /\.(css|scss|sass|less|html|json)$/i;
+const IGNORED_DIR_NAMES = new Set(['node_modules', '.git', 'dist', 'build', '.next', 'out', 'coverage', '.cache']);
+
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// In code, a dependency is used if something requires/imports it by name or
+// by a subpath (lodash/debounce, @scope/pkg/sub).
+function codeUsagePatterns(dep) {
+  const name = escapeRegExp(dep);
+  return [
+    new RegExp(`require\\(\\s*['"\`]${name}(?:/[^'"\`]*)?['"\`]\\s*\\)`),
+    new RegExp(`from\\s+['"\`]${name}(?:/[^'"\`]*)?['"\`]`),
+    new RegExp(`import\\s*\\(?\\s*['"\`]${name}(?:/[^'"\`]*)?['"\`]`)
+  ];
+}
+
+// Config files and stylesheets name a package without importing it
+// ("presets": ["@babel/preset-env"], plugins: { tailwindcss: {} },
+// @import 'bootstrap/scss/bootstrap'), so there it counts as used when the
+// name appears as a whole token — not as a substring ("ms" inside "items").
+function referencePattern(dep) {
+  return new RegExp(`(^|[^\\w@/.-])${escapeRegExp(dep)}(?=$|[^\\w-]|/)`, 'm');
+}
+
+// `explicit` files (index.js, *.config.js, .babelrc, ...) are always read;
+// directories are walked for code and text files only.
+function collectFiles(entryPath, files = [], explicit = true) {
+  let stats;
+  try { stats = fs.statSync(entryPath); } catch (error) { return files; }
+
+  if (stats.isDirectory()) {
+    if (IGNORED_DIR_NAMES.has(path.basename(entryPath))) return files;
+    let entries = [];
+    try { entries = fs.readdirSync(entryPath); } catch (error) { return files; }
+    entries.forEach(entry => collectFiles(path.join(entryPath, entry), files, false));
+  } else if (stats.isFile() && (explicit || CODE_FILE_PATTERN.test(entryPath) || TEXT_FILE_PATTERN.test(entryPath))) {
+    files.push(entryPath);
+  }
+  return files;
+}
+
+// A pure-JavaScript scan, not `grep`: Windows has no grep by default, so this
+// fallback used to treat every dependency as "used" there.
+function checkDependencyUsage(dep, sources) {
+  const codePatterns = codeUsagePatterns(dep);
+  const reference = referencePattern(dep);
+
+  for (const { content, isCode } of sources) {
+    const patterns = isCode ? codePatterns : [reference];
+    if (patterns.some(pattern => pattern.test(content))) return { dep, used: true };
+  }
+  return { dep, used: false };
+}
+
+// Each file is read once, not once per dependency. Config files get the
+// name-reference rule even when they're JavaScript (postcss.config.js names
+// plugins as bare keys, with no require/import).
+function readSources(files, configFiles = new Set()) {
+  const sources = [];
+  for (const file of files) {
+    const isCode = CODE_FILE_PATTERN.test(file) && !configFiles.has(file);
+    try { sources.push({ content: fs.readFileSync(file, 'utf8'), isCode }); } catch (error) { /* unreadable: skip */ }
+  }
+  return sources;
 }
 
 async function fallbackUnusedCheck(projectPath, dependencies) {
@@ -124,20 +206,8 @@ async function fallbackUnusedCheck(projectPath, dependencies) {
   if (candidatePaths.length === 0) return [];
 
   const depsToCheck = Object.keys(dependencies).filter(dep => !shouldSkipPackage(dep, skipPackages));
-
-  // Run checks concurrently (bounded) instead of serially — a serial per-dependency
-  // execFileSync loop previously blocked the event loop for up to 5s * depCount,
-  // stalling the other "concurrent" collectors (CVE/license network calls) in the
-  // same Promise.allSettled batch.
-  const CONCURRENCY = 8;
-  const results = [];
-  for (let i = 0; i < depsToCheck.length; i += CONCURRENCY) {
-    const batch = depsToCheck.slice(i, i + CONCURRENCY);
-    const batchResults = await Promise.all(batch.map(dep => checkDependencyUsage(dep, candidatePaths)));
-    results.push(...batchResults);
-  }
-
-  return results.filter(r => !r.used).map(r => r.dep);
+  const sources = readSources(candidatePaths.flatMap(p => collectFiles(p)), new Set(configGlobPatterns));
+  return depsToCheck.filter(dep => !checkDependencyUsage(dep, sources).used);
 }
 
 module.exports = { analyzeUnusedDependencies, fallbackUnusedCheck };

@@ -69,13 +69,17 @@ function displayTimelineSummary(timeline, options) {
 
 function createTimelineHTML(timeline, chartData) {
   const { data, summary } = timeline;
+  // Inlined from the vendored build (no CDN, works offline) — see
+  // src/dashboard/vendor/d3.v7.min.js.
+  const d3Path = path.join(__dirname, '../../dashboard/vendor/d3.v7.min.js');
+  const d3Source = fs.existsSync(d3Path) ? fs.readFileSync(d3Path, 'utf8') : '';
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DevCompass Timeline</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>${d3Source}</script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0e1a; color: #e0e6ed; padding: 20px; }

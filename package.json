@@ -1,61 +1,43 @@
 {
   "name": "devcompass",
   "version": "4.1.8",
-  "description": "Dependency health checker with ecosystem intelligence, unified interactive dashboard with 5 dynamic layouts (Tree/Force/Radial/Conflict/Analytics), historical tracking with SQLite, snapshot comparison, timeline visualization, modular CSS/JS architecture, intelligent clustering, real-time filtering, advanced zoom controls, theme support (dark/light), supply chain security with auto-fix, license conflict resolution, package quality auto-fix, batch fix modes, backup & rollback, and professional dependency exploration.",
+  "description": "CLI that checks npm dependencies for vulnerabilities, license risks, unused and outdated packages, with a CI gate.",
   "bin": {
     "devcompass": "bin/devcompass.js"
+  },
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./package.json": "./package.json"
   },
   "files": [
     "bin/",
     "src/",
     "data/",
+    "schema/",
     "README.md",
     "LICENSE",
     "llms.txt"
   ],
   "scripts": {
-    "test": "node --test test/unit/",
-    "test:coverage": "c8 --reporter=text --reporter=lcov --check-coverage --lines 60 node --test test/unit/",
+    "test": "node --test test/unit/*.test.js",
+    "test:coverage": "c8 --all --src src --include \"src/**\" --exclude \"src/dashboard/**\" --reporter=text --reporter=lcov --check-coverage --lines 40 node --test test/unit/*.test.js",
     "test:integration": "bash test/integration/test-complete-suite.sh",
     "prepublishOnly": "npm test"
   },
   "keywords": [
     "dependencies",
-    "dependency-analysis",
-    "dependency-health",
-    "dependency-management",
     "npm",
     "security",
-    "cve",
     "vulnerability-scanner",
-    "supply-chain-security",
-    "ai-powered",
-    "cli",
-    "developer-tools",
-    "outdated",
-    "unused-dependencies",
-    "license-checker",
-    "dependency-graph",
-    "snapshot",
-    "auto-fix",
-    "health-score",
-    "npm-audit-alternative",
-    "dependabot-alternative",
+    "cve",
     "osv",
-    "nvd",
-    "ollama",
-    "llm",
-    "sca",
-    "software-composition-analysis",
-    "cvss",
-    "typosquatting",
-    "gpl",
-    "license-compliance",
-    "node-security",
-    "javascript-security",
-    "dependency-scanner",
-    "package-audit",
-    "ci-cd"
+    "license-checker",
+    "unused-dependencies",
+    "outdated",
+    "supply-chain-security",
+    "cli",
+    "ci"
   ],
   "author": {
     "name": "Ajay Thorat",
@@ -65,12 +47,11 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^1.6.0",
-    "better-sqlite3": "^11.7.0",
+    "better-sqlite3": "^12.11.1",
     "chalk": "4.1.2",
     "commander": "^14.0.3",
-    "d3": "^7.8.5",
+    "cross-spawn": "^7.0.6",
     "knip": "^6.12.2",
-    "npm-check-updates": "^20.0.0",
     "open": "^11.0.0",
     "ora": "5.4.1",
     "p-limit": "^3.1.0",
@@ -78,7 +59,7 @@
     "uuid": "^14.0.0"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": "^20.19.0 || >=22.12.0"
   },
   "repository": {
     "type": "git",
@@ -87,7 +68,7 @@
   "bugs": {
     "url": "https://github.com/AjayBThorat-20/devcompass/issues"
   },
-  "homepage": "https://github.com/AjayBThorat-20/devcompass#readme",
+  "homepage": "https://devcompass.ajaythorat.com",
   "devDependencies": {
     "c8": "^12.0.0"
   }

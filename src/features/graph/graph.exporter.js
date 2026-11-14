@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const logger = require('../../shared/utils/logger').default;
 
 class GraphExporter {
   constructor(graphData, options = {}) {
@@ -49,7 +50,7 @@ class GraphExporter {
       html = this.inlineAllAssets(html);
       return html;
     } catch (error) {
-      if (process.env.DEBUG) console.error('Failed to generate dashboard HTML:', error.message);
+      logger.debug('Failed to generate dashboard HTML:', error.message);
       return this.generateFallbackHTML();
     }
   }
@@ -73,19 +74,35 @@ class GraphExporter {
       return match;
     });
 
+    // Vendored D3 build (no CDN, no network dependency at runtime — see
+    // vendor/d3.v7.min.js), inlined the same way the other dashboard
+    // scripts are, so the generated HTML also works fully offline.
+    html = html.replace(/<script src="vendor\/(.*?\.js)"><\/script>/g, (match, filename) => {
+      const jsPath = path.join(dashboardDir, 'vendor', filename);
+      try {
+        if (fs.existsSync(jsPath)) return `<script>\n/* ${filename} */\n${fs.readFileSync(jsPath, 'utf8')}\n</script>`;
+      } catch (e) { /* skip */ }
+      return match;
+    });
+
     return html;
   }
 
   generateFallbackHTML() {
     const nodes = this.graphData.nodes || [];
     const links = this.graphData.links || [];
+    // Inlined from the vendored build (no CDN, works offline) rather than a
+    // <script src> tag — this fallback HTML is returned as one self-contained
+    // string, not run through inlineAllAssets().
+    const d3Path = path.join(__dirname, '../../dashboard/vendor/d3.v7.min.js');
+    const d3Source = fs.existsSync(d3Path) ? fs.readFileSync(d3Path, 'utf8') : '';
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DevCompass - Dependency Graph</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>${d3Source}</script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #f1f5f9; overflow: hidden; }

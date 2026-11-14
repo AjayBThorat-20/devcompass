@@ -3,6 +3,7 @@
 const path = require('path');
 const fs = require('fs');
 const registryClient = require('../../shared/services/registry-client');
+const logger = require('../../shared/utils/logger').default;
 
 const LICENSE_RISKS = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../../../data/license-risks.json'), 'utf8')
@@ -45,7 +46,7 @@ function analyzePackageData(packageData, installedVersion = null) {
       alternative: riskInfo.level === 'low' || riskInfo.level === 'unknown' ? null : (GPL_ALTERNATIVES[packageName] || null)
     };
   } catch (error) {
-    if (process.env.DEBUG) console.error('[dynamic-license] analyzePackageData failed:', error.message);
+    logger.debug('[dynamic-license] analyzePackageData failed:', error.message);
     return null;
   }
 }

@@ -1,0 +1,38 @@
+name: DevCompass
+description: Check npm dependencies for vulnerabilities, license risks, unused and outdated packages
+branding:
+  icon: compass
+  color: blue
+inputs:
+  path:
+    description: Project directory
+    default: '.'
+  fail-on:
+    description: Lowest severity that fails the job (critical, high, medium, low)
+    default: high
+  version:
+    description: DevCompass version to run
+    default: '5'
+  sarif:
+    description: Upload results to GitHub code scanning
+    default: 'true'
+runs:
+  using: composite
+  steps:
+    - id: scan
+      shell: bash
+      env: # pass inputs through env, never straight into the script (prevents script injection)
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_VERSION: ${{ inputs.version }}
+      run: |
+        set +e
+        npx --yes "devcompass@${INPUT_VERSION}" analyze --path "$INPUT_PATH" --fail-on "$INPUT_FAIL_ON" --format sarif > devcompass.sarif
+        echo "exit-code=$?" >> "$GITHUB_OUTPUT"
+    - if: inputs.sarif == 'true'
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: devcompass.sarif
+    - if: steps.scan.outputs.exit-code != '0'
+      shell: bash
+      run: exit 1

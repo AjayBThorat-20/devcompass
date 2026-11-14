@@ -1,6 +1,7 @@
 // src/features/cve/cache.manager.js
 
 const { db, CACHE_VERSION } = require('./database');
+const logger = require('../../shared/utils/logger').default;
 
 class CacheManager {
   constructor() {
@@ -16,7 +17,7 @@ class CacheManager {
       `).get(packageName, version, ecosystem, CACHE_VERSION);
       return result ? JSON.parse(result.vulnerabilities) : null;
     } catch (error) {
-      if (process.env.DEBUG) console.error('Cache get error:', error.message);
+      logger.debug('Cache get error:', error.message);
       return null;
     }
   }
@@ -32,7 +33,7 @@ class CacheManager {
           cached_at = CURRENT_TIMESTAMP, expires_at = excluded.expires_at
       `).run(packageName, version, ecosystem, JSON.stringify(vulnerabilities), CACHE_VERSION, expiresAt);
     } catch (error) {
-      if (process.env.DEBUG) console.error('Cache set error:', error.message);
+      logger.debug('Cache set error:', error.message);
     }
   }
 

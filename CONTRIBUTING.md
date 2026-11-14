@@ -90,6 +90,14 @@ spans multiple commands.
 - [ ] No hardcoded secrets, API keys, or absolute local paths
 - [ ] README/CHANGELOG updated if user-facing behavior changed
 
+## Versioning policy
+
+- **Major:** removing or renaming a command or flag, changing exit codes, an incompatible change to the JSON output, dropping a Node version, or changing what `fix` does by default.
+- **Minor:** new commands, flags, checks or output fields.
+- **Patch:** bug fixes that don't change any interface.
+
+Changes are batched into one release every 2–4 weeks rather than shipped individually, so contributors and users can review a coherent set of changes per version instead of tracking many same-day releases.
+
 ## Good first issues
 
 Low-risk areas that don't require deep familiarity with the codebase:

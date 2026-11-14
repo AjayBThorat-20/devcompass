@@ -1,12 +1,13 @@
 // src/features/alerts/index.js
 
 const { resolveInstalledVersions } = require('./version-resolver.service');
+const logger = require('../../shared/utils/logger').default;
 
 let issuesAnalyzer = null;
 try {
   issuesAnalyzer = require('../analyze/issues-analyzer.service').getIssuesAnalyzer();
 } catch (error) {
-  if (process.env.DEBUG) console.error('Issues analyzer not available:', error.message);
+  logger.debug('Issues analyzer not available:', error.message);
 }
 
 async function checkEcosystemAlerts(projectPath, dependencies) {
@@ -15,7 +16,7 @@ async function checkEcosystemAlerts(projectPath, dependencies) {
     if (!issuesAnalyzer) return [];
     return await fetchDynamicAlerts(installedVersions, projectPath);
   } catch (error) {
-    if (process.env.DEBUG) console.error('Error in checkEcosystemAlerts:', error.message);
+    logger.debug('Error in checkEcosystemAlerts:', error.message);
     const alerts = [];
     alerts.incomplete = true;
     alerts.incompleteReason = error.message;
@@ -60,7 +61,7 @@ async function fetchDynamicAlerts(installedVersions, projectPath = process.cwd()
       alerts.incompleteReason = `Could not check ${failed.length} package(s) for ecosystem issues: ${failed.slice(0, 5).join(', ')}${failed.length > 5 ? ', …' : ''}`;
     }
   } catch (error) {
-    if (process.env.DEBUG) console.error('Error fetching dynamic alerts:', error.message);
+    logger.debug('Error fetching dynamic alerts:', error.message);
     alerts.incomplete = true;
     alerts.incompleteReason = error.message;
   }

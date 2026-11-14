@@ -7,19 +7,27 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { classifyFixRisk, categorizeFixes } = require('../../src/core/services/risk-classifier');
 
-test('unused dependencies are always classified safe', () => {
+test('unused dependencies are never auto-classified safe (detection is heuristic)', () => {
   const result = classifyFixRisk({ type: 'unused' });
-  assert.equal(result.risk, 'safe');
+  assert.notEqual(result.risk, 'safe');
 });
 
-test('a security issue marked safeFix is classified safe', () => {
-  const result = classifyFixRisk({ type: 'security', safeFix: true });
+test('a security issue marked safeFix with high confidence is classified safe', () => {
+  const result = classifyFixRisk({ type: 'security', safeFix: true, confidence: 'high' });
   assert.equal(result.risk, 'safe');
 });
 
 test('a security issue without safeFix is not auto-classified safe', () => {
-  const result = classifyFixRisk({ type: 'security', safeFix: false });
+  const result = classifyFixRisk({ type: 'security', safeFix: false, confidence: 'high' });
   assert.equal(result.risk, 'moderate');
+});
+
+// Confidence gates "safe" independently of safeFix — a heuristic
+// match (e.g. typosquat) must never auto-apply without --all, even if
+// something upstream mistakenly marked it safeFix: true.
+test('a security issue marked safeFix but without high confidence is not auto-classified safe', () => {
+  assert.equal(classifyFixRisk({ type: 'security', safeFix: true, confidence: 'medium' }).risk, 'moderate');
+  assert.equal(classifyFixRisk({ type: 'security', safeFix: true }).risk, 'moderate');
 });
 
 test('outdated packages are classified by updateType: patch=safe, minor=moderate, major=risky', () => {
@@ -47,21 +55,21 @@ test('anything unmatched defaults to moderate rather than being silently skipped
 test('categorizeFixes() buckets issues into safe/moderate/risky and preserves original fields', () => {
   const issues = [
     { name: 'left-pad', type: 'unused' },
-    { name: 'axios', type: 'security', safeFix: true },
+    { name: 'axios', type: 'security', safeFix: true, confidence: 'high' },
     { name: 'express', type: 'outdated', metadata: { updateType: 'major' } },
     { name: 'moment', type: 'outdated', metadata: { updateType: 'minor' } }
   ];
 
   const { safe, moderate, risky } = categorizeFixes(issues);
 
-  assert.deepEqual(safe.map(i => i.name), ['left-pad', 'axios']);
+  assert.deepEqual(safe.map(i => i.name), ['axios']);
   assert.deepEqual(moderate.map(i => i.name), ['moment']);
-  assert.deepEqual(risky.map(i => i.name), ['express']);
+  assert.deepEqual(risky.map(i => i.name), ['left-pad', 'express']);
 
   // original issue fields survive alongside the added riskInfo
-  assert.equal(safe[0].type, 'unused');
-  assert.ok(safe[0].riskInfo);
-  assert.equal(safe[0].riskInfo.risk, 'safe');
+  assert.equal(risky[0].type, 'unused');
+  assert.ok(risky[0].riskInfo);
+  assert.equal(risky[0].riskInfo.risk, 'risky');
 });
 
 test('categorizeFixes() on an empty list returns empty buckets', () => {

@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const logger = require('../../shared/utils/logger').default;
 
 const MAX_GRAPH_NODES = 500;
 const MAX_STACK_DEPTH = 100;
@@ -21,7 +22,7 @@ class GraphGenerator {
       if (fs.existsSync(lockPath)) this.packageLock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
       return true;
     } catch (error) {
-      if (process.env.DEBUG) console.error('Error loading package files:', error.message);
+      logger.debug('Error loading package files:', error.message);
       return false;
     }
   }

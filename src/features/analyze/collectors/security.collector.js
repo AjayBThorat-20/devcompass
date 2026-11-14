@@ -3,6 +3,7 @@
 const { analyzeSupplyChain } = require('../../security/supply-chain.analyzer');
 const fs = require('fs');
 const path = require('path');
+const logger = require('../../../shared/utils/logger').default;
 
 async function collectSecurityData(projectPath, packageJson = null) {
   try {
@@ -20,7 +21,7 @@ async function collectSecurityData(projectPath, packageJson = null) {
     }
     return warnings;
   } catch (error) {
-    if (process.env.DEBUG) console.error('Security collection failed:', error.message);
+    logger.debug('Security collection failed:', error.message);
     const warnings = [];
     warnings.incomplete = true;
     warnings.incompleteReason = error.message;

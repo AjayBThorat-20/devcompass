@@ -11,6 +11,7 @@ const costTracker = require('./cost.tracker');
 const aiDatabase = require('./ai.database');
 const promptTemplates = require('./prompt.templates');
 const RateLimiter = require('../../shared/utils/rate-limiter');
+const logger = require('../../shared/utils/logger').default;
 
 let currentProvider = null;
 const rateLimiter = new RateLimiter(10, 60000);
@@ -34,7 +35,7 @@ function getTodaySpend() {
   try {
     return aiDatabase.getTodaySpend();
   } catch (error) {
-    if (process.env.DEBUG) console.error('Could not read today\'s AI spend:', error.message);
+    logger.debug('Could not read today\'s AI spend:', error.message);
     return 0;
   }
 }
@@ -157,7 +158,7 @@ async function askQuestion(question, projectPath = process.cwd(), options = {}) 
       try {
         await conversationManager.saveConversation(providerId, 'ask', null, question, fullResponse, finalInputTokens + finalOutputTokens, finalCost);
       } catch (error) {
-        if (process.env.DEBUG) console.error('Could not persist conversation:', error.message);
+        logger.debug('Could not persist conversation:', error.message);
       }
     }
 
@@ -168,7 +169,7 @@ async function askQuestion(question, projectPath = process.cwd(), options = {}) 
     currentProvider = null;
     if (error.message === 'Request cancelled by user') { console.log(chalk.yellow('\nOperation cancelled.')); return; }
     console.error(chalk.red('\n❌ Error:'), error.message);
-    if (process.env.DEBUG) console.error(chalk.gray(error.stack));
+    logger.debug(chalk.gray(error.stack));
   }
 }
 

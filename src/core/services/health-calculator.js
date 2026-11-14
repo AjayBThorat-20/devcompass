@@ -1,4 +1,13 @@
-const { SEVERITY_WEIGHTS } = require('../models/issue.model');
+// Each category's penalty approaches a fixed cap instead of growing without
+// limit, so project size (issue count) stops mattering more than severity —
+// a project with 30 outdated packages should never score worse than one
+// with a single critical vulnerability. Caps sum to 10.
+const CATEGORY_CAPS = { security: 5, license: 1.5, quality: 1.5, outdated: 1.5, unused: 0.5 };
+
+// Severity-only: the category cap above already encodes how much a *type*
+// of issue can matter, so weighting by severity here (not severity * type,
+// as the old formula did) avoids double-counting severity twice.
+const SEVERITY_PENALTIES = { CRITICAL: 3.0, HIGH: 2.0, MEDIUM: 1.2, LOW: 0.3 };
 
 class HealthCalculator {
   static calculate(issues) {
@@ -6,36 +15,31 @@ class HealthCalculator {
       return 10.0;
     }
 
+    const rawByType = {};
+    for (const issue of issues) {
+      rawByType[issue.type] = (rawByType[issue.type] || 0) + this.getPenalty(issue);
+    }
+
     let score = 10.0;
+    for (const [type, sum] of Object.entries(rawByType)) {
+      const cap = CATEGORY_CAPS[type] ?? 1;
+      // Approaches `cap` as `sum` grows, but never exceeds it.
+      score -= cap * (1 - Math.exp(-sum / cap));
+    }
 
-    issues.forEach(issue => {
-      const penalty = this.getPenalty(issue);
-      score -= penalty;
-    });
+    // However small the rest of the project's issues are, a serious
+    // vulnerability must never hide behind a "Good" score. One that's known
+    // to be exploited in the wild (CISA KEV) counts as critical, whatever
+    // its CVSS severity.
+    const security = issues.filter(i => i.type === 'security');
+    if (security.some(i => i.severity === 'CRITICAL' || i.metadata?.knownExploited)) score = Math.min(score, 3.9);
+    else if (security.some(i => i.severity === 'HIGH')) score = Math.min(score, 5.9);
 
-    return Math.max(0, Math.min(10, score));
+    return Math.round(Math.max(0, Math.min(10, score)) * 10) / 10;
   }
 
   static getPenalty(issue) {
-    const severityPenalties = {
-      CRITICAL: 2.0,
-      HIGH: 1.5,
-      MEDIUM: 1.0,
-      LOW: 0.5
-    };
-
-    const typePenalties = {
-      security: 1.2,
-      license: 1.0,
-      quality: 0.8,
-      outdated: 0.5,
-      unused: 0.3
-    };
-
-    const severityPenalty = severityPenalties[issue.severity] || 1.0;
-    const typePenalty = typePenalties[issue.type] || 1.0;
-
-    return severityPenalty * typePenalty;
+    return SEVERITY_PENALTIES[issue.severity] ?? 1.0;
   }
 
   static getHealthLabel(score) {

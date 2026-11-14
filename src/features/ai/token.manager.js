@@ -8,6 +8,12 @@ const AnthropicProvider = require('./providers/anthropic.provider');
 const GoogleProvider = require('./providers/google.provider');
 const LocalProvider = require('./providers/local.provider');
 
+// CL-06: check the environment before falling back to the stored (locally
+// obfuscated, not truly encrypted — see encryption.js) key, so CI and other
+// non-interactive environments never have to run `devcompass llm add
+// --token` just to get a key onto disk.
+const ENV_API_KEYS = { openai: 'OPENAI_API_KEY', anthropic: 'ANTHROPIC_API_KEY', google: 'GEMINI_API_KEY' };
+
 class TokenManager {
   addProvider(provider, apiKey, model, baseUrl = null) {
     try {
@@ -48,7 +54,7 @@ class TokenManager {
     instance.id = providerConfig.id;
     instance.provider = providerConfig.provider;
     instance.config = providerConfig;
-    instance._getDecryptedKey = () => decrypt(config.api_key);
+    instance._getDecryptedKey = () => process.env[ENV_API_KEYS[config.provider]] || decrypt(config.api_key);
 
     return instance;
   }

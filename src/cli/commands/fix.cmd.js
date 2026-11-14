@@ -1,21 +1,19 @@
 // src/cli/commands/fix.cmd.js
 
 const chalk = require('chalk');
+const logger = require('../../shared/utils/logger').default;
 
 module.exports = function registerFixCommand(program) {
   program
     .command('fix [action]')
     .description('Fix issues automatically with safe defaults (or `fix undo` to revert the last --migrate-syntax run)')
     .option('-p, --path <path>', 'Project path', process.cwd())
-    .option('--all', 'Apply all fixes including risky ones')
+    .option('--all', 'Apply all fixes including risky ones (never removes a package — see --remove-unused)')
+    .option('--remove-unused', 'Also uninstall packages flagged as unused. Detection is a heuristic (dynamic requires, CLI-only deps, framework conventions), so confirm nothing imports them first')
     .option('-y, --yes', 'Skip confirmation prompt', false)
     .option('--dry-run', 'Show what would be fixed without making changes')
     .option('--dry', 'Alias for --dry-run')
     .option('--preview', 'Preview fixes without applying')
-    .option('--batch', 'Interactive batch mode')
-    .option('--batch-mode <mode>', 'Preset batch mode: critical, high, all')
-    .option('--only <categories>', 'Fix only specific categories')
-    .option('--skip <categories>', 'Skip specific categories')
     .option('--verbose', 'Show detailed output')
     .option('--migrate-syntax', 'On major-version fixes, also rewrite source call-sites (built-in codemods, falling back to your configured AI provider) — nothing is committed; verify with your tests, or run `devcompass fix undo`')
     .action(async (action, options) => {
@@ -37,16 +35,13 @@ module.exports = function registerFixCommand(program) {
           skipConfirm: options.yes,
           dryRun: options.dryRun || options.dry || options.preview,
           preview: options.preview,
-          batch: options.batch,
-          batchMode: options.batchMode,
-          only: options.only,
-          skip: options.skip,
+          removeUnused: !!options.removeUnused,
           verbose: options.verbose,
           migrateSyntax: options.migrateSyntax
         });
       } catch (error) {
         console.error(chalk.red('\n❌ Fix failed:'), error.message);
-        if (process.env.DEBUG) console.error(error.stack);
+        logger.debug(error.stack);
         process.exit(1);
       }
     });

@@ -1,9 +1,9 @@
 // src/features/fix/executors/npm.executor.js
 
-const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { sanitizePackageName, sanitizeVersion } = require('../../../shared/utils/package-sanitizer');
+const { runNpm } = require('../../../shared/utils/run-npm');
 
 class NPMExecutor {
   constructor(projectPath) {
@@ -14,9 +14,10 @@ class NPMExecutor {
     try {
       const safePackageName = sanitizePackageName(packageName);
       const safeVersion = sanitizeVersion(version);
-      // execFile (no shell) so shell interpretation of the package spec is
-      // impossible by construction, independent of the sanitizer above.
-      execFileSync('npm', ['install', `${safePackageName}@${safeVersion}`], { cwd: this.projectPath, stdio: 'pipe', timeout: 60000 });
+      // No shell involved (cross-spawn resolves npm/npm.cmd itself), so
+      // shell interpretation of the package spec is impossible by
+      // construction, independent of the sanitizer above.
+      runNpm(['install', `${safePackageName}@${safeVersion}`], { cwd: this.projectPath, timeout: 60000 });
       return { success: true, package: packageName, version };
     } catch (error) {
       return { success: false, package: packageName, error: error.message };
@@ -26,7 +27,7 @@ class NPMExecutor {
   executeRemove(packageName) {
     try {
       const safePackageName = sanitizePackageName(packageName);
-      execFileSync('npm', ['uninstall', safePackageName], { cwd: this.projectPath, stdio: 'pipe', timeout: 60000 });
+      runNpm(['uninstall', safePackageName], { cwd: this.projectPath, timeout: 60000 });
       return { success: true, package: packageName };
     } catch (error) {
       return { success: false, package: packageName, error: error.message };

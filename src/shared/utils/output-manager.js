@@ -10,7 +10,11 @@ class OutputManager {
     this.directories = {
       root: this.baseDir,
       cache: path.join(this.baseDir, 'cache'),
-      backups: path.join(this.baseDir, 'backups'),
+      // Backups actually live in <project>/.devcompass-backups/ (see
+      // backup-manager.js / backup-restorer.js) — a separate top-level
+      // folder, not <project>/.devcompass/backups/. This used to point at
+      // the wrong, unwritten folder, so `clean --backups` cleaned nothing.
+      backups: path.join(projectPath, '.devcompass-backups'),
       graphs: path.join(this.baseDir, 'graphs'),
       reports: path.join(this.baseDir, 'reports'),
       exports: path.join(this.baseDir, 'exports'),
@@ -18,23 +22,11 @@ class OutputManager {
     };
   }
 
-  ensureDirectories() {
-    Object.values(this.directories).forEach(dir => { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); });
-    this.ensureGitignore();
-  }
-
-  ensureGitignore() {
-    const gitignorePath = path.join(this.projectPath, '.gitignore');
-    const entry = '.devcompass/';
-    try {
-      let content = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
-      if (!content.includes(entry)) fs.writeFileSync(gitignorePath, content.trim() + '\n\n# DevCompass outputs\n' + entry + '\n', 'utf8');
-    } catch (error) { if (process.env.DEBUG) console.error('Failed to update .gitignore:', error.message); }
-  }
-
+  // Create only the folder that is actually being written to, and never edit
+  // the user's .gitignore (commands print a one-line tip instead).
   getPath(type, filename = '') {
     const dir = this.directories[type] || this.directories.root;
-    this.ensureDirectories();
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     return filename ? path.join(dir, filename) : dir;
   }
 
@@ -46,7 +38,14 @@ class OutputManager {
   getTempPath(filename = '') { return this.getPath('temp', filename); }
 
   getRelativePath(absolutePath) { return path.relative(this.projectPath, absolutePath); }
-  exists(type, filename = '') { return fs.existsSync(this.getPath(type, filename)); }
+
+  // Checks only — getPath() creates the directory it returns, so using it
+  // here would make every existence check create the very directory it's
+  // supposed to be testing for.
+  exists(type, filename = '') {
+    const dir = this.directories[type] || this.directories.root;
+    return fs.existsSync(filename ? path.join(dir, filename) : dir);
+  }
 
   list(type) {
     const dir = this.directories[type];
@@ -76,4 +75,22 @@ class OutputManager {
   }
 }
 
+let tipShown = false;
+
+// Commands that write into <project>/.devcompass/ or <project>/.devcompass-backups/
+// (graph, backup, reports) call this after writing, instead of editing the
+// user's .gitignore themselves (C-11). Prints at most once per process run.
+function printGitignoreTipIfNeeded(projectPath) {
+  if (tipShown) return;
+  try {
+    const gitignorePath = path.join(projectPath, '.gitignore');
+    const content = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
+    if (content.includes('.devcompass')) return;
+    tipShown = true;
+    // eslint-disable-next-line no-console
+    console.error('\n💡 Tip: add .devcompass/ and .devcompass-backups/ to your .gitignore\n');
+  } catch (error) { /* silent */ }
+}
+
 module.exports = OutputManager;
+module.exports.printGitignoreTipIfNeeded = printGitignoreTipIfNeeded;

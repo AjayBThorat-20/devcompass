@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const semver = require('semver');
 const registryClient = require('../../shared/services/registry-client');
+const logger = require('../../shared/utils/logger').default;
 
 const FALLBACK_ALTERNATIVES = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../../../data/quality-alternatives.json'), 'utf8')
@@ -50,7 +51,7 @@ function analyzePackageData(packageData, installedVersion = null) {
       autoFixable: (deprecated || isAbandoned) && !!alternative
     };
   } catch (error) {
-    if (process.env.DEBUG) console.error('[dynamic-quality] Analysis failed:', error.message);
+    logger.debug('[dynamic-quality] Analysis failed:', error.message);
     return null;
   }
 }

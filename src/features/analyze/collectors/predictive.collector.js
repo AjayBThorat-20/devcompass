@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { generatePredictiveWarnings } = require('../../alerts/predictive.service');
+const logger = require('../../../shared/utils/logger').default;
 
 async function collectPredictiveData(projectPath, packageJson = null) {
   try {
@@ -21,7 +22,7 @@ async function collectPredictiveData(projectPath, packageJson = null) {
 
     return await generatePredictiveWarnings(dependencies);
   } catch (error) {
-    if (process.env.DEBUG) console.error('Predictive collection failed:', error.message);
+    logger.debug('Predictive collection failed:', error.message);
     const warnings = [];
     warnings.incomplete = true;
     warnings.incompleteReason = error.message;
